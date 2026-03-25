@@ -47,6 +47,9 @@ export async function seed() {
 		image TEXT,
 		role TEXT NOT NULL DEFAULT 'reader',
 		is_active INTEGER NOT NULL DEFAULT 1,
+		banned INTEGER DEFAULT 0,
+		ban_reason TEXT,
+		ban_expires INTEGER,
 		created_at INTEGER,
 		updated_at INTEGER,
 		last_login_at INTEGER
