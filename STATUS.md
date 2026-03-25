@@ -30,6 +30,16 @@ Antes de escribir código de negocio, se deben resolver las siguientes decisione
 2. Actualizar siempre la "Fase Actual" y el "Agente en turno" al traspasar responsabilidad.
 3. Marcar las ADRs como `[x]` cuando sean aceptadas e incluir el enlace al archivo markdown.
 
+## Actualización 2026-03-25 (Evaluación tecnológica frontend)
+
+- Se completa la decisión de framework frontend en `docs/negocio/decisiones/0004-framework-frontend.md`.
+- Resultado: Astro aceptado como framework frontend base (Fase 0), con enfoque de islas y guardrails de mantenibilidad/lock-in.
+- Traspaso sugerido: `@.agents/skills/documentacion-y-roadmap/SKILL.md` para alinear numeración y estado de ADRs bloqueantes en este tablero.
+
+| Fecha | Agente | Acción / Entregable | Estado |
+|-------|--------|---------------------|--------|
+| 2026-03-25 | `@.agents/skills/evaluacion-tecnologica` + `@.agents/skills/direccion-de-plataforma` | ADR-0004 Framework Frontend creada y aceptada | Completado |
+
 ## Actualización 2026-03-25 (Evaluación Tecnológica)
 
 - **Agente en turno:** `@.agents/skills/evaluacion-tecnologica/SKILL.md`
