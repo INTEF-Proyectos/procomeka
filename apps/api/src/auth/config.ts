@@ -86,6 +86,7 @@ export const auth = betterAuth({
 									? `${process.env.OIDC_ISSUER}/.well-known/openid-configuration`
 									: "",
 								scopes: (process.env.OIDC_SCOPE ?? "openid email profile").split(" "),
+								pkce: true,
 							},
 						],
 					}),
