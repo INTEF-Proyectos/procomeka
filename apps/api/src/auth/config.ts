@@ -17,6 +17,7 @@ const db = drizzle(process.env.DATABASE_URL ?? "postgres://localhost:5432/procom
 const oidcEnabled = process.env.OIDC_ENABLED === "true";
 
 export const auth = betterAuth({
+	baseURL: process.env.BETTER_AUTH_URL ?? "http://localhost:3000",
 	database: drizzleAdapter(db, {
 		provider: "pg",
 		schema,

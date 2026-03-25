@@ -1,11 +1,13 @@
 import { userCreate } from "./commands/user-create.ts";
 import { userList } from "./commands/user-list.ts";
+import { seed } from "./commands/seed.ts";
 
 const [command, ...args] = process.argv.slice(2);
 
 const commands: Record<string, (args: string[]) => Promise<void>> = {
 	"user:create": userCreate,
 	"user:list": userList,
+	seed: async () => seed(),
 };
 
 async function main() {
@@ -14,6 +16,7 @@ async function main() {
 		console.log("Comandos disponibles:");
 		console.log("  user:create  --email <email> --name <nombre> --role <rol> --password <pass>");
 		console.log("  user:list");
+		console.log("  seed         Crear usuarios de desarrollo (admin, curator, author, reader)");
 		process.exit(0);
 	}
 

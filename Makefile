@@ -1,4 +1,4 @@
-.PHONY: deps up clean format lint test test-unit test-integration test-e2e test-e2e-firefox test-e2e-postgres check-coverage cli
+.PHONY: deps up clean format lint test test-unit test-integration test-e2e test-e2e-firefox test-e2e-postgres check-coverage cli seed
 
 # Variables
 BUN = bun
@@ -62,3 +62,6 @@ check-coverage:
 
 cli:
 	$(BUN) run --filter '@procomeka/cli' cli -- $(ARGS)
+
+seed:
+	$(BUN) run --filter '@procomeka/cli' cli -- seed
