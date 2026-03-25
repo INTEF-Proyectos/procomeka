@@ -29,3 +29,27 @@ Antes de escribir código de negocio, se deben resolver las siguientes decisione
 1. Nunca borrar historial antiguo, solo añadir nuevas filas al registro.
 2. Actualizar siempre la "Fase Actual" y el "Agente en turno" al traspasar responsabilidad.
 3. Marcar las ADRs como `[x]` cuando sean aceptadas e incluir el enlace al archivo markdown.
+
+## Actualización 2026-03-25 (Evaluación tecnológica frontend)
+
+- Se completa la decisión de framework frontend en `docs/negocio/decisiones/0004-framework-frontend.md`.
+- Resultado: Astro aceptado como framework frontend base (Fase 0), con enfoque de islas y guardrails de mantenibilidad/lock-in.
+- Traspaso sugerido: `@.agents/skills/documentacion-y-roadmap/SKILL.md` para alinear numeración y estado de ADRs bloqueantes en este tablero.
+
+| Fecha | Agente | Acción / Entregable | Estado |
+|-------|--------|---------------------|--------|
+| 2026-03-25 | `@.agents/skills/evaluacion-tecnologica` + `@.agents/skills/direccion-de-plataforma` | ADR-0004 Framework Frontend creada y aceptada | Completado |
+
+## Actualización 2026-03-25 (Evaluación Tecnológica)
+
+- **Agente en turno:** `@.agents/skills/evaluacion-tecnologica/SKILL.md`
+- **Acción realizada:** Se completa propuesta ADR de framework HTTP para API backend en `docs/negocio/decisiones/0003-framework-http-api.md`.
+- **Estado del entregable:** Propuesto (pendiente de aceptación por usuario/PM).
+- **Riesgos abiertos:**
+  - Validar benchmark en caso real de dominio antes de congelar plantilla de servicio.
+  - Confirmar si el tablero global renumera ADRs bloqueantes (el encargo actual usa ADR-0003 para HTTP).
+- **Traspaso de turno sugerido:** `@.agents/skills/direccion-de-plataforma/SKILL.md` para aceptación/rechazo de ADR y orden de implementación.
+
+| Fecha | Agente | Acción / Entregable | Estado |
+|-------|--------|---------------------|--------|
+| 2026-03-25 | `@.agents/skills/evaluacion-tecnologica/SKILL.md` | ADR-0003 framework HTTP API (`docs/negocio/decisiones/0003-framework-http-api.md`) | Propuesto |
