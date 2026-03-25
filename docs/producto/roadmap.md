@@ -18,6 +18,7 @@ El proyecto está en fase de definición. No hay código de aplicación todavía
 | ADR capa API | Completado — ADR-0003 (Hono) |
 | ADR capa frontend | Completado — ADR-0004 (Astro) |
 | ADR base de datos principal | Completado — ADR-0005 (PostgreSQL) |
+| ADR ORM y capa de acceso a datos | Completado — ADR-0006 (Drizzle ORM) |
 | Modelo de dominio v0 | Completado — borrador en `docs/producto/modelo-de-dominio.md` |
 
 ---
