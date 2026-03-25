@@ -20,12 +20,12 @@ up-frontend:
 	$(BUN) run dev:frontend
 
 clean:
-	rm -rf node_modules
 	rm -rf .coverage
 	rm -rf dist
 	rm -rf build
 	rm -rf playwright-report
 	rm -rf test-results
+	rm -f local.db
 	find . -name "*.log" -type f -delete
 
 format:

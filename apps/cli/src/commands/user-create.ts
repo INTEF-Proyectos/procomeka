@@ -1,4 +1,5 @@
 import { Database } from "bun:sqlite";
+import { hashPassword } from "better-auth/crypto";
 
 function parseArgs(args: string[]): Record<string, string> {
 	const result: Record<string, string> = {};
@@ -39,9 +40,7 @@ export async function userCreate(args: string[]) {
 
 	const userId = crypto.randomUUID();
 	const accountId = crypto.randomUUID();
-	const passwordHash = await Bun.password.hash(opts.password, {
-		algorithm: "argon2id",
-	});
+	const passwordHash = await hashPassword(opts.password);
 
 	try {
 		db.run(
