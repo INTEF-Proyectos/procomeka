@@ -59,11 +59,47 @@ import Base from "../layouts/Base.astro";
 	const errorDiv = document.getElementById("error-message") as HTMLDivElement;
 	const submitBtn = document.getElementById("submit-btn") as HTMLButtonElement;
 
-	document.getElementById("oidc-btn")?.addEventListener("click", () => {
-		const apiBase = window.location.port === "4321"
-			? "http://localhost:3000"
-			: "";
-		window.location.href = `${apiBase}/api/auth/sign-in/social?provider=oidc`;
+	document.getElementById("oidc-btn")?.addEventListener("click", async () => {
+		const btn = document.getElementById("oidc-btn") as HTMLButtonElement;
+		btn.disabled = true;
+		btn.textContent = "Redirigiendo...";
+		errorDiv.style.display = "none";
+
+		try {
+			const res = await fetch("/api/auth/sign-in/social", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				credentials: "include",
+				body: JSON.stringify({
+					provider: "oidc",
+					callbackURL: "/dashboard",
+				}),
+				redirect: "manual",
+			});
+
+			const location = res.headers.get("location");
+			if (location) {
+				window.location.href = location;
+				return;
+			}
+
+			if (res.ok) {
+				const data = await res.json().catch(() => null);
+				if (data?.url) {
+					window.location.href = data.url;
+					return;
+				}
+			}
+
+			errorDiv.textContent = "No se pudo iniciar el login institucional";
+			errorDiv.style.display = "block";
+		} catch {
+			errorDiv.textContent = "Error de conexión con el servidor";
+			errorDiv.style.display = "block";
+		} finally {
+			btn.disabled = false;
+			btn.textContent = "Acceder con cuenta institucional (SSO)";
+		}
 	});
 
 	form.addEventListener("submit", async (e) => {
