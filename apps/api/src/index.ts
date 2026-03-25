@@ -31,7 +31,12 @@ app.get("/", (c) =>
 );
 
 app.get("/api/v1/config", (c) =>
-	c.json({ oidcEnabled: process.env.OIDC_ENABLED === "true" }),
+	c.json({
+		oidcEnabled: process.env.OIDC_ENABLED === "true",
+		oidcEndSessionUrl: process.env.OIDC_ISSUER
+			? `${process.env.OIDC_ISSUER}/connect/endsession`
+			: null,
+	}),
 );
 
 app.route("/api/v1", publicRoutes);

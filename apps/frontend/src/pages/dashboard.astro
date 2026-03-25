@@ -97,6 +97,18 @@ import Base from "../layouts/Base.astro";
 			method: "POST",
 			credentials: "include",
 		});
+
+		// Redirigir al end_session del proveedor OIDC si el usuario entró por SSO
+		try {
+			const configRes = await fetch("/api/v1/config");
+			const config = await configRes.json();
+			if (config.oidcEnabled && config.oidcEndSessionUrl) {
+				const returnUrl = `${window.location.origin}/login`;
+				window.location.href = `${config.oidcEndSessionUrl}?post_logout_redirect_uri=${encodeURIComponent(returnUrl)}`;
+				return;
+			}
+		} catch { /* si falla, logout local es suficiente */ }
+
 		window.location.href = "/login";
 	});
 
