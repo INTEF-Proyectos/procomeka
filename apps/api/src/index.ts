@@ -1,6 +1,5 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import { csrf } from "hono/csrf";
 import { auth } from "./auth/config.ts";
 import { type AuthEnv, sessionMiddleware } from "./auth/middleware.ts";
 import { publicRoutes } from "./routes/public.ts";
@@ -17,10 +16,8 @@ app.use(
 	}),
 );
 
-// CSRF protection en rutas de auth
-app.use("/api/auth/*", csrf({ origin: process.env.FRONTEND_URL ?? "http://localhost:4321" }));
-
 // Better Auth handler — gestiona login, registro, sesiones, OIDC
+// Better Auth incluye su propia protección CSRF
 app.on(["POST", "GET"], "/api/auth/*", (c) => auth.handler(c.req.raw));
 
 // Middleware de sesión en todas las rutas
