@@ -11,7 +11,7 @@ Para mantener un ritmo ágil de desarrollo y asegurar la calidad visual y funcio
 ## Opciones Consideradas
 
 * **Opción 1**: Desplegar entornos completos (Backend, Postgres, Frontend) en Render o similar para cada PR.
-* **Opción 2**: Preview estático de PRs usando el modo estático del framework frontend (Vite/Next/Astro) alojado en Cloudflare Pages, con una base de datos en el navegador (ej. `sql.js` o `PGLite` vía WASM/Workers) cargando un dataset (seed) de demostración.
+* **Opción 2**: Preview estático de PRs usando el modo estático del framework frontend (Vite/Next/Astro) alojado en Cloudflare Pages, con una base de datos en el navegador (ej. `sql.js` o `PGLite` vía WASM) cargando un dataset (seed) de demostración.
 * **Opción 3**: No tener entornos de preview y depender únicamente de pruebas automatizadas y ejecución local por parte de los revisores.
 
 ## Decisión

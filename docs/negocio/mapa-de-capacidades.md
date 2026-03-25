@@ -81,6 +81,6 @@ Este documento describe las capacidades funcionales del sistema, organizadas por
 |-----------|-------------|-----------|
 | Panel de administración | Gestión de usuarios, fuentes, configuración | Alta |
 | Logs de auditoría | Trazabilidad de acciones | Media |
-| Jobs de importación | Programación y monitorización de cargas | Alta |
+| Tareas de importación | Programación y monitorización de cargas | Alta |
 | Analítica básica | Métricas de uso y calidad | Media |
 | Backups | Copia y restauración de datos | Alta |

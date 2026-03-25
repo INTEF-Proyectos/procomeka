@@ -24,7 +24,7 @@ Medir si la plataforma realmente mejora el descubrimiento, uso y reutilización 
 | **Métricas sistema** | Prometheus + Grafana |
 | **Logs** | Loki, Logtail, Better Stack |
 | **Errores** | Sentry |
-| **Analítica de búsqueda** | Integrado en Meilisearch/Typesense |
+| **Analítica de búsqueda** | Log de consultas y estadísticas SQL |
 
 Preferir soluciones self-hosted o privacy-first dado el perfil público educativo.
 
@@ -50,7 +50,6 @@ Preferir soluciones self-hosted o privacy-first dado el perfil público educativ
 - Uptime del sistema
 - Latencia P95 de API
 - Fallos de importación por lote
-- Jobs fallidos en cola
 
 ## Entregables
 

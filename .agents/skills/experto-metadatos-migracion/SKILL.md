@@ -32,7 +32,7 @@ Garantizar que los cientos de miles de recursos educativos históricos y de terc
 - Scripts base de validación y limpieza tipados (`Bun`/TypeScript).
 - Informe técnico de estrategias de deduplicación.
 - Plan de migración por lotes (estrategia de rollback, control de errores).
-- Procedimiento para gestionar las "colas muertas" (Dead Letter Queues) de recursos irreparables.
+- Procedimiento para revisar lotes de importación fallidos e intentar su reprocesamiento.
 
 ## Regla
 

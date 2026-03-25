@@ -25,7 +25,7 @@ Diseñar una base desplegable, observable y recuperable usando contenedores y he
 | **Hosting** | VPS (Hetzner, DigitalOcean), Fly.io, Railway, Render |
 | **Secrets** | Doppler, Vault, GitHub Secrets |
 | **Observabilidad** | Grafana + Prometheus, Loki (logs), Sentry (errores) |
-| **Backups** | pg_dump automatizado, S3-compatible |
+| **Backups** | pg_dump automatizado a disco local o NAS |
 | **CDN** | Cloudflare, BunnyCDN |
 
 ## Entornos mínimos
