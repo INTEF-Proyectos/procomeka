@@ -11,10 +11,13 @@ export type AuthEnv = {
 	};
 };
 
-/**
- * Middleware que carga la sesión del usuario en el contexto de Hono.
- * Se ejecuta en todas las rutas; no bloquea si no hay sesión.
- */
+const ROLE_HIERARCHY: Record<string, number> = {
+	reader: 0,
+	author: 1,
+	curator: 2,
+	admin: 3,
+};
+
 export async function sessionMiddleware(c: Context<AuthEnv>, next: Next) {
 	const result = await auth.api.getSession({
 		headers: c.req.raw.headers,
@@ -32,9 +35,6 @@ export async function sessionMiddleware(c: Context<AuthEnv>, next: Next) {
 	await next();
 }
 
-/**
- * Guard que requiere autenticación. Devuelve 401 si no hay sesión.
- */
 export async function requireAuth(c: Context<AuthEnv>, next: Next) {
 	const user = c.get("user");
 	if (!user) {
@@ -44,10 +44,20 @@ export async function requireAuth(c: Context<AuthEnv>, next: Next) {
 }
 
 /**
- * Factory que crea un guard de rol mínimo.
- * Ejemplo: requireRole("curator") permite curator y admin.
+ * Valida roles al construir el middleware (falla al arrancar, no en runtime).
+ * Usa jerarquía: requireRole("curator") permite curator y admin.
  */
 export function requireRole(...roles: string[]) {
+	const minLevel = Math.min(
+		...roles.map((r) => {
+			const level = ROLE_HIERARCHY[r];
+			if (level === undefined) {
+				throw new Error(`requireRole: rol desconocido "${r}". Válidos: ${Object.keys(ROLE_HIERARCHY).join(", ")}`);
+			}
+			return level;
+		}),
+	);
+
 	return async (c: Context<AuthEnv>, next: Next) => {
 		const user = c.get("user");
 		if (!user) {
@@ -55,11 +65,7 @@ export function requireRole(...roles: string[]) {
 		}
 
 		const userRole = (user as AuthUser & { role?: string }).role ?? "reader";
-		const roleHierarchy = ["reader", "author", "curator", "admin"];
-		const userLevel = roleHierarchy.indexOf(userRole);
-		const minLevel = Math.min(
-			...roles.map((r) => roleHierarchy.indexOf(r)),
-		);
+		const userLevel = ROLE_HIERARCHY[userRole] ?? -1;
 
 		if (userLevel < minLevel) {
 			return c.json({ error: "Permisos insuficientes" }, 403);

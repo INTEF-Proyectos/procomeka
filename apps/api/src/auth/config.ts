@@ -12,18 +12,13 @@ import {
 
 const frontendUrl = process.env.FRONTEND_URL ?? "http://localhost:4321";
 const oidcEnabled = process.env.OIDC_ENABLED === "true";
-const usePostgres = !!process.env.DATABASE_URL;
 
 /**
- * En desarrollo (sin DATABASE_URL): SQLite local vía bun:sqlite + Drizzle.
- * En producción (con DATABASE_URL): PostgreSQL vía bun:sql + Drizzle.
- *
- * Cada entorno usa su propio schema Drizzle (pgTable vs sqliteTable)
- * porque Drizzle requiere tipos de tabla específicos por dialecto.
+ * SQLite en dev (sin DATABASE_URL), PostgreSQL en prod (con DATABASE_URL).
+ * Cada entorno usa su propio schema Drizzle (pgTable vs sqliteTable).
  */
 function createDrizzleAdapter() {
-	if (usePostgres) {
-		// biome-ignore lint/style/noCommaOperator: dynamic import workaround
+	if (process.env.DATABASE_URL) {
 		const { drizzle } = require("drizzle-orm/bun-sql");
 		const pgSchema = require("@procomeka/db/schema");
 		const db = drizzle(process.env.DATABASE_URL, { schema: pgSchema });
@@ -32,10 +27,8 @@ function createDrizzleAdapter() {
 
 	const { drizzle } = require("drizzle-orm/bun-sqlite");
 	const { Database } = require("bun:sqlite");
-	const dbPath = `${import.meta.dir}/../../../../local.db`;
+	const dbPath = process.env.DB_PATH ?? `${import.meta.dir}/../../../../local.db`;
 	const sqlite = new Database(dbPath, { create: true });
-
-	// Schema SQLite para Better Auth — ruta relativa desde apps/api/src/auth/
 	const sqliteSchema = require("../../../../packages/db/src/schema/auth-sqlite.ts");
 	const db = drizzle(sqlite, { schema: sqliteSchema });
 	return drizzleAdapter(db, { provider: "sqlite", schema: sqliteSchema });
@@ -51,8 +44,8 @@ export const auth = betterAuth({
 		minPasswordLength: 8,
 	},
 	session: {
-		expiresIn: 60 * 60 * 24 * 7, // 7 días
-		updateAge: 60 * 60 * 24, // refrescar diariamente
+		expiresIn: 60 * 60 * 24 * 7,
+		updateAge: 60 * 60 * 24,
 	},
 	plugins: [
 		adminPlugin({
@@ -76,7 +69,7 @@ export const auth = betterAuth({
 								discoveryUrl: process.env.OIDC_ISSUER
 									? `${process.env.OIDC_ISSUER}/.well-known/openid-configuration`
 									: "",
-								scopes: ["openid", "email", "profile"],
+								scopes: (process.env.OIDC_SCOPE ?? "openid email profile").split(" "),
 							},
 						],
 					}),

@@ -1,6 +1,6 @@
 import { Database } from "bun:sqlite";
 
-export async function userList() {
+export function userList() {
 	const dbPath = process.env.DB_PATH ?? `${import.meta.dir}/../../../../local.db`;
 	const db = new Database(dbPath);
 
@@ -14,9 +14,10 @@ export async function userList() {
 		is_active: number;
 	}>;
 
+	db.close();
+
 	if (users.length === 0) {
 		console.log("No hay usuarios registrados.");
-		db.close();
 		return;
 	}
 
@@ -25,5 +26,4 @@ export async function userList() {
 		const active = u.is_active ? "activo" : "inactivo";
 		console.log(`  ${u.email} — ${u.name} [${u.role}] (${active})`);
 	}
-	db.close();
 }

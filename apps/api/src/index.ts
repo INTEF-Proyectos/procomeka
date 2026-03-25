@@ -7,26 +7,23 @@ import { adminRoutes } from "./routes/admin.ts";
 
 const app = new Hono<AuthEnv>();
 
-// CORS — permite peticiones del frontend en dev y producción
+// CORS para rutas API (no necesario en /health)
 app.use(
-	"*",
+	"/api/*",
 	cors({
 		origin: process.env.FRONTEND_URL ?? "http://localhost:4321",
 		credentials: true,
 	}),
 );
 
-// Better Auth handler — gestiona login, registro, sesiones, OIDC
-// Better Auth incluye su propia protección CSRF
+// Better Auth handler
 app.on(["POST", "GET"], "/api/auth/*", (c) => auth.handler(c.req.raw));
 
-// Middleware de sesión en todas las rutas
-app.use("*", sessionMiddleware);
+// Sesión solo en rutas que la necesitan (admin + session endpoint)
+app.use("/api/admin/*", sessionMiddleware);
 
-// Health check
 app.get("/health", (c) => c.json({ status: "ok" }));
 
-// Info de la API
 app.get("/", (c) =>
 	c.json({
 		name: "Procomeka API",
@@ -34,10 +31,7 @@ app.get("/", (c) =>
 	}),
 );
 
-// Rutas públicas (sin auth)
 app.route("/api/v1", publicRoutes);
-
-// Rutas admin/editorial (auth + RBAC)
 app.route("/api/admin", adminRoutes);
 
 export default {
