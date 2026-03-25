@@ -47,6 +47,16 @@ describe("Rutas públicas /api/v1", () => {
 	});
 });
 
+describe("Config /api/v1/config", () => {
+	test("GET /api/v1/config devuelve oidcEnabled y oidcEndSessionUrl", async () => {
+		const res = await app.request("/api/v1/config");
+		expect(res.status).toBe(200);
+		const body = await res.json();
+		expect(typeof body.oidcEnabled).toBe("boolean");
+		expect("oidcEndSessionUrl" in body).toBe(true);
+	});
+});
+
 describe("Rutas admin /api/admin — sin autenticación", () => {
 	test("POST /api/admin/resources devuelve 401 sin sesión", async () => {
 		const res = await app.request("/api/admin/resources", {
