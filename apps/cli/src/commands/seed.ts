@@ -109,7 +109,7 @@ export async function seed() {
 		const result = insertUser.run(userId, u.email, u.name, u.role, now, now);
 		if (result.changes > 0) {
 			insertAccount.run(accountId, userId, userId, passwordHash, now, now);
-			console.log(`  + ${u.email} [${u.role}] — contraseña: ${u.password}`);
+			console.log(`  + ${u.email} [${u.role}]`);
 		} else {
 			console.log(`  - ${u.email} ya existe, saltando`);
 		}
