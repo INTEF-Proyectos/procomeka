@@ -34,10 +34,10 @@ AGENTS.md                          # Constitución del proyecto: reglas, roles y
 .templates/                        # Plantillas obligatorias para agentes
 ├── adr-template.md                # Plantilla para ADRs
 
-apps/                              # Código fuente principal (Frontend, API, Workers)
+apps/                              # Código fuente principal (Frontend, API)
 ├── api/                           # Backend API REST
 ├── frontend/                      # UI pública
-└── workers/                       # Procesamiento asíncrono
+
 
 packages/                          # Librerías compartidas
 ├── core-domain/                   # Lógica de dominio y tipos
@@ -161,7 +161,7 @@ Antes de escribir código de negocio deben resolverse estas decisiones:
 | ADR-0003 | Framework HTTP para API | Pendiente |
 | ADR-0004 | Framework frontend | Pendiente |
 | ADR-0005 | Base de datos principal | Pendiente |
-| ADR-0006 | Motor de búsqueda | Pendiente |
+
 
 ## Convenciones
 

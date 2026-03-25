@@ -30,11 +30,9 @@ Decidir cómo se distribuye la responsabilidad entre capas del sistema y qué so
 | Backend / API | Hono + Bun, Elysia, Fastify |
 | Gestión de contenido | Payload CMS, Directus, Strapi, custom |
 | Base de datos | PostgreSQL, SQLite (Turso), MySQL |
-| Búsqueda | Meilisearch, Typesense, Elasticsearch, Postgres FTS |
-| Colas / jobs | BullMQ, Bun workers, Inngest |
+| Búsqueda | Base de datos principal (FTS nativo) |
 | Autenticación | Better Auth, Lucia, Auth.js, Clerk |
-| Almacenamiento | S3-compatible, R2, local |
-| Caché | Redis, Upstash, Bun-native |
+| Almacenamiento | Disco local o volumen montado |
 
 ## Marco de decisión
 

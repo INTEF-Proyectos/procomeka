@@ -18,7 +18,7 @@ El proyecto está en fase de definición. No hay código de aplicación todavía
 | ADR capa API (pendiente) | Pendiente |
 | ADR capa frontend (pendiente) | Pendiente |
 | ADR base de datos (pendiente) | Pendiente |
-| ADR motor de búsqueda (pendiente) | Pendiente |
+
 | Modelo de dominio v0 | Pendiente |
 
 ---

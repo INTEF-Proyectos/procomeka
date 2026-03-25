@@ -20,9 +20,7 @@ Diseñar experiencias que permitan al profesorado encontrar recursos útiles con
 
 | Motor | Perfil de uso |
 |-------|--------------|
-| **Meilisearch** | Autohosted, rápido, facetas, typo-tolerance, buena DX |
-| **Typesense** | Similar a Meilisearch, buen rendimiento |
-| **Elasticsearch / OpenSearch** | Potente, mayor coste operacional |
+| **FTS Nativo** | Búsqueda nativa en la base de datos principal |
 | **PostgreSQL FTS** | Simple si el volumen no requiere motor dedicado |
 
 La elección se documenta como ADR.

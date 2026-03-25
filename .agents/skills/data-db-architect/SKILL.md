@@ -22,7 +22,7 @@ Definir y consolidar el modelo de datos relacional y/o documental. Eres el respo
 - **Rendimiento y Escalabilidad:** Definir índices estratégicos, vistas materializadas y estrategias de query-tuning para optimizar búsquedas.
 - **Integridad:** Establecer constraints (claves foráneas, unicidad, checks) a nivel base de datos para proteger la calidad de los metadatos.
 - **Auditoría:** Diseñar estrategias para mantener el historial de cambios, versionado y la autoría (logs de auditoría, soft deletes, triggers).
-- **Sincronización:** Definir la arquitectura para cruzar datos transaccionales con el motor de búsqueda y analítica (ej. CDC, colas, vistas).
+- **Búsqueda:** Configurar los índices FTS (Full-Text Search) directamente en la base de datos para la búsqueda de catálogo.
 - **Decisión Tecnológica:** Liderar la decisión (ADR) sobre la base de datos principal, cerrando la duda entre arquitecturas relacionales tradicionales o perimetrales.
 
 ## Entregables

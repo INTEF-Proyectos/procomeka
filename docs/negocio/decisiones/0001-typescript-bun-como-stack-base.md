@@ -10,7 +10,7 @@ El proyecto necesita un stack tecnológico de referencia que:
 - Permita velocidad de desarrollo alta con un equipo pequeño
 - Sea coherente en frontend y backend (mismo lenguaje)
 - Tenga buenas capacidades de testing integradas
-- Soporte scripts de migración, jobs y API en el mismo ecosistema
+- Soporte scripts de migración, tareas y API en el mismo ecosistema
 - Sea mantenible a medio y largo plazo
 
 ## Opciones consideradas
