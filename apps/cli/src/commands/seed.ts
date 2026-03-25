@@ -43,7 +43,7 @@ export async function seed() {
 		id TEXT PRIMARY KEY,
 		email TEXT NOT NULL UNIQUE,
 		email_verified INTEGER NOT NULL DEFAULT 0,
-		name TEXT NOT NULL,
+		name TEXT,
 		image TEXT,
 		role TEXT NOT NULL DEFAULT 'reader',
 		is_active INTEGER NOT NULL DEFAULT 1,
