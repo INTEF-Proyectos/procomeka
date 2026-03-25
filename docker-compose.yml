@@ -1,0 +1,43 @@
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: procomeka
+      POSTGRES_PASSWORD: procomeka
+      POSTGRES_DB: procomeka
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U procomeka"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  api:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgres://procomeka:procomeka@db:5432/procomeka
+      BETTER_AUTH_URL: http://localhost:3000
+      BETTER_AUTH_SECRET: docker-local-dev-secret-change-in-production
+      FRONTEND_URL: http://localhost:4321
+    depends_on:
+      db:
+        condition: service_healthy
+
+  seed:
+    build: .
+    command: ["bun", "run", "apps/cli/src/index.ts", "seed"]
+    environment:
+      DATABASE_URL: postgres://procomeka:procomeka@db:5432/procomeka
+    depends_on:
+      db:
+        condition: service_healthy
+    profiles:
+      - seed
+
+volumes:
+  pgdata:
