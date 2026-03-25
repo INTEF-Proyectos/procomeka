@@ -58,7 +58,7 @@ type Resource = {
 
 ### MediaItem (Elemento multimedia)
 
-Archivo o URL asociada a un recurso.
+Archivo local o URL asociada a un recurso.
 
 ```typescript
 type MediaItem = {
@@ -66,7 +66,7 @@ type MediaItem = {
   resourceId: string
   type: 'file' | 'external_url' | 'embed'
   mimeType?: string
-  url: string
+  url: string                  // Ruta al archivo en disco o URL externa
   fileSize?: number
   filename?: string
   isPrimary: boolean
@@ -109,27 +109,6 @@ type User = {
 }
 ```
 
-### ImportJob (Job de importación)
-
-Registro de una tarea de ingestión desde fuente externa.
-
-```typescript
-type ImportJob = {
-  id: string
-  source: string                // nombre o URL de la fuente
-  format: ImportFormat
-  status: JobStatus
-  startedAt?: Date
-  completedAt?: Date
-  totalItems?: number
-  importedItems?: number
-  failedItems?: number
-  errorLog?: string
-  createdBy: string
-  createdAt: Date
-}
-```
-
 ---
 
 ## Vocabularios controlados
@@ -168,11 +147,6 @@ admin | curator | author | reader
 csv | json | oai-pmh | rss | lom-xml | otro
 ```
 
-### JobStatus
-```
-pendiente | en-proceso | completado | fallido | cancelado
-```
-
 ---
 
 ## Relaciones clave
@@ -183,7 +157,6 @@ Resource >── Subject            (N recursos tienen N materias)
 Resource >── EducationalLevel   (N recursos tienen N niveles)
 Collection >──< Resource        (N colecciones tienen N recursos)
 User ──< Resource               (1 usuario crea N recursos)
-User ──< ImportJob              (1 usuario lanza N jobs)
 ```
 
 ---

@@ -6,7 +6,6 @@ Borrador. Las capas marcadas como "pendiente de ADR" no tienen tecnología decid
 
 ---
 
-
 ## Arquitectura del antiguo Procomún y proceso de migración
 
 ### Arquitectura actual (Legacy)
@@ -30,12 +29,12 @@ El paso a la nueva arquitectura implicará un proceso de **Migración de Conteni
    - Limpieza y deduplicación de registros.
    - Transformar los permisos y asociaciones de los recursos para que encajen en el nuevo modelo de moderación, licencias y validación.
 3. **Carga (Load):**
-   - Ingestar de forma masiva (vía *Jobs de Ingestión*) el contenido transformado a la nueva base de datos y su indexación inmediata en el nuevo motor de búsqueda.
+   - Ingestar de forma masiva (vía scripts de ingestión) el contenido transformado a la nueva base de datos.
 
 
 ## Visión general
 
-El sistema se organiza en capas desacopladas con contratos explícitos entre ellas. El lenguaje de toda la pila es TypeScript. El runtime de servidor es Bun.
+El sistema se organiza en capas desacopladas con contratos explícitos entre ellas. El lenguaje de toda la pila es TypeScript. El runtime de servidor es Bun. La arquitectura sigue principios estrictos de simplicidad (KISS) para minimizar la carga operativa, basándose en un diseño monolítico que resuelve el almacenamiento en disco y la búsqueda en base de datos.
 
 ```
 ┌─────────────────────────────────────────────┐
@@ -47,23 +46,23 @@ El sistema se organiza en capas desacopladas con contratos explícitos entre ell
 │                 API Layer                    │
 │     REST público + Admin API                 │
 │     TypeScript + Bun  [ADR pendiente]        │
-└────────┬──────────────────┬─────────────────┘
-         │                  │
-┌────────▼────────┐ ┌───────▼─────────────────┐
-│  Frontend       │ │  Jobs / Workers          │
-│  público        │ │  Ingestión, importación  │
-│  [ADR pendiente]│ │  TypeScript + Bun        │
-└─────────────────┘ └───────┬─────────────────┘
-                             │
-┌────────────────────────────▼────────────────┐
+└────────┬────────────────────────────────────┘
+         │
+┌────────▼────────┐
+│  Frontend       │
+│  público        │
+│  [ADR pendiente]│
+└─────────────────┘
+         │
+┌────────▼────────────────────────────────────┐
 │              Capa de servicios               │
-│   Catálogo, Curación, Búsqueda, Usuarios     │
+│   Catálogo, Curación, Búsqueda, Tareas       │
 │         TypeScript (dominio puro)            │
 └────────┬──────────────────┬─────────────────┘
          │                  │
 ┌────────▼────────┐ ┌───────▼─────────────────┐
-│  Base de datos  │ │  Motor de búsqueda       │
-│  [ADR pendiente]│ │  [ADR pendiente]         │
+│  Base de datos  │ │  Sistema de Archivos     │
+│  [ADR pendiente]│ │  Local / Volumen montado │
 └─────────────────┘ └─────────────────────────┘
 ```
 
@@ -72,6 +71,7 @@ El sistema se organiza en capas desacopladas con contratos explícitos entre ell
 ### API Layer
 - Expone endpoints REST para clientes externos y frontend
 - Valida entrada, aplica autenticación y autorización
+- Orquesta tareas programadas o asíncronas sencillas que pueden lanzarse vía API o CLI
 - No contiene lógica de negocio; delega en servicios
 - Pendiente de ADR: Hono + Bun vs Elysia vs Fastify
 
@@ -80,34 +80,29 @@ El sistema se organiza en capas desacopladas con contratos explícitos entre ell
 - Búsqueda, fichas de recurso, colecciones, descarga
 - Pendiente de ADR: Next.js vs Astro vs Remix
 
-### Jobs / Workers
-- Importación programada desde fuentes externas
-- Procesamiento de lotes de ingestión
-- Enriquecimiento asíncrono de metadatos
-- Implementado con Bun workers o sistema de colas (pendiente de ADR)
-
 ### Capa de servicios
-- Lógica de negocio: catálogo, curación, búsqueda, usuarios
+- Lógica de negocio: catálogo, curación, búsqueda (FTS en base de datos), usuarios, importación programada y procesamiento de archivos.
 - Tipos y contratos TypeScript compartidos entre capas
 - Sin dependencia directa de framework HTTP ni de ORM específico
 
 ### Base de datos
 - Almacenamiento principal de recursos, metadatos y usuarios
+- Índice de búsqueda (usando SQL FTS nativo, ej: Postgres Full-Text Search)
 - Pendiente de ADR: PostgreSQL vs SQLite/Turso
 
-### Motor de búsqueda
-- Índice optimizado para búsqueda textual y facetas
-- Sincronizado desde la base de datos principal
-- Pendiente de ADR: Meilisearch vs Typesense vs Postgres FTS
+### Sistema de Archivos
+- Almacenamiento directo en disco físico de los archivos subidos, metadatos voluminosos en crudo o multimedia.
+- Decisiones de hardware / replicación delegadas al administrador del sistema (ej: disco local, NAS, SAN, etc.).
 
 ## Principios de diseño
 
 1. **Contratos explícitos**: cada capa define tipos TypeScript de entrada y salida
 2. **Sin lógica de negocio en la API**: la API valida y delega, los servicios deciden
-3. **Jobs idempotentes**: toda importación puede reejecutarse sin efectos no deseados
-4. **Observabilidad desde el inicio**: logs estructurados, métricas, trazas en todas las capas
-5. **Accesibilidad como requisito**: no como añadido posterior
-6. **Entorno estático funcional por PR**: Capacidad de generar una versión estática de la plataforma (usando una base de datos local en cliente como PGLite o sql.js) para probar el sistema desde el navegador en cada Pull Request de forma ligera, sin despliegues de backend.
+3. **Simplicidad ante todo (KISS)**: se prescinde de motores de búsqueda dedicados, sistemas de colas o buckets de objetos para mantener la operativa sencilla (monolito + DB + disco).
+4. **Tareas de ingestión idempotentes**: toda importación puede reejecutarse sin efectos no deseados
+5. **Observabilidad desde el inicio**: logs estructurados, métricas, trazas en todas las capas
+6. **Accesibilidad como requisito**: no como añadido posterior
+7. **Entorno estático funcional por PR**: Capacidad de generar una versión estática de la plataforma (usando una base de datos local en cliente como PGLite o sql.js) para probar el sistema desde el navegador en cada Pull Request de forma ligera, sin despliegues de backend.
 
 ## ADRs relacionadas
 
@@ -116,4 +111,3 @@ El sistema se organiza en capas desacopladas con contratos explícitos entre ell
 - ADR-0003: Framework HTTP para API (pendiente)
 - ADR-0004: Framework frontend (pendiente)
 - ADR-0005: Base de datos principal (pendiente)
-- ADR-0006: Motor de búsqueda (pendiente)

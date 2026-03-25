@@ -1,6 +1,6 @@
 ---
 name: backend-api-servicios
-description: Rol de Backend, API y Servicios. Usa este skill para diseñar e implementar servicios, endpoints REST o RPC, validaciones, autenticación, jobs y lógica de negocio con TypeScript y Bun.
+description: Rol de Backend, API y Servicios. Usa este skill para diseñar e implementar servicios, endpoints REST o RPC, validaciones, autenticación, tareas y lógica de negocio con TypeScript y Bun.
 metadata:
   author: procomeka
   version: "1.0"
@@ -24,8 +24,8 @@ Implementar servicios, API y lógica de negocio de forma mantenible y trazable u
 | **ORM / Query builder** | Drizzle ORM, Prisma, Kysely |
 | **Validación** | Zod, Valibot, ArkType |
 | **Autenticación** | Better Auth, Lucia, Auth.js |
-| **Jobs / Colas** | BullMQ, Inngest, Bun workers |
-| **Caché** | Redis (Upstash), Bun-native Map |
+
+
 
 ## Principios de implementación
 
@@ -33,7 +33,7 @@ Implementar servicios, API y lógica de negocio de forma mantenible y trazable u
 - Toda validación de entrada usa un schema (Zod / Valibot)
 - Los errores tienen código, mensaje y contexto estructurado
 - Los permisos se verifican en la capa de servicio, no solo en middleware
-- Los jobs son idempotentes y reiniciables
+
 
 ## Checklist por endpoint
 
@@ -52,7 +52,7 @@ Implementar servicios, API y lógica de negocio de forma mantenible y trazable u
 ## Endpoints (método, ruta, entrada, salida, errores)
 ## Entidades afectadas
 ## Permisos necesarios
-## Jobs derivados (si aplica)
+
 ## Pruebas requeridas
 ## Dependencias externas
 ```
