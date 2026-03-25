@@ -1,3 +1,2 @@
 [test]
-root = "tests"
-coverage = true
+# Tests unitarios en apps/, e2e en e2e/ (se ejecutan con playwright, no con bun test)
