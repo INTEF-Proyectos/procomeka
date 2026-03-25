@@ -76,6 +76,7 @@ export async function seed() {
 		access_token_expires_at INTEGER,
 		refresh_token_expires_at INTEGER,
 		scope TEXT,
+		id_token TEXT,
 		password TEXT,
 		created_at INTEGER,
 		updated_at INTEGER
