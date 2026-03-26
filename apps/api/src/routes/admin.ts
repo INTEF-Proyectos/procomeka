@@ -16,6 +16,7 @@ import {
 	validateCreateResource,
 	validateUpdateResource,
 	validateStatus,
+	validateTransition,
 } from "../resources/validation.ts";
 
 const adminRoutes = new Hono<AuthEnv>();
@@ -49,7 +50,8 @@ adminRoutes.post("/resources", requireRole("author"), async (c) => {
 		return c.json({ error: "Validación fallida", details: validation.errors }, 400);
 	}
 
-	const result = await createResource(body);
+	const user = c.get("user") as { id: string };
+	const result = await createResource({ ...body, createdBy: user.id });
 	return c.json(result, 201);
 });
 
@@ -77,7 +79,7 @@ adminRoutes.delete("/resources/:id", requireRole("admin"), async (c) => {
 	return c.json({ id, deleted: true });
 });
 
-adminRoutes.patch("/resources/:id/status", requireRole("curator"), async (c) => {
+adminRoutes.patch("/resources/:id/status", requireRole("author"), async (c) => {
 	const { id } = c.req.param();
 	const body = await c.req.json();
 
@@ -86,9 +88,19 @@ adminRoutes.patch("/resources/:id/status", requireRole("curator"), async (c) => 
 		return c.json({ error: "Validación fallida", details: validation.errors }, 400);
 	}
 
-	const user = c.get("user");
-	const userId = (user as { id: string }).id;
-	await updateEditorialStatus(id, body.status, userId);
+	const existing = await getResourceById(id);
+	if (!existing) {
+		return c.json({ error: "Recurso no encontrado" }, 404);
+	}
+
+	const user = c.get("user") as { id: string; role?: string };
+	const userRole = user.role ?? "reader";
+	const transitionCheck = validateTransition(existing.editorialStatus, body.status, userRole);
+	if (!transitionCheck.valid) {
+		return c.json({ error: "Transición no permitida", details: transitionCheck.errors }, 403);
+	}
+
+	await updateEditorialStatus(id, body.status, user.id);
 	return c.json({ id, status: body.status });
 });
 

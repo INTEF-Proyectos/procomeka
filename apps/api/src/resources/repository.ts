@@ -35,6 +35,7 @@ export async function createResource(data: {
 	publisher?: string;
 	subjects?: string[];
 	levels?: string[];
+	createdBy?: string;
 }) {
 	return repo.createResource(getDb().db, data);
 }

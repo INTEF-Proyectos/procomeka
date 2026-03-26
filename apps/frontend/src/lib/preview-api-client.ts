@@ -237,6 +237,19 @@ export class PreviewApiClient implements ApiClient {
 		return { ok: true };
 	}
 
+	async updateResourceStatus(id: string, status: string): Promise<{ id: string; status: string }> {
+		const { getResourceById: get, updateEditorialStatus } = await import("@procomeka/db/repository");
+		const existing = await get(this.db, id);
+		if (!existing) throw { error: "Recurso no encontrado" };
+
+		const { validateTransition } = await import("@procomeka/db/validation");
+		const check = validateTransition(existing.editorialStatus, status, this.currentUser.role);
+		if (!check.valid) throw { error: "Transición no permitida", details: check.errors };
+
+		await updateEditorialStatus(this.db, id, status, this.currentUser.id);
+		return { id, status };
+	}
+
 	async deleteResource(id: string): Promise<void> {
 		const { deleteResource: del } = await import("@procomeka/db/repository");
 		await del(this.db, id);

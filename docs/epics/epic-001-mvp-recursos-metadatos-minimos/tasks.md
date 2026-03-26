@@ -60,3 +60,36 @@ En desarrollo
   - flujo editorial de recursos,
   - facetas de búsqueda más ricas,
   - colecciones públicas reales.
+
+## Actualización 2026-03-26 — Flujo editorial de recursos
+
+### Backend
+- [x] Añadir reglas de transición editorial (`TRANSITION_RULES`, `validateTransition`) en `packages/db/src/validation.ts`.
+- [x] Actualizar endpoint `PATCH /api/admin/resources/:id/status`: abrir a `author` (antes solo `curator`), validar transiciones por rol.
+- [x] Añadir campo `createdBy` al schema de recursos (FK a `user.id`) con migración automática.
+- [x] Inyectar `createdBy` automáticamente al crear recurso desde la API.
+- [x] Resolver `createdByName` via LEFT JOIN con tabla `user` en listados y detalle.
+
+### Frontend
+- [x] Stepper visual en `editar.astro`: 3 pasos (Borrador / En revisión / Aprobado) con colores semafóricos (rojo / naranja / verde).
+- [x] Botones de acción dinámicos según estado y rol del usuario (Enviar a revisión, Aprobar, Devolver, Archivar, Restaurar).
+- [x] Mostrar nombre del creador del recurso en vista de edición, dashboard y listado público.
+- [x] Botón "Editar" en ficha pública de recurso (solo si logueado como author+).
+- [x] Colores de badges de estado actualizados: draft=rojo, review=naranja, published=verde.
+
+### API Client
+- [x] Nuevo método `updateResourceStatus` en interfaz `ApiClient`, `HttpApiClient` y `PreviewApiClient`.
+
+### Testing
+- [x] 18 tests unitarios de reglas de transición (`validateTransition`).
+- [x] Tests de API actualizados: author puede draft→review, author NO puede review→published, curator puede review→published, 404 para recurso inexistente.
+- [x] 132 tests pasando, 94.57% cobertura de líneas.
+
+### Transiciones permitidas
+| Desde | Hacia | Rol mínimo |
+|-------|-------|------------|
+| draft | review | author |
+| review | draft | curator |
+| review | published | curator |
+| published | archived | curator |
+| archived | draft | curator |

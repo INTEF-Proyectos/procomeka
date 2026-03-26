@@ -168,6 +168,50 @@ export function validateUpdateResource(body: unknown): ValidationResult {
 	return { valid: errors.length === 0, errors };
 }
 
+export const ROLE_LEVELS: Record<string, number> = {
+	reader: 0,
+	author: 1,
+	curator: 2,
+	admin: 3,
+} as const;
+
+export const TRANSITION_RULES: Record<string, { to: EditorialStatus; minRole: string }[]> = {
+	draft: [{ to: "review", minRole: "author" }],
+	review: [
+		{ to: "draft", minRole: "curator" },
+		{ to: "published", minRole: "curator" },
+	],
+	published: [{ to: "archived", minRole: "curator" }],
+	archived: [{ to: "draft", minRole: "curator" }],
+};
+
+export function validateTransition(
+	currentStatus: string,
+	newStatus: string,
+	userRole: string,
+): ValidationResult {
+	const rules = TRANSITION_RULES[currentStatus];
+	if (!rules) {
+		return { valid: false, errors: [{ field: "status", message: `Estado actual no válido: ${currentStatus}` }] };
+	}
+	const rule = rules.find((r) => r.to === newStatus);
+	if (!rule) {
+		return {
+			valid: false,
+			errors: [{ field: "status", message: `Transición no permitida: ${currentStatus} → ${newStatus}` }],
+		};
+	}
+	const userLevel = ROLE_LEVELS[userRole] ?? -1;
+	const minLevel = ROLE_LEVELS[rule.minRole] ?? 99;
+	if (userLevel < minLevel) {
+		return {
+			valid: false,
+			errors: [{ field: "status", message: `Rol insuficiente para esta transición. Se requiere: ${rule.minRole}` }],
+		};
+	}
+	return { valid: true, errors: [] };
+}
+
 export function validateStatus(status: unknown): ValidationResult {
 	if (!isNonEmptyString(status)) {
 		return { valid: false, errors: [{ field: "status", message: "El estado es obligatorio" }] };
