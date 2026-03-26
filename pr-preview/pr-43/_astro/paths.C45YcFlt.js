@@ -1,0 +1,1 @@
+function o(n){const i=typeof window<"u"&&window.__BASE_URL__||"/";let e=n.replace(/^\//,"");return typeof window<"u"&&window.__PREVIEW_MODE__===!0&&e&&!e.includes(".")&&!e.endsWith("/")&&(e+="/"),i+e}export{o as u};
