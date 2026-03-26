@@ -9,6 +9,7 @@ import {
 	resourceSubjects,
 	resourceLevels,
 } from "./schema/resources.ts";
+import { user } from "./schema/auth.ts";
 
 type DrizzleDB = {
 	select: (...args: unknown[]) => unknown;
@@ -53,8 +54,28 @@ export async function listResources(
 	const where = conditions.reduce((a, b) => sql`${a} AND ${b}`);
 
 	const rows = await db
-		.select()
+		.select({
+			id: resources.id,
+			slug: resources.slug,
+			externalId: resources.externalId,
+			sourceUri: resources.sourceUri,
+			title: resources.title,
+			description: resources.description,
+			language: resources.language,
+			license: resources.license,
+			resourceType: resources.resourceType,
+			keywords: resources.keywords,
+			author: resources.author,
+			publisher: resources.publisher,
+			createdBy: resources.createdBy,
+			createdByName: user.name,
+			editorialStatus: resources.editorialStatus,
+			deletedAt: resources.deletedAt,
+			createdAt: resources.createdAt,
+			updatedAt: resources.updatedAt,
+		})
 		.from(resources)
+		.leftJoin(user, eq(resources.createdBy, user.id))
 		.where(where)
 		.limit(limit)
 		.offset(offset)
@@ -72,8 +93,30 @@ export async function listResources(
 
 export async function getResourceById(db: DrizzleDB, id: string) {
 	const rows = await db
-		.select()
+		.select({
+			id: resources.id,
+			slug: resources.slug,
+			externalId: resources.externalId,
+			sourceUri: resources.sourceUri,
+			title: resources.title,
+			description: resources.description,
+			language: resources.language,
+			license: resources.license,
+			resourceType: resources.resourceType,
+			keywords: resources.keywords,
+			author: resources.author,
+			publisher: resources.publisher,
+			createdBy: resources.createdBy,
+			createdByName: user.name,
+			editorialStatus: resources.editorialStatus,
+			assignedCuratorId: resources.assignedCuratorId,
+			curatedAt: resources.curatedAt,
+			deletedAt: resources.deletedAt,
+			createdAt: resources.createdAt,
+			updatedAt: resources.updatedAt,
+		})
 		.from(resources)
+		.leftJoin(user, eq(resources.createdBy, user.id))
 		.where(and(eq(resources.id, id), isNull(resources.deletedAt)))
 		.limit(1);
 
@@ -99,8 +142,30 @@ export async function getResourceById(db: DrizzleDB, id: string) {
 
 export async function getResourceBySlug(db: DrizzleDB, slug: string) {
 	const rows = await db
-		.select()
+		.select({
+			id: resources.id,
+			slug: resources.slug,
+			externalId: resources.externalId,
+			sourceUri: resources.sourceUri,
+			title: resources.title,
+			description: resources.description,
+			language: resources.language,
+			license: resources.license,
+			resourceType: resources.resourceType,
+			keywords: resources.keywords,
+			author: resources.author,
+			publisher: resources.publisher,
+			createdBy: resources.createdBy,
+			createdByName: user.name,
+			editorialStatus: resources.editorialStatus,
+			assignedCuratorId: resources.assignedCuratorId,
+			curatedAt: resources.curatedAt,
+			deletedAt: resources.deletedAt,
+			createdAt: resources.createdAt,
+			updatedAt: resources.updatedAt,
+		})
 		.from(resources)
+		.leftJoin(user, eq(resources.createdBy, user.id))
 		.where(and(eq(resources.slug, slug), isNull(resources.deletedAt)))
 		.limit(1);
 
@@ -137,6 +202,7 @@ export async function createResource(
 		publisher?: string;
 		subjects?: string[];
 		levels?: string[];
+		createdBy?: string;
 	},
 ) {
 	const id = crypto.randomUUID();
@@ -160,6 +226,7 @@ export async function createResource(
 		keywords: data.keywords ?? null,
 		author: data.author ?? null,
 		publisher: data.publisher ?? null,
+		createdBy: data.createdBy ?? null,
 		editorialStatus: "draft",
 		createdAt: now,
 		updatedAt: now,

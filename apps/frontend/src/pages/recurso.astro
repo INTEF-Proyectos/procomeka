@@ -38,11 +38,27 @@ import Base from "../layouts/Base.astro";
 				return;
 			}
 
+			// Check if user can edit
+			let editButton = "";
+			try {
+				const session = await api.getSession();
+				if (session?.user) {
+					const role = session.user.role ?? "reader";
+					const hierarchy = ["reader", "author", "curator", "admin"];
+					if (hierarchy.indexOf(role) >= 1) {
+						editButton = `<a href="${url(`admin/recursos/editar?id=${r.id}`)}" class="btn-edit" aria-label="Editar recurso">Editar</a>`;
+					}
+				}
+			} catch { /* no session, no edit button */ }
+
 			const status = r.editorialStatus ?? "draft";
 			const statusLabel = STATUS_LABELS[status] ?? status;
 			container.innerHTML = `
 				<nav class="breadcrumb"><a href="${url("")}">Recursos</a> / ${r.title}</nav>
-				<h1>${r.title}</h1>
+				<div class="title-row">
+					<h1>${r.title}</h1>
+					${editButton}
+				</div>
 				<div class="meta">
 					<span class="badge">${r.resourceType}</span>
 					<span class="badge badge-${status}">${statusLabel}</span>
@@ -50,7 +66,7 @@ import Base from "../layouts/Base.astro";
 					<span>${r.license}</span>
 				</div>
 				<p class="description">${r.description}</p>
-				${r.author ? `<p class="field"><strong>Autor:</strong> ${r.author}</p>` : ""}
+				${r.createdByName ? `<p class="field"><strong>Autor:</strong> ${r.createdByName}</p>` : (r.author ? `<p class="field"><strong>Autor:</strong> ${r.author}</p>` : "")}
 				${r.publisher ? `<p class="field"><strong>Editor:</strong> ${r.publisher}</p>` : ""}
 				${r.keywords ? `<p class="field"><strong>Palabras clave:</strong> ${r.keywords}</p>` : ""}
 				${r.subjects?.length ? `<p class="field"><strong>Materias:</strong> ${r.subjects.join(", ")}</p>` : ""}
@@ -67,11 +83,19 @@ import Base from "../layouts/Base.astro";
 <style>
 	.breadcrumb { color: #6b7280; font-size: 0.85rem; margin-bottom: 0.5rem; }
 	.breadcrumb a { color: #1a56db; text-decoration: none; }
+	.title-row { display: flex; align-items: center; gap: 1rem; margin-bottom: 0.75rem; }
+	.title-row h1 { margin-bottom: 0; flex: 1; }
+	.btn-edit {
+		display: inline-block; padding: 0.4rem 1rem; background: #1a56db; color: white;
+		text-decoration: none; border-radius: 4px; font-size: 0.85rem; font-weight: 600;
+		white-space: nowrap;
+	}
+	.btn-edit:hover { background: #1e40af; }
 	h1 { margin-bottom: 0.75rem; }
 	.meta { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem; color: #6b7280; font-size: 0.85rem; }
 	.badge { padding: 0.1rem 0.4rem; border-radius: 3px; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; background: #e5e7eb; color: #374151; }
-	.badge-draft { background: #fef3c7; color: #92400e; }
-	.badge-review { background: #e0e7ff; color: #3730a3; }
+	.badge-draft { background: #fee2e2; color: #991b1b; }
+	.badge-review { background: #fef3c7; color: #92400e; }
 	.badge-published { background: #d1fae5; color: #065f46; }
 	.badge-archived { background: #e5e7eb; color: #374151; }
 	.description { font-size: 1.05rem; line-height: 1.7; margin-bottom: 1.5rem; }

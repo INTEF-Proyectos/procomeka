@@ -141,7 +141,34 @@ describe("Rutas admin — con sesión de admin", () => {
 		expect(getRes.status).toBe(404);
 	});
 
-	test("PATCH /api/admin/resources/:id/status → 200 con status válido", async () => {
+	test("PATCH /api/admin/resources/:id/status → 200 transición válida (draft→review→published)", async () => {
+		const createRes = await app.request("/api/admin/resources", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify(validResource),
+		});
+		const created = await createRes.json();
+
+		// draft → review
+		const r1 = await app.request(`/api/admin/resources/${created.id}/status`, {
+			method: "PATCH",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ status: "review" }),
+		});
+		expect(r1.status).toBe(200);
+
+		// review → published
+		const r2 = await app.request(`/api/admin/resources/${created.id}/status`, {
+			method: "PATCH",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ status: "published" }),
+		});
+		expect(r2.status).toBe(200);
+		const body = await r2.json();
+		expect(body.status).toBe("published");
+	});
+
+	test("PATCH /api/admin/resources/:id/status → 403 transición no permitida (draft→published)", async () => {
 		const createRes = await app.request("/api/admin/resources", {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
@@ -154,9 +181,16 @@ describe("Rutas admin — con sesión de admin", () => {
 			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify({ status: "published" }),
 		});
-		expect(res.status).toBe(200);
-		const body = await res.json();
-		expect(body.status).toBe("published");
+		expect(res.status).toBe(403);
+	});
+
+	test("PATCH /api/admin/resources/:id/status → 404 recurso inexistente", async () => {
+		const res = await app.request("/api/admin/resources/no-existe-xyz/status", {
+			method: "PATCH",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ status: "review" }),
+		});
+		expect(res.status).toBe(404);
 	});
 
 	test("PATCH /api/admin/resources/:id/status → 400 sin status", async () => {
@@ -212,8 +246,33 @@ describe("Rutas admin — RBAC por rol", () => {
 		expect(res.status).toBe(403);
 	});
 
-	test("curator puede cambiar estado editorial", async () => {
+	test("curator puede aprobar recurso (review→published)", async () => {
 		const app = createAdminApp({ id: "1", role: "curator" });
+		const createRes = await app.request("/api/admin/resources", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify(validResource),
+		});
+		const created = await createRes.json();
+
+		// Primero pasar a review
+		await app.request(`/api/admin/resources/${created.id}/status`, {
+			method: "PATCH",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ status: "review" }),
+		});
+
+		// Ahora aprobar
+		const res = await app.request(`/api/admin/resources/${created.id}/status`, {
+			method: "PATCH",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ status: "published" }),
+		});
+		expect(res.status).toBe(200);
+	});
+
+	test("author puede enviar a revisión (draft→review)", async () => {
+		const app = createAdminApp({ id: "1", role: "author" });
 		const createRes = await app.request("/api/admin/resources", {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
@@ -224,14 +283,29 @@ describe("Rutas admin — RBAC por rol", () => {
 		const res = await app.request(`/api/admin/resources/${created.id}/status`, {
 			method: "PATCH",
 			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({ status: "published" }),
+			body: JSON.stringify({ status: "review" }),
 		});
 		expect(res.status).toBe(200);
 	});
 
-	test("author no puede cambiar estado editorial", async () => {
-		const app = createAdminApp({ id: "1", role: "author" });
-		const res = await app.request("/api/admin/resources/res-3/status", {
+	test("author no puede aprobar recursos (review→published)", async () => {
+		// Crear como curator para poder pasar a review
+		const curatorApp = createAdminApp({ id: "1", role: "curator" });
+		const createRes = await curatorApp.request("/api/admin/resources", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify(validResource),
+		});
+		const created = await createRes.json();
+		await curatorApp.request(`/api/admin/resources/${created.id}/status`, {
+			method: "PATCH",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ status: "review" }),
+		});
+
+		// Intentar aprobar como author
+		const authorApp = createAdminApp({ id: "2", role: "author" });
+		const res = await authorApp.request(`/api/admin/resources/${created.id}/status`, {
 			method: "PATCH",
 			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify({ status: "published" }),

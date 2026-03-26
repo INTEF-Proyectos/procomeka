@@ -5,7 +5,7 @@ Debéis leer este archivo antes de comenzar cualquier tarea para entender el con
 
 ## Fase Actual: Fase 1 — MVP de catálogo
 
-- **Épica activa:** Catálogo MVP operativo en desarrollo; siguiente foco recomendado: flujo editorial de recursos + siguiente tramo de búsqueda/facetas
+- **Épica activa:** Catálogo MVP operativo en desarrollo; flujo editorial completado; siguiente foco recomendado: búsqueda avanzada/facetas + colecciones reales
 - **Agente en turno:** @.agents/skills/documentacion-y-roadmap/SKILL.md
 
 ## ADRs Bloqueantes (Prioridad Alta)
@@ -194,3 +194,29 @@ Antes de escribir código de negocio, se deben resolver las siguientes decisione
 | Fecha | Agente | Acción / Entregable | Estado |
 |-------|--------|---------------------|--------|
 | 2026-03-26 | `@.agents/skills/frontend-ux-accesibilidad` + `@.agents/skills/documentacion-y-roadmap` | Filtros básicos del catálogo público (tipo, idioma, licencia) y alineación de roadmap/estado con la implementación actual | Completado |
+
+## Actualización 2026-03-26 (Flujo editorial de recursos)
+
+- **Agente en turno:** `@.agents/skills/backend-api-servicios/SKILL.md` + `@.agents/skills/frontend-ux-accesibilidad/SKILL.md`
+- **Acción realizada:** Se implementa el flujo editorial completo de recursos como experiencia end-to-end.
+- **Cambios aplicados:**
+  - Reglas de transición editorial con validación por rol en `packages/db/src/validation.ts` (`TRANSITION_RULES`, `validateTransition`).
+  - Endpoint `PATCH /api/admin/resources/:id/status` abierto a `author` con validación de transiciones (antes solo `curator`).
+  - Campo `createdBy` en schema de recursos con resolución de nombre vía LEFT JOIN.
+  - Stepper visual en `editar.astro` con 3 pasos (Borrador/En revisión/Aprobado) y colores semafóricos (rojo/naranja/verde).
+  - Botones de acción dinámicos según estado y rol del usuario.
+  - Nombre del creador visible en listado público, dashboard, ficha y vista de edición.
+  - Botón "Editar" en ficha pública para usuarios autenticados (author+).
+  - Badges de estado con colores semafóricos en todas las vistas.
+  - Método `updateResourceStatus` añadido a `ApiClient`, `HttpApiClient` y `PreviewApiClient`.
+- **Validación:**
+  - `make test`: 132 tests, 94.57% cobertura.
+  - `bun run lint`: limpio.
+- **Riesgos abiertos:**
+  - Colecciones públicas siguen en placeholder.
+  - La búsqueda sigue siendo básica: sin facetas contadas, sin nivel/materia y sin ranking avanzado.
+- **Traspaso recomendado:** `@.agents/skills/busqueda-y-descubrimiento/SKILL.md` para profundización de búsqueda o `@.agents/skills/backend-api-servicios/SKILL.md` para colecciones reales.
+
+| Fecha | Agente | Acción / Entregable | Estado |
+|-------|--------|---------------------|--------|
+| 2026-03-26 | `@.agents/skills/backend-api-servicios` + `@.agents/skills/frontend-ux-accesibilidad` | Flujo editorial completo: transiciones por rol, stepper visual, campo createdBy, botón editar en ficha pública | Completado |

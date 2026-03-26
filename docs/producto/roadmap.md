@@ -32,7 +32,7 @@ Base técnica y documental completada. API, auth y frontend editorial mínimo ya
 | Modelo de metadatos mínimo | Completado — ADR-0009 aceptada, validación mínima y CRUD real de recursos entregados |
 | Arquitectura base del sistema | Completado — monorepo, Hono, Astro, Drizzle, PGlite dev |
 | Autenticación y autorización | Completado — Better Auth (password + OIDC), RBAC, CLI usuarios, login/dashboard |
-| Flujo editorial de recursos | No iniciada |
+| Flujo editorial de recursos | Completado — stepper visual, transiciones por rol (author→review, curator→publish), campo createdBy, colores semafóricos |
 | Búsqueda y facetas iniciales | En desarrollo — búsqueda por texto, paginación e interfaz de filtros básicos por tipo, idioma y licencia |
 | API REST pública v1 | En desarrollo — listado y detalle de recursos publicados, paginación y filtros básicos; colecciones siguen en placeholder |
 | Importación piloto desde CSV | No iniciada |
@@ -133,6 +133,22 @@ El MVP base de catálogo ya no está en fase de mera preparación. La plataforma
 
 ### Siguiente tramo recomendado
 
-1. Materializar flujo editorial de recursos como experiencia end-to-end.
-2. Profundizar búsqueda pública con filtros de nivel/materia o facetas contadas.
-3. Sustituir placeholders de colecciones públicas por persistencia real.
+1. Profundizar búsqueda pública con filtros de nivel/materia o facetas contadas.
+2. Sustituir placeholders de colecciones públicas por persistencia real.
+3. Importación piloto desde CSV.
+
+## Actualización de estado — 2026-03-26 (Flujo editorial)
+
+### Confirmado en repositorio
+
+- Flujo editorial implementado end-to-end: draft → review → published → archived.
+- Reglas de transición por rol: author puede enviar a revisión, curator puede aprobar/rechazar/archivar.
+- Stepper visual en la página de edición con colores semafóricos (rojo/naranja/verde).
+- Campo `createdBy` en recursos, con resolución del nombre del creador vía LEFT JOIN.
+- Nombre del creador visible en listado público, dashboard, ficha de recurso y vista de edición.
+- Botón "Editar" visible en ficha pública para usuarios autenticados con rol author+.
+- 132 tests pasando, 94.57% cobertura de líneas.
+
+### Lectura ejecutiva
+
+El flujo editorial de recursos queda completo como experiencia de producto. Los autores pueden crear recursos y enviarlos a revisión; los curadores pueden aprobar, rechazar o archivar. El siguiente foco de Fase 1 es la profundización de búsqueda y las colecciones reales.

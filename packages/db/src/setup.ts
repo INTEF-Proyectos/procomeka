@@ -73,6 +73,7 @@ export async function createTables(pglite: { exec: (sql: string) => Promise<unkn
 			accessibility_features TEXT,
 			accessibility_hazards TEXT,
 			access_mode TEXT,
+			created_by TEXT REFERENCES "user"(id),
 			editorial_status VARCHAR(50) NOT NULL DEFAULT 'draft',
 			assigned_curator_id TEXT REFERENCES "user"(id),
 			curated_at TIMESTAMP,
@@ -127,5 +128,11 @@ export async function createTables(pglite: { exec: (sql: string) => Promise<unkn
 		CREATE INDEX IF NOT EXISTS idx_resources_slug ON resources(slug);
 		CREATE INDEX IF NOT EXISTS idx_resources_status ON resources(editorial_status);
 		CREATE INDEX IF NOT EXISTS idx_resources_type ON resources(resource_type);
+
+		-- Migration: add created_by column if missing (added after initial schema)
+		DO $$ BEGIN
+			ALTER TABLE "resources" ADD COLUMN created_by TEXT REFERENCES "user"(id);
+		EXCEPTION WHEN duplicate_column THEN NULL;
+		END $$;
 	`);
 }

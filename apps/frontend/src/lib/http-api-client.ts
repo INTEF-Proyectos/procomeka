@@ -134,6 +134,20 @@ export class HttpApiClient implements ApiClient {
 		return { ok: true };
 	}
 
+	async updateResourceStatus(id: string, status: string): Promise<{ id: string; status: string }> {
+		const res = await fetch(`/api/admin/resources/${id}/status`, {
+			method: "PATCH",
+			headers: { "Content-Type": "application/json" },
+			credentials: "include",
+			body: JSON.stringify({ status }),
+		});
+		if (!res.ok) {
+			const err = await res.json().catch(() => ({}));
+			throw err;
+		}
+		return res.json();
+	}
+
 	async deleteResource(id: string): Promise<void> {
 		await fetch(`/api/admin/resources/${id}`, {
 			method: "DELETE",

@@ -76,6 +76,7 @@ import Base from "../layouts/Base.astro";
 				const dateStr = date ? new Date(typeof date === "number" ? date * 1000 : date).toLocaleDateString("es-ES") : "";
 				return `<tr>
 					<td>${r.title}</td>
+					<td>${r.createdByName ?? ""}</td>
 					<td><span class="badge badge-${status}">${label}</span></td>
 					<td>${dateStr}</td>
 					<td class="actions">
@@ -86,7 +87,7 @@ import Base from "../layouts/Base.astro";
 			}).join("");
 
 			container.innerHTML = `<table>
-				<thead><tr><th>Título</th><th>Estado</th><th>Fecha</th><th>Acciones</th></tr></thead>
+				<thead><tr><th>Título</th><th>Autor</th><th>Estado</th><th>Fecha</th><th>Acciones</th></tr></thead>
 				<tbody>${rows}</tbody>
 			</table>`;
 
@@ -253,8 +254,8 @@ import Base from "../layouts/Base.astro";
 	.badge-curator { background: #dbeafe; color: #1e40af; }
 	.badge-author { background: #d1fae5; color: #065f46; }
 	.badge-reader { background: #e5e7eb; color: #374151; }
-	.badge-draft { background: #fef3c7; color: #92400e; }
-	.badge-review { background: #e0e7ff; color: #3730a3; }
+	.badge-draft { background: #fee2e2; color: #991b1b; }
+	.badge-review { background: #fef3c7; color: #92400e; }
 	.badge-published { background: #d1fae5; color: #065f46; }
 	.badge-archived { background: #e5e7eb; color: #374151; }
 

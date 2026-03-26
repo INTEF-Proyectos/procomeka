@@ -30,6 +30,9 @@ export const resources = pgTable("resources", {
 	accessibilityHazards: text("accessibility_hazards"),
 	accessMode: text("access_mode"),
 
+	// Autoría
+	createdBy: text("created_by").references(() => user.id),
+
 	// Estado editorial
 	editorialStatus: varchar("editorial_status", { length: 50 })
 		.notNull()

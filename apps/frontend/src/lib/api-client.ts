@@ -15,6 +15,8 @@ export interface Resource {
 	author: string | null;
 	publisher: string | null;
 	editorialStatus: string;
+	createdBy: string | null;
+	createdByName: string | null;
 	createdAt: string | number | Date | null;
 	updatedAt: string | number | Date | null;
 	deletedAt: unknown;
@@ -90,5 +92,6 @@ export interface ApiClient {
 	getResourceById(id: string): Promise<Resource | null>;
 	createResource(data: CreateResourceInput): Promise<{ id: string; slug: string }>;
 	updateResource(id: string, data: UpdateResourceInput): Promise<{ ok: boolean; error?: string; details?: { field: string; message: string }[] }>;
+	updateResourceStatus(id: string, status: string): Promise<{ id: string; status: string }>;
 	deleteResource(id: string): Promise<void>;
 }
