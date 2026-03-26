@@ -1,5 +1,6 @@
 ---
 import PreviewBanner from "../components/PreviewBanner.astro";
+import { url } from "../lib/paths.ts";
 
 interface Props {
 	title: string;
@@ -24,11 +25,11 @@ const isPreview = import.meta.env.PUBLIC_PREVIEW_MODE === "true";
 	<body class={isPreview ? "has-preview-banner" : ""}>
 		<header>
 			<nav>
-				<a href={base} class="brand">Procomeka</a>
+				<a href={url("")} class="brand">Procomeka</a>
 				<div class="nav-links">
-					<a href={`${base}admin/recursos/nuevo`}>Crear recurso</a>
-					<a id="nav-login" href={`${base}login`}>Iniciar sesión</a>
-					<a id="nav-user" href={`${base}dashboard`} style="display:none;"></a>
+					<a href={url("admin/recursos/nuevo")}>Crear recurso</a>
+					<a id="nav-login" href={url("login")}>Iniciar sesión</a>
+					<a id="nav-user" href={url("dashboard")} style="display:none;"></a>
 				</div>
 			</nav>
 		</header>

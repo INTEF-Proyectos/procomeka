@@ -217,6 +217,121 @@ describe("Rutas admin — con sesión de admin", () => {
 		const res = await app.request("/api/admin/users");
 		expect(res.status).toBe(200);
 	});
+
+	test("PATCH /api/admin/users/:id → 200", async () => {
+		const res = await app.request("/api/admin/users/1", {
+			method: "PATCH",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ role: "curator" }),
+		});
+		expect(res.status).toBe(200);
+	});
+
+	test("PATCH /api/admin/users/:id → 400 sin rol", async () => {
+		const res = await app.request("/api/admin/users/1", {
+			method: "PATCH",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({}),
+		});
+		expect(res.status).toBe(400);
+	});
+
+	// --- Collections ---
+
+	test("POST /api/admin/collections → 201", async () => {
+		const res = await app.request("/api/admin/collections", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ title: "Test Col", description: "Desc" }),
+		});
+		expect(res.status).toBe(201);
+		const body = await res.json();
+		expect(body.id).toBeDefined();
+	});
+
+	test("GET /api/admin/collections → 200", async () => {
+		const res = await app.request("/api/admin/collections");
+		expect(res.status).toBe(200);
+	});
+
+	test("GET /api/admin/collections/:id → 200", async () => {
+		const c = await app.request("/api/admin/collections", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ title: "Test Col 2", description: "Desc" }),
+		});
+		const { id } = await c.json();
+		const res = await app.request(`/api/admin/collections/${id}`);
+		expect(res.status).toBe(200);
+	});
+
+	test("PATCH /api/admin/collections/:id → 200", async () => {
+		const c = await app.request("/api/admin/collections", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ title: "Test Col 3", description: "Desc" }),
+		});
+		const { id } = await c.json();
+		const res = await app.request(`/api/admin/collections/${id}`, {
+			method: "PATCH",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ title: "Updated Col" }),
+		});
+		expect(res.status).toBe(200);
+	});
+
+	test("DELETE /api/admin/collections/:id → 200", async () => {
+		const c = await app.request("/api/admin/collections", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ title: "To delete", description: "Desc" }),
+		});
+		const { id } = await c.json();
+		const res = await app.request(`/api/admin/collections/${id}`, { method: "DELETE" });
+		expect(res.status).toBe(200);
+	});
+
+	// --- Taxonomies ---
+
+	test("POST /api/admin/taxonomies → 201", async () => {
+		const res = await app.request("/api/admin/taxonomies", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ name: "Math", type: "subject" }),
+		});
+		expect(res.status).toBe(201);
+	});
+
+	test("GET /api/admin/taxonomies → 200", async () => {
+		const res = await app.request("/api/admin/taxonomies?type=subject");
+		expect(res.status).toBe(200);
+	});
+
+	test("PATCH /api/admin/taxonomies/:id → 200", async () => {
+		const t = await app.request("/api/admin/taxonomies", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ name: "Science", type: "subject" }),
+		});
+		const { id } = await t.json();
+		const res = await app.request(`/api/admin/taxonomies/${id}`, {
+			method: "PATCH",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ name: "Advanced Science" }),
+		});
+		expect(res.status).toBe(200);
+	});
+
+	test("DELETE /api/admin/taxonomies/:id → 200", async () => {
+		const t = await app.request("/api/admin/taxonomies", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ name: "To delete tax", type: "subject" }),
+		});
+		const { id } = await t.json();
+		const res = await app.request(`/api/admin/taxonomies/${id}`, { method: "DELETE" });
+		expect(res.status).toBe(200);
+	});
 });
 
 describe("Rutas admin — RBAC por rol", () => {
