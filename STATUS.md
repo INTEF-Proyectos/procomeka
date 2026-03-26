@@ -155,3 +155,19 @@ Antes de escribir código de negocio, se deben resolver las siguientes decisione
 | Fecha | Agente | Acción / Entregable | Estado |
 |-------|--------|---------------------|--------|
 | 2026-03-26 | `@.agents/skills/qa-validacion` + `@.agents/skills/documentacion-y-roadmap` | Alineación de `BETTER_AUTH_URL` con la URL pública local (`4321`) y documentación asociada | Completado |
+
+## Actualización 2026-03-26 (Frontend: historial navegable en paginación)
+
+- **Agente en turno:** `@.agents/skills/frontend-ux-accesibilidad/SKILL.md`
+- **Acción realizada:** Se corrige la escritura de historial en listado para que la paginación cree entradas navegables de Back/Forward.
+- **Cambios aplicados:**
+  - Se introduce helper de historial/URL para listados (`buildListingUrl`, `writeListingStateToHistory`).
+  - La búsqueda sigue usando `replaceState` para evitar ruido por tecleo.
+  - Los botones de paginación (`Anterior`/`Siguiente`) pasan a usar `pushState`.
+  - Se añaden tests unitarios del helper de historial.
+- **Validación:** `bun test` en verde tras añadir suite nueva.
+- **Traspaso recomendado:** `@.agents/skills/qa-validacion/SKILL.md` para ampliar cobertura con pruebas de integración UI (popstate + paginación + scroll).
+
+| Fecha | Agente | Acción / Entregable | Estado |
+|-------|--------|---------------------|--------|
+| 2026-03-26 | `@.agents/skills/frontend-ux-accesibilidad` | Paginación del listado usa `pushState` y mantiene `replaceState` para búsqueda; helper y tests unitarios añadidos | Completado |
