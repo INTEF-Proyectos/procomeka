@@ -1,32 +1,31 @@
-# Usamos la imagen oficial de Bun
-FROM oven/bun:latest as base
-
-# Establecer el directorio de trabajo
+FROM oven/bun:latest AS base
 WORKDIR /app
 
-# ---- Dependencias ----
+# --- Dependencias ---
 FROM base AS install
-# Copiamos solo los archivos que instalan dependencias para aprovechar la caché de Docker
-COPY package.json bun.lockb ./
-RUN bun install --frozen-lockfile
 
-# ---- Construcción ----
-FROM base AS build
-COPY --from=install /app/node_modules ./node_modules
-COPY . .
-# En caso de necesitar transpilado en un futuro, sería aquí.
-# Por defecto con bun a menudo se corre el TS directo.
+# Copiar todos los package.json del monorepo para resolver workspaces
+COPY package.json bun.lock ./
+COPY apps/api/package.json apps/api/package.json
+COPY apps/cli/package.json apps/cli/package.json
+COPY apps/frontend/package.json apps/frontend/package.json
+COPY packages/db/package.json packages/db/package.json
 
-# ---- Producción ----
+RUN bun install --frozen-lockfile --production
+
+# --- Produccion ---
 FROM base AS release
-COPY --from=install /app/node_modules ./node_modules
-COPY . .
 
-# Variables de entorno por defecto
+# Bun hoistea todo en el node_modules raiz
+COPY --from=install /app/node_modules ./node_modules
+
+COPY package.json ./
+COPY apps/api/ apps/api/
+COPY apps/cli/ apps/cli/
+COPY packages/db/ packages/db/
+
 ENV NODE_ENV=production
 
-# Exponer el puerto por el que escuchará el API (si aplica)
 EXPOSE 3000/tcp
 
-# Ejecutar el proyecto
-ENTRYPOINT [ "bun", "run", "index.ts" ]
+CMD ["bun", "run", "apps/api/src/index.ts"]
