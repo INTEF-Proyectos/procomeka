@@ -1,4 +1,4 @@
-.PHONY: deps up down clean format lint test test-standard test-all test-unit test-integration test-e2e test-e2e-firefox test-e2e-postgres check-coverage cli seed build-preview up-static
+.PHONY: deps up down clean format lint test test-unit test-integration test-e2e test-e2e-firefox test-e2e-postgres check-coverage cli seed build-preview up-static up-docker down-docker seed-docker
 
 # Variables
 BUN = bun
@@ -99,3 +99,13 @@ cli:
 
 seed:
 	$(BUN) run --filter '@procomeka/cli' cli -- seed
+
+# Docker
+up-docker:
+	docker compose up --build -d
+
+down-docker:
+	docker compose down
+
+seed-docker:
+	docker compose run --rm seed
