@@ -19,5 +19,14 @@ export function url(path: string): string {
 		normalizedPath += "/";
 	}
 
+	// base ya incluye el trailing slash en las variables de entorno de Astro si es necesario,
+	// o es "/" por defecto.
+	if (base.endsWith("/") && normalizedPath.startsWith("/")) {
+		return base + normalizedPath.slice(1);
+	}
+	if (!base.endsWith("/") && !normalizedPath.startsWith("/") && normalizedPath !== "") {
+		return base + "/" + normalizedPath;
+	}
+
 	return base + normalizedPath;
 }
