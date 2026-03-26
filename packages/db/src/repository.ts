@@ -3,13 +3,15 @@
  * Aceptan una instancia Drizzle como parámetro para funcionar
  * tanto en el servidor (API) como en el navegador (preview).
  */
-import { eq, like, sql, desc, isNull, and } from "drizzle-orm";
+import { eq, like, sql, desc, isNull, and, or } from "drizzle-orm";
 import {
 	resources,
 	resourceSubjects,
 	resourceLevels,
 } from "./schema/resources.ts";
 import { user } from "./schema/auth.ts";
+import { collections, collectionResources } from "./schema/collections.ts";
+import { taxonomies } from "./schema/taxonomies.ts";
 
 type DrizzleDB = {
 	select: (...args: unknown[]) => unknown;
@@ -29,6 +31,7 @@ export async function listResources(
 		resourceType?: string;
 		language?: string;
 		license?: string;
+		createdBy?: string;
 	},
 ) {
 	const limit = Math.min(opts.limit ?? 20, 100);
@@ -49,6 +52,9 @@ export async function listResources(
 	}
 	if (opts.license) {
 		conditions.push(eq(resources.license, opts.license));
+	}
+	if (opts.createdBy) {
+		conditions.push(eq(resources.createdBy, opts.createdBy));
 	}
 
 	const where = conditions.reduce((a, b) => sql`${a} AND ${b}`);
@@ -295,4 +301,194 @@ export async function updateEditorialStatus(
 		.update(resources)
 		.set(updates)
 		.where(and(eq(resources.id, id), isNull(resources.deletedAt)));
+}
+
+// --- Users ---
+
+export async function listUsers(
+	db: DrizzleDB,
+	opts: { limit?: number; offset?: number; search?: string },
+) {
+	const limit = Math.min(opts.limit ?? 20, 100);
+	const offset = opts.offset ?? 0;
+
+	const conditions = [];
+	if (opts.search) {
+		conditions.push(
+			or(like(user.email, `%${opts.search}%`), like(user.name, `%${opts.search}%`)),
+		);
+	}
+
+	const where = conditions.length > 0 ? conditions.reduce((a, b) => sql`${a} AND ${b}`) : undefined;
+
+	const rows = await db
+		.select()
+		.from(user)
+		.where(where)
+		.limit(limit)
+		.offset(offset)
+		.orderBy(desc(user.createdAt));
+
+	const countResult = await db
+		.select({ count: sql<number>`count(*)` })
+		.from(user)
+		.where(where);
+
+	return { data: rows, total: countResult[0]?.count ?? 0, limit, offset };
+}
+
+export async function updateUserRole(db: DrizzleDB, id: string, role: string) {
+	await db.update(user).set({ role, updatedAt: new Date() }).where(eq(user.id, id));
+}
+
+// --- Collections ---
+
+export async function listCollections(
+	db: DrizzleDB,
+	opts: { limit?: number; offset?: number; curatorId?: string },
+) {
+	const limit = Math.min(opts.limit ?? 20, 100);
+	const offset = opts.offset ?? 0;
+
+	const conditions = [];
+	if (opts.curatorId) {
+		conditions.push(eq(collections.curatorId, opts.curatorId));
+	}
+
+	const where = conditions.length > 0 ? conditions.reduce((a, b) => sql`${a} AND ${b}`) : undefined;
+
+	const rows = await db
+		.select()
+		.from(collections)
+		.where(where)
+		.limit(limit)
+		.offset(offset)
+		.orderBy(desc(collections.createdAt));
+
+	const countResult = await db
+		.select({ count: sql<number>`count(*)` })
+		.from(collections)
+		.where(where);
+
+	return { data: rows, total: countResult[0]?.count ?? 0, limit, offset };
+}
+
+export async function getCollectionById(db: DrizzleDB, id: string) {
+	const rows = await db.select().from(collections).where(eq(collections.id, id)).limit(1);
+	const collection = rows[0];
+	if (!collection) return null;
+
+	const resourcesInCollection = await db
+		.select({
+			resourceId: collectionResources.resourceId,
+			position: collectionResources.position,
+			title: resources.title,
+			slug: resources.slug,
+		})
+		.from(collectionResources)
+		.leftJoin(resources, eq(collectionResources.resourceId, resources.id))
+		.where(eq(collectionResources.collectionId, id))
+		.orderBy(collectionResources.position);
+
+	return { ...collection, resources: resourcesInCollection };
+}
+
+export async function createCollection(
+	db: DrizzleDB,
+	data: {
+		title: string;
+		description: string;
+		curatorId: string;
+		isOrdered?: boolean;
+		coverImageUrl?: string;
+	},
+) {
+	const id = crypto.randomUUID();
+	const slug = `${data.title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${id.slice(0, 8)}`;
+	const now = new Date();
+
+	await db.insert(collections).values({
+		id,
+		slug,
+		title: data.title,
+		description: data.description,
+		curatorId: data.curatorId,
+		isOrdered: data.isOrdered ? 1 : 0,
+		coverImageUrl: data.coverImageUrl,
+		createdAt: now,
+		updatedAt: now,
+	});
+
+	return { id, slug };
+}
+
+export async function updateCollection(
+	db: DrizzleDB,
+	id: string,
+	data: Partial<{
+		title: string;
+		description: string;
+		isOrdered: boolean;
+		coverImageUrl: string;
+		editorialStatus: string;
+	}>,
+) {
+	const updates: any = { ...data, updatedAt: new Date() };
+	if (data.isOrdered !== undefined) updates.isOrdered = data.isOrdered ? 1 : 0;
+
+	await db.update(collections).set(updates).where(eq(collections.id, id));
+}
+
+export async function deleteCollection(db: DrizzleDB, id: string) {
+	await db.delete(collections).where(eq(collections.id, id));
+}
+
+// --- Taxonomies ---
+
+export async function listTaxonomies(db: DrizzleDB, opts: { type?: string }) {
+	const conditions = [];
+	if (opts.type) {
+		conditions.push(eq(taxonomies.type, opts.type));
+	}
+
+	const where = conditions.length > 0 ? conditions.reduce((a, b) => sql`${a} AND ${b}`) : undefined;
+
+	return db.select().from(taxonomies).where(where).orderBy(taxonomies.name);
+}
+
+export async function createTaxonomy(
+	db: DrizzleDB,
+	data: { name: string; type: string; description?: string; parentId?: string },
+) {
+	const id = crypto.randomUUID();
+	const slug = `${data.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${id.slice(0, 8)}`;
+	const now = new Date();
+
+	await db.insert(taxonomies).values({
+		id,
+		slug,
+		name: data.name,
+		type: data.type,
+		description: data.description,
+		parentId: data.parentId,
+		createdAt: now,
+		updatedAt: now,
+	});
+
+	return { id, slug };
+}
+
+export async function updateTaxonomy(
+	db: DrizzleDB,
+	id: string,
+	data: Partial<{ name: string; description: string; parentId: string }>,
+) {
+	await db
+		.update(taxonomies)
+		.set({ ...data, updatedAt: new Date() })
+		.where(eq(taxonomies.id, id));
+}
+
+export async function deleteTaxonomy(db: DrizzleDB, id: string) {
+	await db.delete(taxonomies).where(eq(taxonomies.id, id));
 }

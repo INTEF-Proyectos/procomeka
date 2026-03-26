@@ -42,6 +42,42 @@ export interface SessionData {
 	user: SessionUser;
 }
 
+export interface Collection {
+	id: string;
+	slug: string;
+	title: string;
+	description: string;
+	coverImageUrl: string | null;
+	isOrdered: boolean;
+	curatorId: string;
+	editorialStatus: string;
+	createdAt: string | number | Date | null;
+	resources?: { resourceId: string; position: number; title: string; slug: string }[];
+}
+
+export interface CollectionListResult {
+	data: Collection[];
+	total: number;
+	limit: number;
+	offset: number;
+}
+
+export interface Taxonomy {
+	id: string;
+	slug: string;
+	name: string;
+	description: string | null;
+	type: string;
+	parentId: string | null;
+}
+
+export interface UserListResult {
+	data: SessionUser[];
+	total: number;
+	limit: number;
+	offset: number;
+}
+
 export interface AppConfig {
 	oidcEnabled: boolean;
 	oidcEndSessionUrl: string | null;
@@ -94,4 +130,21 @@ export interface ApiClient {
 	updateResource(id: string, data: UpdateResourceInput): Promise<{ ok: boolean; error?: string; details?: { field: string; message: string }[] }>;
 	updateResourceStatus(id: string, status: string): Promise<{ id: string; status: string }>;
 	deleteResource(id: string): Promise<void>;
+
+	// Users
+	listUsers(opts?: { limit?: number; offset?: number; q?: string }): Promise<UserListResult>;
+	updateUserRole(id: string, role: string): Promise<void>;
+
+	// Collections
+	listCollections(opts?: { limit?: number; offset?: number }): Promise<CollectionListResult>;
+	getCollectionById(id: string): Promise<Collection | null>;
+	createCollection(data: Partial<Collection>): Promise<{ id: string; slug: string }>;
+	updateCollection(id: string, data: Partial<Collection>): Promise<void>;
+	deleteCollection(id: string): Promise<void>;
+
+	// Taxonomies
+	listTaxonomies(type?: string): Promise<Taxonomy[]>;
+	createTaxonomy(data: Partial<Taxonomy>): Promise<{ id: string; slug: string }>;
+	updateTaxonomy(id: string, data: Partial<Taxonomy>): Promise<void>;
+	deleteTaxonomy(id: string): Promise<void>;
 }

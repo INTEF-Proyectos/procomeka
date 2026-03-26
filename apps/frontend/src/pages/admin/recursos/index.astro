@@ -1,0 +1,172 @@
+---
+import AdminLayout from "../../../layouts/AdminLayout.astro";
+---
+
+<AdminLayout title="Gestión de Recursos">
+	<div class="admin-header">
+		<h1>Recursos</h1>
+		<a id="btn-create" href="#" class="btn-primary">Nuevo recurso</a>
+	</div>
+
+	<div class="filters">
+		<input type="text" id="search-input" placeholder="Buscar por título..." />
+		<select id="status-filter">
+			<option value="">Todos los estados</option>
+			<option value="draft">Borrador</option>
+			<option value="review">En revisión</option>
+			<option value="published">Publicado</option>
+			<option value="archived">Archivado</option>
+		</select>
+	</div>
+
+	<div id="resources-list">
+		<p class="loading-text">Cargando recursos...</p>
+	</div>
+
+	<div id="pagination" class="pagination" style="display:none;">
+		<button id="prev-btn" disabled>Anterior</button>
+		<span id="page-info">Página 1</span>
+		<button id="next-btn" disabled>Siguiente</button>
+	</div>
+</AdminLayout>
+
+<script>
+	import { getApiClient } from "../../../lib/get-api-client.ts";
+	import { url } from "../../../lib/paths.ts";
+
+	const STATUS_LABELS: Record<string, string> = {
+		draft: "Borrador",
+		review: "En revisión",
+		published: "Publicado",
+		archived: "Archivado",
+	};
+
+	let limit = 10;
+	let offset = 0;
+	let total = 0;
+
+	const btnCreate = document.getElementById("btn-create") as HTMLAnchorElement;
+	const searchInput = document.getElementById("search-input") as HTMLInputElement;
+	const statusFilter = document.getElementById("status-filter") as HTMLSelectElement;
+	const listContainer = document.getElementById("resources-list") as HTMLDivElement;
+	const prevBtn = document.getElementById("prev-btn") as HTMLButtonElement;
+	const nextBtn = document.getElementById("next-btn") as HTMLButtonElement;
+	const pageInfo = document.getElementById("page-info") as HTMLSpanElement;
+	const pagination = document.getElementById("pagination") as HTMLDivElement;
+
+	btnCreate.href = url("admin/recursos/nuevo");
+
+	async function loadResources() {
+		listContainer.innerHTML = '<p class="loading-text">Cargando recursos...</p>';
+		try {
+			const api = await getApiClient();
+			const status = statusFilter.value || undefined;
+			const { data, total: totalCount } = await api.listAdminResources({
+				limit,
+				offset,
+				status
+			});
+
+			total = totalCount;
+			renderTable(data);
+			updatePagination();
+		} catch (e) {
+			listContainer.innerHTML = "<p class='error-text'>Error al cargar recursos.</p>";
+		}
+	}
+
+	function renderTable(data: any[]) {
+		if (!data || data.length === 0) {
+			listContainer.innerHTML = "<p>No se encontraron recursos.</p>";
+			return;
+		}
+
+		const rows = data.map(r => {
+			const status = r.editorialStatus ?? "draft";
+			const date = r.createdAt ? new Date(typeof r.createdAt === "number" ? r.createdAt * 1000 : r.createdAt).toLocaleDateString("es-ES") : "-";
+			return `<tr>
+				<td><strong>${r.title}</strong></td>
+				<td>${r.createdByName || "Desconocido"}</td>
+				<td><span class="badge badge-${status}">${STATUS_LABELS[status] || status}</span></td>
+				<td>${date}</td>
+				<td class="actions">
+					<a href="${url(`admin/recursos/editar?id=${r.id}`)}" class="action-btn edit-btn" title="Editar">✏️</a>
+					<button class="action-btn delete-btn" data-id="${r.id}" title="Eliminar">🗑️</button>
+				</td>
+			</tr>`;
+		}).join("");
+
+		listContainer.innerHTML = `<table>
+			<thead><tr><th>Título</th><th>Autor</th><th>Estado</th><th>Fecha</th><th>Acciones</th></tr></thead>
+			<tbody>${rows}</tbody>
+		</table>`;
+
+		listContainer.querySelectorAll(".delete-btn").forEach(btn => {
+			btn.addEventListener("click", async () => {
+				const id = (btn as HTMLButtonElement).dataset.id;
+				if (id && confirm("¿Estás seguro de que deseas eliminar este recurso?")) {
+					const api = await getApiClient();
+					await api.deleteResource(id);
+					loadResources();
+				}
+			});
+		});
+	}
+
+	function updatePagination() {
+		pagination.style.display = total > limit ? "flex" : "none";
+		const page = Math.floor(offset / limit) + 1;
+		const totalPages = Math.ceil(total / limit);
+		pageInfo.textContent = `Página ${page} de ${totalPages}`;
+		prevBtn.disabled = offset === 0;
+		nextBtn.disabled = offset + limit >= total;
+	}
+
+	prevBtn.addEventListener("click", () => {
+		offset = Math.max(0, offset - limit);
+		loadResources();
+	});
+
+	nextBtn.addEventListener("click", () => {
+		offset += limit;
+		loadResources();
+	});
+
+	statusFilter.addEventListener("change", () => {
+		offset = 0;
+		loadResources();
+	});
+
+	loadResources();
+</script>
+
+<style>
+	.admin-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
+	h1 { margin: 0; font-size: 1.5rem; }
+	.btn-primary { background: #1a56db; color: white; padding: 0.5rem 1rem; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 0.875rem; }
+
+	.filters { display: flex; gap: 1rem; margin-bottom: 1.5rem; }
+	.filters input { flex: 1; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 6px; }
+	.filters select { padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 6px; }
+
+	table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+	th, td { text-align: left; padding: 1rem; border-bottom: 1px solid #e5e7eb; font-size: 0.875rem; }
+	th { background: #f9fafb; font-weight: 600; color: #4b5563; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em; }
+
+	.actions { display: flex; gap: 0.5rem; }
+	.action-btn { background: none; border: none; cursor: pointer; padding: 0.25rem; border-radius: 4px; text-decoration: none; font-size: 1.1rem; line-height: 1; }
+	.action-btn:hover { background: #f3f4f6; }
+
+	.badge { padding: 0.25rem 0.5rem; border-radius: 9999px; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; }
+	.badge-draft { background: #fee2e2; color: #991b1b; }
+	.badge-review { background: #fef3c7; color: #92400e; }
+	.badge-published { background: #d1fae5; color: #065f46; }
+	.badge-archived { background: #e5e7eb; color: #374151; }
+
+	.pagination { display: flex; align-items: center; gap: 1rem; justify-content: center; margin-top: 2rem; }
+	.pagination button { padding: 0.5rem 1rem; border: 1px solid #d1d5db; border-radius: 6px; background: white; cursor: pointer; }
+	.pagination button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+	.loading-text { text-align: center; padding: 2rem; color: #6b7280; }
+	.error-text { text-align: center; padding: 2rem; color: #dc2626; }
+</style>

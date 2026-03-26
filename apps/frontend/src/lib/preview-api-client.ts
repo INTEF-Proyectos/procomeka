@@ -27,6 +27,8 @@ interface SeedData {
 	}[];
 	resourceSubjects: { resourceId: string; subject: string }[];
 	resourceLevels: { resourceId: string; level: string }[];
+	taxonomies?: { id: string; slug: string; name: string; type: string }[];
+	collections?: { id: string; slug: string; title: string; description: string; curatorId: string; isOrdered: number }[];
 }
 
 const ROLE_KEY = "procomeka-preview-role";
@@ -134,6 +136,24 @@ export class PreviewApiClient implements ApiClient {
 				`INSERT INTO "resource_levels" (resource_id, level) VALUES ($1, $2)`,
 				[l.resourceId, l.level],
 			);
+		}
+
+		if (seed.taxonomies) {
+			for (const t of seed.taxonomies) {
+				await this.pglite.query(
+					`INSERT INTO "taxonomies" (id, slug, name, type, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT (id) DO NOTHING`,
+					[t.id, t.slug, t.name, t.type, now, now],
+				);
+			}
+		}
+
+		if (seed.collections) {
+			for (const c of seed.collections) {
+				await this.pglite.query(
+					`INSERT INTO "collections" (id, slug, title, description, curator_id, is_ordered, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) ON CONFLICT (id) DO NOTHING`,
+					[c.id, c.slug, c.title, c.description, c.curatorId, c.isOrdered, now, now],
+				);
+			}
 		}
 	}
 
@@ -252,6 +272,64 @@ export class PreviewApiClient implements ApiClient {
 
 	async deleteResource(id: string): Promise<void> {
 		const { deleteResource: del } = await import("@procomeka/db/repository");
+		await del(this.db, id);
+	}
+
+	// Users
+	async listUsers(opts?: { limit?: number; offset?: number; q?: string }) {
+		const { listUsers: list } = await import("@procomeka/db/repository");
+		return list(this.db, opts ?? {});
+	}
+
+	async updateUserRole(id: string, role: string) {
+		const { updateUserRole: update } = await import("@procomeka/db/repository");
+		await update(this.db, id, role);
+	}
+
+	// Collections
+	async listCollections(opts?: { limit?: number; offset?: number }) {
+		const { listCollections: list } = await import("@procomeka/db/repository");
+		return list(this.db, opts ?? {});
+	}
+
+	async getCollectionById(id: string) {
+		const { getCollectionById: get } = await import("@procomeka/db/repository");
+		return get(this.db, id);
+	}
+
+	async createCollection(data: any) {
+		const { createCollection: create } = await import("@procomeka/db/repository");
+		return create(this.db, data);
+	}
+
+	async updateCollection(id: string, data: any) {
+		const { updateCollection: update } = await import("@procomeka/db/repository");
+		await update(this.db, id, data);
+	}
+
+	async deleteCollection(id: string) {
+		const { deleteCollection: del } = await import("@procomeka/db/repository");
+		await del(this.db, id);
+	}
+
+	// Taxonomies
+	async listTaxonomies(type?: string) {
+		const { listTaxonomies: list } = await import("@procomeka/db/repository");
+		return list(this.db, { type });
+	}
+
+	async createTaxonomy(data: any) {
+		const { createTaxonomy: create } = await import("@procomeka/db/repository");
+		return create(this.db, data);
+	}
+
+	async updateTaxonomy(id: string, data: any) {
+		const { updateTaxonomy: update } = await import("@procomeka/db/repository");
+		await update(this.db, id, data);
+	}
+
+	async deleteTaxonomy(id: string) {
+		const { deleteTaxonomy: del } = await import("@procomeka/db/repository");
 		await del(this.db, id);
 	}
 

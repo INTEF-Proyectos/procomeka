@@ -12,6 +12,8 @@ import {
 	listResources,
 	getResourceById,
 } from "../resources/repository.ts";
+import { getDb } from "../db.ts";
+import * as repo from "@procomeka/db/repository";
 import {
 	validateCreateResource,
 	validateUpdateResource,
@@ -29,7 +31,17 @@ adminRoutes.get("/resources", requireRole("author"), async (c) => {
 	const search = c.req.query("q") ?? undefined;
 	const status = c.req.query("status") ?? undefined;
 
-	const result = await listResources({ limit, offset, search, status });
+	const user = c.get("user") as { id: string; role?: string };
+	const role = user.role ?? "reader";
+
+	// Authors and curators only see their own or assigned if not admin?
+	// The requirement says:
+	// Admin: All
+	// Editor (Curator): Assigned + own
+	// Author: Only own
+	const createdBy = role === "admin" || role === "curator" ? undefined : user.id;
+
+	const result = await listResources({ limit, offset, search, status, createdBy });
 	return c.json(result);
 });
 
@@ -104,13 +116,87 @@ adminRoutes.patch("/resources/:id/status", requireRole("author"), async (c) => {
 	return c.json({ id, status: body.status });
 });
 
-adminRoutes.get("/users", requireRole("admin"), (c) =>
-	c.json({ data: [], total: 0, message: "Listado de usuarios (pendiente)" }),
-);
+adminRoutes.get("/users", requireRole("admin"), async (c) => {
+	const limit = Number(c.req.query("limit") ?? "20");
+	const offset = Number(c.req.query("offset") ?? "0");
+	const search = c.req.query("q") ?? undefined;
+	const result = await repo.listUsers(getDb().db, { limit, offset, search });
+	return c.json(result);
+});
 
-adminRoutes.patch("/users/:id", requireRole("admin"), (c) => {
+adminRoutes.patch("/users/:id", requireRole("admin"), async (c) => {
 	const { id } = c.req.param();
-	return c.json({ id, message: "Actualizar usuario (pendiente)" });
+	const body = await c.req.json();
+	if (!body.role) return c.json({ error: "Rol requerido" }, 400);
+	await repo.updateUserRole(getDb().db, id, body.role);
+	return c.json({ id, updated: true });
+});
+
+// --- Collections ---
+
+adminRoutes.get("/collections", requireRole("author"), async (c) => {
+	const limit = Number(c.req.query("limit") ?? "20");
+	const offset = Number(c.req.query("offset") ?? "0");
+	const user = c.get("user") as { id: string; role?: string };
+	const role = user.role ?? "reader";
+	const curatorId = role === "admin" ? undefined : user.id;
+
+	const result = await repo.listCollections(getDb().db, { limit, offset, curatorId });
+	return c.json(result);
+});
+
+adminRoutes.get("/collections/:id", requireRole("author"), async (c) => {
+	const { id } = c.req.param();
+	const result = await repo.getCollectionById(getDb().db, id);
+	if (!result) return c.json({ error: "Colección no encontrada" }, 404);
+	return c.json(result);
+});
+
+adminRoutes.post("/collections", requireRole("author"), async (c) => {
+	const body = await c.req.json();
+	const user = c.get("user") as { id: string };
+	const result = await repo.createCollection(getDb().db, { ...body, curatorId: user.id });
+	return c.json(result, 201);
+});
+
+adminRoutes.patch("/collections/:id", requireRole("author"), async (c) => {
+	const { id } = c.req.param();
+	const body = await c.req.json();
+	await repo.updateCollection(getDb().db, id, body);
+	return c.json({ id, updated: true });
+});
+
+adminRoutes.delete("/collections/:id", requireRole("author"), async (c) => {
+	const { id } = c.req.param();
+	await repo.deleteCollection(getDb().db, id);
+	return c.json({ id, deleted: true });
+});
+
+// --- Taxonomies ---
+
+adminRoutes.get("/taxonomies", requireRole("curator"), async (c) => {
+	const type = c.req.query("type");
+	const result = await repo.listTaxonomies(getDb().db, { type });
+	return c.json(result);
+});
+
+adminRoutes.post("/taxonomies", requireRole("admin"), async (c) => {
+	const body = await c.req.json();
+	const result = await repo.createTaxonomy(getDb().db, body);
+	return c.json(result, 201);
+});
+
+adminRoutes.patch("/taxonomies/:id", requireRole("admin"), async (c) => {
+	const { id } = c.req.param();
+	const body = await c.req.json();
+	await repo.updateTaxonomy(getDb().db, id, body);
+	return c.json({ id, updated: true });
+});
+
+adminRoutes.delete("/taxonomies/:id", requireRole("admin"), async (c) => {
+	const { id } = c.req.param();
+	await repo.deleteTaxonomy(getDb().db, id);
+	return c.json({ id, deleted: true });
 });
 
 export { adminRoutes };

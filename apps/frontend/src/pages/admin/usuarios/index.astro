@@ -1,0 +1,217 @@
+---
+import AdminLayout from "../../../layouts/AdminLayout.astro";
+---
+
+<AdminLayout title="Gestión de Usuarios">
+	<div class="admin-header">
+		<h1>Usuarios</h1>
+	</div>
+
+	<div class="filters">
+		<input type="text" id="search-input" placeholder="Buscar por nombre o email..." />
+	</div>
+
+	<div id="users-list">
+		<p class="loading-text">Cargando usuarios...</p>
+	</div>
+
+	<div id="pagination" class="pagination" style="display:none;">
+		<button id="prev-btn" disabled>Anterior</button>
+		<span id="page-info">Página 1</span>
+		<button id="next-btn" disabled>Siguiente</button>
+	</div>
+
+    <div id="role-modal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <h2>Cambiar rol de usuario</h2>
+            <p id="modal-user-name"></p>
+            <form id="role-form">
+                <input type="hidden" id="modal-user-id" />
+                <div class="field">
+                    <label for="role-select">Nuevo rol</label>
+                    <select id="role-select">
+                        <option value="reader">Lector</option>
+                        <option value="author">Autor</option>
+                        <option value="curator">Curador</option>
+                        <option value="admin">Administrador</option>
+                    </select>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" id="cancel-btn" class="btn-outline">Cancelar</button>
+                    <button type="submit" class="btn-primary">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</AdminLayout>
+
+<script>
+	import { getApiClient } from "../../../lib/get-api-client.ts";
+
+	const ROLE_LABELS: Record<string, string> = {
+		reader: "Lector",
+		author: "Autor",
+		curator: "Curador",
+		admin: "Administrador",
+	};
+
+	let limit = 10;
+	let offset = 0;
+	let total = 0;
+
+	const searchInput = document.getElementById("search-input") as HTMLInputElement;
+	const listContainer = document.getElementById("users-list") as HTMLDivElement;
+	const prevBtn = document.getElementById("prev-btn") as HTMLButtonElement;
+	const nextBtn = document.getElementById("next-btn") as HTMLButtonElement;
+	const pageInfo = document.getElementById("page-info") as HTMLSpanElement;
+	const pagination = document.getElementById("pagination") as HTMLDivElement;
+
+    const modal = document.getElementById("role-modal") as HTMLDivElement;
+    const roleForm = document.getElementById("role-form") as HTMLFormElement;
+    const cancelBtn = document.getElementById("cancel-btn") as HTMLButtonElement;
+    const roleSelect = document.getElementById("role-select") as HTMLSelectElement;
+    const modalUserName = document.getElementById("modal-user-name") as HTMLParagraphElement;
+    const modalUserId = document.getElementById("modal-user-id") as HTMLInputElement;
+
+	async function loadUsers() {
+		listContainer.innerHTML = '<p class="loading-text">Cargando usuarios...</p>';
+		try {
+			const api = await getApiClient();
+			const q = searchInput.value || undefined;
+			const { data, total: totalCount } = await api.listUsers({
+				limit,
+				offset,
+				q
+			});
+
+			total = totalCount;
+			renderTable(data);
+			updatePagination();
+		} catch (e) {
+			listContainer.innerHTML = "<p class='error-text'>Error al cargar usuarios o permisos insuficientes.</p>";
+		}
+	}
+
+	function renderTable(data: any[]) {
+		if (!data || data.length === 0) {
+			listContainer.innerHTML = "<p>No se encontraron usuarios.</p>";
+			return;
+		}
+
+		const rows = data.map(u => {
+			const role = u.role ?? "reader";
+			return `<tr>
+				<td><strong>${u.name || "Sin nombre"}</strong></td>
+				<td>${u.email}</td>
+				<td><span class="badge badge-${role}">${ROLE_LABELS[role] || role}</span></td>
+				<td class="actions">
+					<button class="action-btn edit-role-btn" data-id="${u.id}" data-name="${u.name || u.email}" data-role="${role}" title="Cambiar rol">🔑</button>
+				</td>
+			</tr>`;
+		}).join("");
+
+		listContainer.innerHTML = `<table>
+			<thead><tr><th>Nombre</th><th>Email</th><th>Rol</th><th>Acciones</th></tr></thead>
+			<tbody>${rows}</tbody>
+		</table>`;
+
+		listContainer.querySelectorAll(".edit-role-btn").forEach(btn => {
+			btn.addEventListener("click", () => {
+				const b = btn as HTMLButtonElement;
+                modalUserId.value = b.dataset.id!;
+                modalUserName.textContent = `Usuario: ${b.dataset.name}`;
+                roleSelect.value = b.dataset.role!;
+                modal.style.display = "flex";
+			});
+		});
+	}
+
+	function updatePagination() {
+		pagination.style.display = total > limit ? "flex" : "none";
+		const page = Math.floor(offset / limit) + 1;
+		const totalPages = Math.ceil(total / limit);
+		pageInfo.textContent = `Página ${page} de ${totalPages}`;
+		prevBtn.disabled = offset === 0;
+		nextBtn.disabled = offset + limit >= total;
+	}
+
+	prevBtn.addEventListener("click", () => {
+		offset = Math.max(0, offset - limit);
+		loadUsers();
+	});
+
+	nextBtn.addEventListener("click", () => {
+		offset += limit;
+		loadUsers();
+	});
+
+	let searchTimeout: any;
+	searchInput.addEventListener("input", () => {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+            offset = 0;
+            loadUsers();
+        }, 300);
+	});
+
+    cancelBtn.addEventListener("click", () => {
+        modal.style.display = "none";
+    });
+
+    roleForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const id = modalUserId.value;
+        const role = roleSelect.value;
+        try {
+            const api = await getApiClient();
+            await api.updateUserRole(id, role);
+            modal.style.display = "none";
+            loadUsers();
+        } catch (e) {
+            alert("Error al actualizar el rol");
+        }
+    });
+
+	loadUsers();
+</script>
+
+<style>
+	.admin-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
+	h1 { margin: 0; font-size: 1.5rem; }
+
+	.filters { display: flex; gap: 1rem; margin-bottom: 1.5rem; }
+	.filters input { flex: 1; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 6px; }
+
+	table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+	th, td { text-align: left; padding: 1rem; border-bottom: 1px solid #e5e7eb; font-size: 0.875rem; }
+	th { background: #f9fafb; font-weight: 600; color: #4b5563; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em; }
+
+	.actions { display: flex; gap: 0.5rem; }
+	.action-btn { background: none; border: none; cursor: pointer; padding: 0.25rem; border-radius: 4px; font-size: 1.1rem; line-height: 1; }
+	.action-btn:hover { background: #f3f4f6; }
+
+	.badge { padding: 0.25rem 0.5rem; border-radius: 9999px; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; }
+	.badge-admin { background: #fecaca; color: #991b1b; }
+	.badge-curator { background: #dbeafe; color: #1e40af; }
+	.badge-author { background: #d1fae5; color: #065f46; }
+	.badge-reader { background: #e5e7eb; color: #374151; }
+
+	.pagination { display: flex; align-items: center; gap: 1rem; justify-content: center; margin-top: 2rem; }
+	.pagination button { padding: 0.5rem 1rem; border: 1px solid #d1d5db; border-radius: 6px; background: white; cursor: pointer; }
+	.pagination button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+	.loading-text { text-align: center; padding: 2rem; color: #6b7280; }
+	.error-text { text-align: center; padding: 2rem; color: #dc2626; }
+
+    /* Modal styles */
+    .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+    .modal-content { background: white; padding: 2rem; border-radius: 8px; width: 400px; max-width: 90%; }
+    .modal-content h2 { margin-top: 0; font-size: 1.25rem; }
+    .modal-content p { color: #6b7280; font-size: 0.9rem; margin-bottom: 1.5rem; }
+    .field { margin-bottom: 1.5rem; }
+    .field label { display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.875rem; }
+    .field select { width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 6px; }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 1rem; }
+    .btn-primary { background: #1a56db; color: white; padding: 0.5rem 1rem; border-radius: 6px; border: none; cursor: pointer; }
+    .btn-outline { background: white; color: #374151; padding: 0.5rem 1rem; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; }
+</style>

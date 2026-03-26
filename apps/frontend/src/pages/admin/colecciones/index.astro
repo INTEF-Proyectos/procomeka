@@ -1,0 +1,221 @@
+---
+import AdminLayout from "../../../layouts/AdminLayout.astro";
+---
+
+<AdminLayout title="Gestión de Colecciones">
+	<div class="admin-header">
+		<h1>Colecciones</h1>
+		<button id="btn-create" class="btn-primary">Nueva colección</button>
+	</div>
+
+	<div id="collections-list">
+		<p class="loading-text">Cargando colecciones...</p>
+	</div>
+
+	<div id="pagination" class="pagination" style="display:none;">
+		<button id="prev-btn" disabled>Anterior</button>
+		<span id="page-info">Página 1</span>
+		<button id="next-btn" disabled>Siguiente</button>
+	</div>
+
+    <!-- Modal para crear/editar colección -->
+    <div id="collection-modal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <h2 id="modal-title">Nueva colección</h2>
+            <form id="collection-form">
+                <input type="hidden" id="modal-id" />
+                <div class="field">
+                    <label for="title">Título</label>
+                    <input type="text" id="title" required />
+                </div>
+                <div class="field">
+                    <label for="description">Descripción</label>
+                    <textarea id="description" rows="3" required></textarea>
+                </div>
+                <div class="field check">
+                    <input type="checkbox" id="isOrdered" />
+                    <label for="isOrdered">Es ordenada (itinerario)</label>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" id="cancel-btn" class="btn-outline">Cancelar</button>
+                    <button type="submit" class="btn-primary">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</AdminLayout>
+
+<script>
+	import { getApiClient } from "../../../lib/get-api-client.ts";
+
+	let limit = 10;
+	let offset = 0;
+	let total = 0;
+
+	const btnCreate = document.getElementById("btn-create") as HTMLButtonElement;
+	const listContainer = document.getElementById("collections-list") as HTMLDivElement;
+	const prevBtn = document.getElementById("prev-btn") as HTMLButtonElement;
+	const nextBtn = document.getElementById("next-btn") as HTMLButtonElement;
+	const pageInfo = document.getElementById("page-info") as HTMLSpanElement;
+	const pagination = document.getElementById("pagination") as HTMLDivElement;
+
+    const modal = document.getElementById("collection-modal") as HTMLDivElement;
+    const modalTitle = document.getElementById("modal-title") as HTMLHeadingElement;
+    const modalId = document.getElementById("modal-id") as HTMLInputElement;
+    const collectionForm = document.getElementById("collection-form") as HTMLFormElement;
+    const cancelBtn = document.getElementById("cancel-btn") as HTMLButtonElement;
+    const titleInput = document.getElementById("title") as HTMLInputElement;
+    const descriptionInput = document.getElementById("description") as HTMLTextAreaElement;
+    const isOrderedInput = document.getElementById("isOrdered") as HTMLInputElement;
+
+	async function loadCollections() {
+		listContainer.innerHTML = '<p class="loading-text">Cargando colecciones...</p>';
+		try {
+			const api = await getApiClient();
+			const { data, total: totalCount } = await api.listCollections({
+				limit,
+				offset
+			});
+
+			total = totalCount;
+			renderTable(data);
+			updatePagination();
+		} catch (e) {
+			listContainer.innerHTML = "<p class='error-text'>Error al cargar colecciones.</p>";
+		}
+	}
+
+	function renderTable(data: any[]) {
+		if (!data || data.length === 0) {
+			listContainer.innerHTML = "<p>No hay colecciones creadas.</p>";
+			return;
+		}
+
+		const rows = data.map(c => {
+			return `<tr>
+				<td><strong>${c.title}</strong></td>
+				<td>${c.description}</td>
+				<td>${c.isOrdered ? "Sí" : "No"}</td>
+				<td class="actions">
+					<button class="action-btn edit-btn" data-id="${c.id}" data-title="${c.title}" data-description="${c.description}" data-ordered="${c.isOrdered}" title="Editar">✏️</button>
+					<button class="action-btn delete-btn" data-id="${c.id}" title="Eliminar">🗑️</button>
+				</td>
+			</tr>`;
+		}).join("");
+
+		listContainer.innerHTML = `<table>
+			<thead><tr><th>Título</th><th>Descripción</th><th>Ordenada</th><th>Acciones</th></tr></thead>
+			<tbody>${rows}</tbody>
+		</table>`;
+
+		listContainer.querySelectorAll(".delete-btn").forEach(btn => {
+			btn.addEventListener("click", async () => {
+				const id = (btn as HTMLButtonElement).dataset.id;
+				if (id && confirm("¿Eliminar esta colección?")) {
+					const api = await getApiClient();
+					await api.deleteCollection(id);
+					loadCollections();
+				}
+			});
+		});
+
+        listContainer.querySelectorAll(".edit-btn").forEach(btn => {
+			btn.addEventListener("click", () => {
+				const b = btn as HTMLButtonElement;
+                modalId.value = b.dataset.id!;
+                modalTitle.textContent = "Editar colección";
+                titleInput.value = b.dataset.title!;
+                descriptionInput.value = b.dataset.description!;
+                isOrderedInput.checked = b.dataset.ordered === "true";
+                modal.style.display = "flex";
+			});
+		});
+	}
+
+	function updatePagination() {
+		pagination.style.display = total > limit ? "flex" : "none";
+		const page = Math.floor(offset / limit) + 1;
+		const totalPages = Math.ceil(total / limit);
+		pageInfo.textContent = `Página ${page} de ${totalPages}`;
+		prevBtn.disabled = offset === 0;
+		nextBtn.disabled = offset + limit >= total;
+	}
+
+	prevBtn.addEventListener("click", () => {
+		offset = Math.max(0, offset - limit);
+		loadCollections();
+	});
+
+	nextBtn.addEventListener("click", () => {
+		offset += limit;
+		loadCollections();
+	});
+
+    btnCreate.addEventListener("click", () => {
+        modalId.value = "";
+        modalTitle.textContent = "Nueva colección";
+        collectionForm.reset();
+        modal.style.display = "flex";
+    });
+
+    cancelBtn.addEventListener("click", () => {
+        modal.style.display = "none";
+    });
+
+    collectionForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const id = modalId.value;
+        const data = {
+            title: titleInput.value,
+            description: descriptionInput.value,
+            isOrdered: isOrderedInput.checked
+        };
+        try {
+            const api = await getApiClient();
+            if (id) {
+                await api.updateCollection(id, data);
+            } else {
+                await api.createCollection(data);
+            }
+            modal.style.display = "none";
+            loadCollections();
+        } catch (e) {
+            alert("Error al guardar la colección");
+        }
+    });
+
+	loadCollections();
+</script>
+
+<style>
+	.admin-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
+	h1 { margin: 0; font-size: 1.5rem; }
+	.btn-primary { background: #1a56db; color: white; padding: 0.5rem 1rem; border-radius: 6px; border: none; cursor: pointer; font-weight: 500; font-size: 0.875rem; }
+
+	table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+	th, td { text-align: left; padding: 1rem; border-bottom: 1px solid #e5e7eb; font-size: 0.875rem; }
+	th { background: #f9fafb; font-weight: 600; color: #4b5563; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em; }
+
+	.actions { display: flex; gap: 0.5rem; }
+	.action-btn { background: none; border: none; cursor: pointer; padding: 0.25rem; border-radius: 4px; font-size: 1.1rem; line-height: 1; }
+	.action-btn:hover { background: #f3f4f6; }
+
+	.pagination { display: flex; align-items: center; gap: 1rem; justify-content: center; margin-top: 2rem; }
+	.pagination button { padding: 0.5rem 1rem; border: 1px solid #d1d5db; border-radius: 6px; background: white; cursor: pointer; }
+	.pagination button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+	.loading-text { text-align: center; padding: 2rem; color: #6b7280; }
+	.error-text { text-align: center; padding: 2rem; color: #dc2626; }
+
+    /* Modal styles */
+    .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+    .modal-content { background: white; padding: 2rem; border-radius: 8px; width: 500px; max-width: 90%; }
+    .modal-content h2 { margin-top: 0; font-size: 1.25rem; }
+    .field { margin-bottom: 1rem; }
+    .field label { display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.875rem; }
+    .field input[type="text"], .field textarea { width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 6px; }
+    .field.check { display: flex; align-items: center; gap: 0.5rem; }
+    .field.check label { margin: 0; }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1.5rem; }
+    .btn-outline { background: white; color: #374151; padding: 0.5rem 1rem; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; }
+</style>

@@ -154,4 +154,90 @@ export class HttpApiClient implements ApiClient {
 			credentials: "include",
 		});
 	}
+
+	// Users
+	async listUsers(opts?: { limit?: number; offset?: number; q?: string }) {
+		const params = new URLSearchParams();
+		if (opts?.limit) params.set("limit", String(opts.limit));
+		if (opts?.offset) params.set("offset", String(opts.offset));
+		if (opts?.q) params.set("q", opts.q);
+		const res = await fetch(`/api/admin/users${params.toString() ? `?${params.toString()}` : ""}`, { credentials: "include" });
+		return res.json();
+	}
+
+	async updateUserRole(id: string, role: string) {
+		await fetch(`/api/admin/users/${id}`, {
+			method: "PATCH",
+			headers: { "Content-Type": "application/json" },
+			credentials: "include",
+			body: JSON.stringify({ role }),
+		});
+	}
+
+	// Collections
+	async listCollections(opts?: { limit?: number; offset?: number }) {
+		const params = new URLSearchParams();
+		if (opts?.limit) params.set("limit", String(opts.limit));
+		if (opts?.offset) params.set("offset", String(opts.offset));
+		const res = await fetch(`/api/admin/collections${params.toString() ? `?${params.toString()}` : ""}`, { credentials: "include" });
+		return res.json();
+	}
+
+	async getCollectionById(id: string) {
+		const res = await fetch(`/api/admin/collections/${id}`, { credentials: "include" });
+		if (!res.ok) return null;
+		return res.json();
+	}
+
+	async createCollection(data: any) {
+		const res = await fetch("/api/admin/collections", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			credentials: "include",
+			body: JSON.stringify(data),
+		});
+		return res.json();
+	}
+
+	async updateCollection(id: string, data: any) {
+		await fetch(`/api/admin/collections/${id}`, {
+			method: "PATCH",
+			headers: { "Content-Type": "application/json" },
+			credentials: "include",
+			body: JSON.stringify(data),
+		});
+	}
+
+	async deleteCollection(id: string) {
+		await fetch(`/api/admin/collections/${id}`, { method: "DELETE", credentials: "include" });
+	}
+
+	// Taxonomies
+	async listTaxonomies(type?: string) {
+		const res = await fetch(`/api/admin/taxonomies${type ? `?type=${type}` : ""}`, { credentials: "include" });
+		return res.json();
+	}
+
+	async createTaxonomy(data: any) {
+		const res = await fetch("/api/admin/taxonomies", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			credentials: "include",
+			body: JSON.stringify(data),
+		});
+		return res.json();
+	}
+
+	async updateTaxonomy(id: string, data: any) {
+		await fetch(`/api/admin/taxonomies/${id}`, {
+			method: "PATCH",
+			headers: { "Content-Type": "application/json" },
+			credentials: "include",
+			body: JSON.stringify(data),
+		});
+	}
+
+	async deleteTaxonomy(id: string) {
+		await fetch(`/api/admin/taxonomies/${id}`, { method: "DELETE", credentials: "include" });
+	}
 }

@@ -1,0 +1,136 @@
+---
+import { url } from "../lib/paths.ts";
+
+const menuItems = [
+	{ label: "Panel", icon: "📊", path: "dashboard", minLevel: 1, id: "nav-dashboard" },
+	{ label: "Recursos", icon: "📚", path: "admin/recursos", minLevel: 1, id: "nav-recursos" },
+	{ label: "Colecciones", icon: "📁", path: "admin/colecciones", minLevel: 1, id: "nav-colecciones" },
+	{ label: "Categorías", icon: "🏷️", path: "admin/categorias", minLevel: 2, id: "nav-categorias" },
+	{ label: "Usuarios", icon: "👥", path: "admin/usuarios", minLevel: 3, id: "nav-usuarios" },
+];
+---
+
+<aside class="sidebar" aria-label="Navegación principal del backoffice">
+	<nav>
+		<ul id="sidebar-menu">
+			{menuItems.map(item => (
+				<li id={item.id} style="display:none;" data-min-level={item.minLevel}>
+					<a href={url(item.path)} data-path={item.path}>
+						<span class="icon" aria-hidden="true">{item.icon}</span>
+						<span class="label">{item.label}</span>
+					</a>
+				</li>
+			))}
+		</ul>
+	</nav>
+</aside>
+
+<script>
+	import { getApiClient } from "../lib/get-api-client.ts";
+	import { url } from "../lib/paths.ts";
+
+	async function updateSidebar() {
+		try {
+			const api = await getApiClient();
+			const session = await api.getSession();
+			const role = session?.user?.role ?? "reader";
+
+			const roleHierarchy = ["reader", "author", "curator", "admin"];
+			const level = roleHierarchy.indexOf(role);
+			const currentPath = window.location.pathname;
+
+			const items = document.querySelectorAll("#sidebar-menu li");
+			items.forEach(li => {
+				const minLevel = parseInt((li as HTMLElement).dataset.minLevel || "0");
+				if (level >= minLevel) {
+					(li as HTMLElement).style.display = "block";
+				} else {
+					(li as HTMLElement).style.display = "none";
+				}
+
+				const a = li.querySelector("a");
+				if (a) {
+					const path = a.dataset.path || "";
+					const fullPath = url(path);
+					if (currentPath === fullPath || currentPath === fullPath + "/" || (path !== "dashboard" && currentPath.startsWith(fullPath))) {
+						a.classList.add("active");
+						a.setAttribute("aria-current", "page");
+					} else {
+						a.classList.remove("active");
+						a.removeAttribute("aria-current");
+					}
+				}
+			});
+		} catch (e) {
+			console.error("Error updating sidebar", e);
+		}
+	}
+
+	updateSidebar();
+	// Listen for role changes in preview mode if needed
+	window.addEventListener("procomeka-role-changed", updateSidebar);
+</script>
+
+<style>
+	.sidebar {
+		width: 240px;
+		background: #f9fafb;
+		border-right: 1px solid #e5e7eb;
+		min-height: calc(100vh - 64px);
+		padding: 1.5rem 0;
+	}
+
+	ul {
+		list-style: none;
+		padding: 0;
+		margin: 0;
+	}
+
+	li {
+		margin-bottom: 0.25rem;
+	}
+
+	a {
+		display: flex;
+		align-items: center;
+		padding: 0.75rem 1.5rem;
+		color: #4b5563;
+		text-decoration: none;
+		font-size: 0.95rem;
+		transition: all 0.2s;
+		border-left: 4px solid transparent;
+	}
+
+	a:hover {
+		background: #f3f4f6;
+		color: #1a56db;
+	}
+
+	a.active {
+		background: #eff6ff;
+		color: #1a56db;
+		border-left-color: #1a56db;
+		font-weight: 600;
+	}
+
+	.icon {
+		margin-right: 0.75rem;
+		font-size: 1.1rem;
+	}
+
+	@media (max-width: 768px) {
+		.sidebar {
+			width: 60px;
+		}
+		.label {
+			display: none;
+		}
+		a {
+			padding: 0.75rem;
+			justify-content: center;
+		}
+		.icon {
+			margin-right: 0;
+		}
+	}
+</style>

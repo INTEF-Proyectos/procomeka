@@ -1,0 +1,218 @@
+---
+import AdminLayout from "../../../layouts/AdminLayout.astro";
+---
+
+<AdminLayout title="Gestión de Taxonomías">
+	<div class="admin-header">
+		<h1>Taxonomías y Categorías</h1>
+		<button id="btn-create" class="btn-primary">Nueva entrada</button>
+	</div>
+
+    <div class="filters">
+		<select id="type-filter">
+			<option value="">Todos los tipos</option>
+			<option value="subject">Materia / Asignatura</option>
+			<option value="level">Nivel educativo</option>
+			<option value="resource_type">Tipo de recurso</option>
+			<option value="category">Categoría libre</option>
+		</select>
+	</div>
+
+	<div id="taxonomies-list">
+		<p class="loading-text">Cargando taxonomías...</p>
+	</div>
+
+    <!-- Modal para crear/editar taxonomía -->
+    <div id="tax-modal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <h2 id="modal-title">Nueva entrada</h2>
+            <form id="tax-form">
+                <input type="hidden" id="modal-id" />
+                <div class="field">
+                    <label for="name">Nombre</label>
+                    <input type="text" id="name" required />
+                </div>
+                <div class="field">
+                    <label for="type">Tipo</label>
+                    <select id="type" required>
+                        <option value="subject">Materia / Asignatura</option>
+                        <option value="level">Nivel educativo</option>
+                        <option value="resource_type">Tipo de recurso</option>
+                        <option value="category">Categoría libre</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label for="description">Descripción</label>
+                    <textarea id="description" rows="2"></textarea>
+                </div>
+                <div class="field">
+                    <label for="parentId">Padre (ID opcional)</label>
+                    <input type="text" id="parentId" placeholder="ID de la taxonomía superior" />
+                </div>
+                <div class="modal-actions">
+                    <button type="button" id="cancel-btn" class="btn-outline">Cancelar</button>
+                    <button type="submit" class="btn-primary">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</AdminLayout>
+
+<script>
+	import { getApiClient } from "../../../lib/get-api-client.ts";
+
+	const TYPE_LABELS: Record<string, string> = {
+		subject: "Materia",
+		level: "Nivel",
+		resource_type: "Tipo Recurso",
+		category: "Categoría",
+	};
+
+	const btnCreate = document.getElementById("btn-create") as HTMLButtonElement;
+	const listContainer = document.getElementById("taxonomies-list") as HTMLDivElement;
+	const typeFilter = document.getElementById("type-filter") as HTMLSelectElement;
+
+    const modal = document.getElementById("tax-modal") as HTMLDivElement;
+    const modalTitle = document.getElementById("modal-title") as HTMLHeadingElement;
+    const modalId = document.getElementById("modal-id") as HTMLInputElement;
+    const taxForm = document.getElementById("tax-form") as HTMLFormElement;
+    const cancelBtn = document.getElementById("cancel-btn") as HTMLButtonElement;
+    const nameInput = document.getElementById("name") as HTMLInputElement;
+    const typeSelect = document.getElementById("type") as HTMLSelectElement;
+    const descriptionInput = document.getElementById("description") as HTMLTextAreaElement;
+    const parentIdInput = document.getElementById("parentId") as HTMLInputElement;
+
+	async function loadTaxonomies() {
+		listContainer.innerHTML = '<p class="loading-text">Cargando taxonomías...</p>';
+		try {
+			const api = await getApiClient();
+			const type = typeFilter.value || undefined;
+			const data = await api.listTaxonomies(type);
+
+			renderTable(data);
+		} catch (e) {
+			listContainer.innerHTML = "<p class='error-text'>Error al cargar taxonomías o permisos insuficientes.</p>";
+		}
+	}
+
+	function renderTable(data: any[]) {
+		if (!data || data.length === 0) {
+			listContainer.innerHTML = "<p>No se encontraron taxonomías.</p>";
+			return;
+		}
+
+		const rows = data.map(t => {
+			return `<tr>
+				<td><strong>${t.name}</strong></td>
+				<td><span class="type-tag">${TYPE_LABELS[t.type] || t.type}</span></td>
+				<td>${t.slug}</td>
+				<td>${t.parentId || "-"}</td>
+				<td class="actions">
+					<button class="action-btn edit-btn" data-id="${t.id}" data-name="${t.name}" data-type="${t.type}" data-description="${t.description || ""}" data-parent="${t.parentId || ""}" title="Editar">✏️</button>
+					<button class="action-btn delete-btn" data-id="${t.id}" title="Eliminar">🗑️</button>
+				</td>
+			</tr>`;
+		}).join("");
+
+		listContainer.innerHTML = `<table>
+			<thead><tr><th>Nombre</th><th>Tipo</th><th>Slug</th><th>Padre</th><th>Acciones</th></tr></thead>
+			<tbody>${rows}</tbody>
+		</table>`;
+
+		listContainer.querySelectorAll(".delete-btn").forEach(btn => {
+			btn.addEventListener("click", async () => {
+				const id = (btn as HTMLButtonElement).dataset.id;
+				if (id && confirm("¿Eliminar esta taxonomía?")) {
+					const api = await getApiClient();
+					await api.deleteTaxonomy(id);
+					loadTaxonomies();
+				}
+			});
+		});
+
+        listContainer.querySelectorAll(".edit-btn").forEach(btn => {
+			btn.addEventListener("click", () => {
+				const b = btn as HTMLButtonElement;
+                modalId.value = b.dataset.id!;
+                modalTitle.textContent = "Editar entrada";
+                nameInput.value = b.dataset.name!;
+                typeSelect.value = b.dataset.type!;
+                descriptionInput.value = b.dataset.description!;
+                parentIdInput.value = b.dataset.parent!;
+                modal.style.display = "flex";
+			});
+		});
+	}
+
+	typeFilter.addEventListener("change", () => {
+		loadTaxonomies();
+	});
+
+    btnCreate.addEventListener("click", () => {
+        modalId.value = "";
+        modalTitle.textContent = "Nueva entrada";
+        taxForm.reset();
+        modal.style.display = "flex";
+    });
+
+    cancelBtn.addEventListener("click", () => {
+        modal.style.display = "none";
+    });
+
+    taxForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const id = modalId.value;
+        const data = {
+            name: nameInput.value,
+            type: typeSelect.value,
+            description: descriptionInput.value,
+            parentId: parentIdInput.value || null
+        };
+        try {
+            const api = await getApiClient();
+            if (id) {
+                await api.updateTaxonomy(id, data);
+            } else {
+                await api.createTaxonomy(data);
+            }
+            modal.style.display = "none";
+            loadTaxonomies();
+        } catch (e) {
+            alert("Error al guardar la taxonomía");
+        }
+    });
+
+	loadTaxonomies();
+</script>
+
+<style>
+	.admin-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
+	h1 { margin: 0; font-size: 1.5rem; }
+	.btn-primary { background: #1a56db; color: white; padding: 0.5rem 1rem; border-radius: 6px; border: none; cursor: pointer; font-weight: 500; font-size: 0.875rem; }
+
+    .filters { margin-bottom: 1.5rem; }
+	.filters select { padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 6px; width: 240px; }
+
+	table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+	th, td { text-align: left; padding: 1rem; border-bottom: 1px solid #e5e7eb; font-size: 0.875rem; }
+	th { background: #f9fafb; font-weight: 600; color: #4b5563; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em; }
+
+	.actions { display: flex; gap: 0.5rem; }
+	.action-btn { background: none; border: none; cursor: pointer; padding: 0.25rem; border-radius: 4px; font-size: 1.1rem; line-height: 1; }
+	.action-btn:hover { background: #f3f4f6; }
+
+	.type-tag { background: #f3f4f6; color: #4b5563; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 500; }
+
+	.loading-text { text-align: center; padding: 2rem; color: #6b7280; }
+	.error-text { text-align: center; padding: 2rem; color: #dc2626; }
+
+    /* Modal styles */
+    .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+    .modal-content { background: white; padding: 2rem; border-radius: 8px; width: 500px; max-width: 90%; }
+    .modal-content h2 { margin-top: 0; font-size: 1.25rem; }
+    .field { margin-bottom: 1rem; }
+    .field label { display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.875rem; }
+    .field input[type="text"], .field select, .field textarea { width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 6px; }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1.5rem; }
+    .btn-outline { background: white; color: #374151; padding: 0.5rem 1rem; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; }
+</style>
