@@ -286,3 +286,20 @@ Antes de escribir código de negocio, se deben resolver las siguientes decisione
 | Fecha | Agente | Acción / Entregable | Estado |
 |-------|--------|---------------------|--------|
 | 2026-03-27 | `@.agents/skills/backend-api-servicios` + `@.agents/skills/qa-validacion` | Refuerzo de cobertura con tests del seed CLI y del repositorio compartido; cobertura total recuperada a 91.07% | Completado |
+
+## Actualización 2026-03-27 (Alineación documental)
+
+- **Agente en turno:** `@.agents/skills/documentacion-y-roadmap/SKILL.md`
+- **Acción realizada:** Revisión de coherencia entre implementación y documentación tras los cambios de backoffice, PostgreSQL real en desarrollo y refuerzo de cobertura.
+- **Cambios aplicados:**
+  - `README.md` actualizado para reflejar que el flujo manual con PostgreSQL real debe esperar salud del contenedor (`docker compose up -d --wait db`).
+  - `docs/producto/roadmap.md` actualizado para reflejar que el panel editorial interno ya está en desarrollo y que el backoffice mínimo existe en el repositorio.
+  - `docs/epics/epic-001-mvp-recursos-metadatos-minimos/tasks.md` actualizado con la cifra vigente de validación (`159 tests`, `91.13%` cobertura).
+- **Validación documental:**
+  - Revisión cruzada contra `Makefile`, `apps/cli/src/commands/seed.ts`, `apps/frontend/src/layouts/AdminLayout.astro`, `apps/frontend/src/pages/admin/*` y `apps/api/src/routes/admin.ts`.
+- **Riesgos abiertos:**
+  - Siguen faltando artefactos vivos de `docs/producto/deuda-tecnica.md` y `docs/producto/riesgos.md`, que el skill considera deseables para trazabilidad continua.
+
+| Fecha | Agente | Acción / Entregable | Estado |
+|-------|--------|---------------------|--------|
+| 2026-03-27 | `@.agents/skills/documentacion-y-roadmap` | Alineación de README, roadmap y tasks con la implementación real de PostgreSQL dev, backoffice y cobertura | Completado |

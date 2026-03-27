@@ -83,7 +83,7 @@ En desarrollo
 ### Testing
 - [x] 18 tests unitarios de reglas de transición (`validateTransition`).
 - [x] Tests de API actualizados: author puede draft→review, author NO puede review→published, curator puede review→published, 404 para recurso inexistente.
-- [x] 132 tests pasando, 94.57% cobertura de líneas.
+- [x] Cobertura reforzada tras el soporte de seed sobre PostgreSQL real: 159 tests pasando y 91.13% de cobertura de líneas.
 
 ### Transiciones permitidas
 | Desde | Hacia | Rol mínimo |

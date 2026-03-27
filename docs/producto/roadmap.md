@@ -50,7 +50,7 @@ Base técnica y documental completada. API, auth y frontend editorial mínimo ya
 | Pipeline de ingestión OAI-PMH | No iniciada |
 | Flujo de curación y moderación | No iniciada |
 | Mejora de relevancia en búsqueda | No iniciada |
-| Panel editorial interno | No iniciada |
+| Panel editorial interno | En desarrollo — backoffice con sidebar y CRUD mínimos para recursos, usuarios, categorías y colecciones |
 
 ---
 
@@ -147,8 +147,9 @@ El MVP base de catálogo ya no está en fase de mera preparación. La plataforma
 - Campo `createdBy` en recursos, con resolución del nombre del creador vía LEFT JOIN.
 - Nombre del creador visible en listado público, dashboard, ficha de recurso y vista de edición.
 - Botón "Editar" visible en ficha pública para usuarios autenticados con rol author+.
-- 132 tests pasando, 94.57% cobertura de líneas.
+- Backoffice con sidebar responsive, navegación por rol y CRUD mínimos para recursos, usuarios, categorías y colecciones.
+- 159 tests pasando, 91.13% cobertura de líneas.
 
 ### Lectura ejecutiva
 
-El flujo editorial de recursos queda completo como experiencia de producto. Los autores pueden crear recursos y enviarlos a revisión; los curadores pueden aprobar, rechazar o archivar. El siguiente foco de Fase 1 es la profundización de búsqueda y las colecciones reales.
+El flujo editorial de recursos queda completo como experiencia de producto y ya existe una primera base de backoffice para la gestión interna. Los autores pueden crear recursos y enviarlos a revisión; los curadores pueden aprobar, rechazar o archivar. El siguiente foco de Fase 1 es profundizar búsqueda pública y elevar el backoffice desde CRUD mínimo a experiencia editorial más completa.

@@ -104,7 +104,7 @@ Equivalente manual:
 1. Levanta solo PostgreSQL:
 
 ```bash
-docker compose up -d db
+docker compose up -d --wait db
 ```
 
 2. Arranca la API local apuntando a PostgreSQL:
