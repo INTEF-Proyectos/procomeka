@@ -2,12 +2,13 @@ import { Hono } from "hono";
 import { type AuthEnv, requireAuth, requireRole } from "../auth/middleware.ts";
 import { getDb } from "../db.ts";
 import { seedRandomResources } from "@procomeka/db/seed-random";
+import { isDevelopmentMode } from "../env.ts";
 
 const devRoutes = new Hono<AuthEnv>();
 
-// Solo habilitar si NODE_ENV es development
+// Solo habilitar en ejecuciones de desarrollo reales del API.
 devRoutes.use("*", async (c, next) => {
-	if (process.env.NODE_ENV !== "development") {
+	if (!isDevelopmentMode()) {
 		return c.json({ error: "Solo disponible en modo desarrollo" }, 403);
 	}
 	await next();
