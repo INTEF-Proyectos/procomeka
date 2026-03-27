@@ -3,12 +3,27 @@ import { Hono } from "hono";
 import type { AuthEnv } from "../auth/middleware.ts";
 import { devRoutes } from "./dev.ts";
 
-function createDevApp(mockUser: Record<string, unknown> | null = null, nodeEnv = "development") {
+function createDevApp(
+	mockUser: Record<string, unknown> | null = null,
+	nodeEnv = "development",
+	bunNodeEnv?: string,
+) {
 	const app = new Hono<AuthEnv>();
 	app.use("*", async (c, next) => {
 		c.set("user", mockUser as AuthEnv["Variables"]["user"]);
 		c.set("session", mockUser ? { id: "s" } as AuthEnv["Variables"]["session"] : null);
-		process.env.NODE_ENV = nodeEnv;
+		if (nodeEnv === undefined) {
+			delete process.env.NODE_ENV;
+		} else {
+			process.env.NODE_ENV = nodeEnv;
+		}
+		if (bunNodeEnv !== undefined) {
+			Bun.env.NODE_ENV = bunNodeEnv;
+		} else if (nodeEnv !== undefined) {
+			Bun.env.NODE_ENV = nodeEnv;
+		} else {
+			delete Bun.env.NODE_ENV;
+		}
 		await next();
 	});
 	app.route("/api/dev", devRoutes);
@@ -90,5 +105,15 @@ describe("Rutas dev — modo producción", () => {
 		expect(res.status).toBe(403);
 		const body = await res.json();
 		expect(body.error).toBe("Solo disponible en modo desarrollo");
+	});
+
+	test("POST /api/dev/seed-resources → 200 si Bun.env.NODE_ENV=development", async () => {
+		const app = createDevApp({ id: "1", role: "admin" }, undefined, "development");
+		const res = await app.request("/api/dev/seed-resources", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ count: 10 }),
+		});
+		expect(res.status).toBe(200);
 	});
 });

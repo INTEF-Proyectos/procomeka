@@ -195,6 +195,25 @@ Antes de escribir código de negocio, se deben resolver las siguientes decisione
 |-------|--------|---------------------|--------|
 | 2026-03-26 | `@.agents/skills/frontend-ux-accesibilidad` + `@.agents/skills/documentacion-y-roadmap` | Filtros básicos del catálogo público (tipo, idioma, licencia) y alineación de roadmap/estado con la implementación actual | Completado |
 
+## Actualización 2026-03-27 (Hotfix: seed de recursos en dashboard)
+
+- **Agente en turno:** `@.agents/skills/frontend-ux-accesibilidad/SKILL.md` + `@.agents/skills/backend-api-servicios/SKILL.md`
+- **Acción realizada:** Se corrige el error del botón "Generar recursos aleatorios" que devolvía "Solo disponible en modo desarrollo" aun ejecutando la app en desarrollo.
+- **Cambios aplicados:**
+  - Se añade helper de entorno en API para resolver `NODE_ENV` desde `process.env` y `Bun.env`.
+  - La ruta `POST /api/dev/seed-resources` pasa a usar esa utilidad en lugar de depender solo de `process.env.NODE_ENV`.
+  - El script `apps/api` `dev` fija `NODE_ENV=development` al arrancar con Bun hot reload.
+  - Se añaden tests unitarios del helper y cobertura del fallback `Bun.env.NODE_ENV`.
+- **Validación:**
+  - `bun test src/env.unit.test.ts src/routes/dev.unit.test.ts` en `apps/api`: verde.
+- **Riesgos abiertos:**
+  - `bun test` completo de `apps/api` sigue fallando por una incidencia previa ajena en `src/index.unit.test.ts` relacionada con una foreign key (`resources.assigned_curator_id -> user.id`) durante publicación de recursos.
+- **Traspaso recomendado:** `@.agents/skills/backend-api-servicios/SKILL.md` o `@.agents/skills/qa-validacion/SKILL.md` para sanear la suite completa del API y cerrar el fallo previo de integridad de datos.
+
+| Fecha | Agente | Acción / Entregable | Estado |
+|-------|--------|---------------------|--------|
+| 2026-03-27 | `@.agents/skills/frontend-ux-accesibilidad` + `@.agents/skills/backend-api-servicios` | Hotfix del endpoint dev de seed: detección robusta de entorno con Bun + tests unitarios específicos | Completado |
+
 ## Actualización 2026-03-26 (Flujo editorial de recursos)
 
 - **Agente en turno:** `@.agents/skills/backend-api-servicios/SKILL.md` + `@.agents/skills/frontend-ux-accesibilidad/SKILL.md`
