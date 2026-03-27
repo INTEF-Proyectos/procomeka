@@ -46,7 +46,7 @@ Base técnica y documental completada. API, auth y frontend editorial mínimo ya
 
 | Épica | Estado |
 |-------|--------|
-| Migración desde Procomún (análisis) | No iniciada |
+| Migración desde Procomún (análisis) | En progreso — contexto legacy documentado en `docs/casos/contexto-procomun-legacy/` (estado del arte, requisitos funcionales, info contractual); pendiente obtener PPT y diseñar ETL |
 | Pipeline de ingestión OAI-PMH | No iniciada |
 | Flujo de curación y moderación | No iniciada |
 | Mejora de relevancia en búsqueda | No iniciada |
