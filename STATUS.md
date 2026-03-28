@@ -584,3 +584,69 @@ Antes de escribir código de negocio, se deben resolver las siguientes decisione
 | Fecha | Agente | Acción / Entregable | Estado |
 |-------|--------|---------------------|--------|
 | 2026-03-28 | `@.agents/skills/frontend-ux-accesibilidad` + `@.agents/skills/documentacion-y-roadmap` | Migración de `admin/usuarios` a React island, test TypeScript y validación estándar completada | Completado |
+
+## Actualización 2026-03-28 (ADR-0013: migración `admin/recursos/index`)
+
+- **Agente en turno:** `@.agents/skills/frontend-ux-accesibilidad/SKILL.md` + `@.agents/skills/documentacion-y-roadmap/SKILL.md`
+- **Acción realizada:** Se sustituye el script imperativo de `apps/frontend/src/pages/admin/recursos/index.astro` por una island React dedicada para el listado editorial.
+- **Cambios aplicados:**
+  - Se crea `apps/frontend/src/islands/crud/ResourcesTableIsland.tsx`.
+  - La ruta `admin/recursos/index` pasa a shell Astro + island React `client:load`.
+  - El flujo de filtros, paginación, navegación a edición y borrado con confirmación queda gestionado con estado React.
+  - Se añade un test TypeScript del shell inicial de la nueva island.
+- **Validación ejecutada:**
+  - `cd apps/frontend && bun test`
+  - `cd apps/frontend && bun run build`
+  - `bun run test`
+- **Resultado:** validación estándar en verde. La suite global del repositorio termina con 204 tests passing y 91.94% de cobertura de líneas.
+- **Impacto de bundle observado:** `ResourcesTableIsland` se empaqueta como chunk dedicado de `3.88 kB` (`1.67 kB gzip`), dentro del presupuesto de la fase.
+- **Traspaso recomendado:** continuar con el catálogo público o con los formularios de recurso, dependiendo de si quieres priorizar descubrimiento público o completar el backoffice editorial.
+
+| Fecha | Agente | Acción / Entregable | Estado |
+|-------|--------|---------------------|--------|
+| 2026-03-28 | `@.agents/skills/frontend-ux-accesibilidad` + `@.agents/skills/documentacion-y-roadmap` | Migración de `admin/recursos/index` a React island, test TypeScript y validación estándar completada | Completado |
+
+## Actualización 2026-03-28 (ADR-0013: migración formularios de recurso)
+
+- **Agente en turno:** `@.agents/skills/frontend-ux-accesibilidad/SKILL.md` + `@.agents/skills/documentacion-y-roadmap/SKILL.md`
+- **Acción realizada:** Se sustituyen los scripts imperativos de `apps/frontend/src/pages/admin/recursos/nuevo.astro` y `apps/frontend/src/pages/admin/recursos/editar.astro` por islands React dedicadas.
+- **Cambios aplicados:**
+  - Se crean `apps/frontend/src/islands/resources/ResourceFormIsland.tsx` y `apps/frontend/src/islands/resources/ResourceEditorIsland.tsx`.
+  - Se extraen las opciones de formulario compartidas a `apps/frontend/src/islands/resources/resource-form-options.ts`.
+  - El editor mantiene el workflow editorial y la integración existente con `initResourceUploader()` dentro de la island React.
+  - Se añaden tests TypeScript del shell inicial de alta y edición.
+- **Validación ejecutada:**
+  - `cd apps/frontend && bun test`
+  - `cd apps/frontend && bun run build`
+  - `bun run test`
+- **Resultado:** validación estándar en verde. La suite global del repositorio termina con 204 tests passing y 91.94% de cobertura de líneas.
+- **Impacto de bundle observado:**
+  - `ResourceFormIsland`: `6.26 kB` (`2.01 kB gzip`)
+  - `ResourceEditorIsland`: `124.90 kB` (`37.22 kB gzip`)
+- **Riesgo abierto relevante:** el editor de recurso ya concentra el mayor peso hidratado de la migración por incorporar workflow y uploader; antes de tocar catálogo público conviene decidir si se acepta este coste o si se quiere separar más la carga diferida del uploader.
+- **Traspaso recomendado:** siguiente decisión entre migrar el catálogo público o refinar el editor de recurso para recortar peso e hidratar más tarde el uploader.
+
+| Fecha | Agente | Acción / Entregable | Estado |
+|-------|--------|---------------------|--------|
+| 2026-03-28 | `@.agents/skills/frontend-ux-accesibilidad` + `@.agents/skills/documentacion-y-roadmap` | Migración de `admin/recursos/nuevo` y `admin/recursos/editar` a React islands, tests TypeScript y validación estándar completada | Completado |
+
+## Actualización 2026-03-28 (ADR-0013: ajuste del editor de recursos)
+
+- **Agente en turno:** `@.agents/skills/frontend-ux-accesibilidad/SKILL.md`
+- **Acción realizada:** Se ajusta el editor de recursos tras la migración a React para recuperar la presentación visual y evitar que el panel de archivos bloquee la hidratación inicial.
+- **Cambios aplicados:**
+  - La integración de `initResourceUploader()` pasa a cargarse de forma diferida desde la island React.
+  - Los estilos de `admin/recursos/nuevo` y `admin/recursos/editar` se convierten en globales y acotados a `.form-container` para que sigan aplicándose al HTML renderizado por React.
+  - Se corrige el warning de React por claves en el stepper editorial.
+- **Validación ejecutada:**
+  - `cd apps/frontend && bun test`
+  - `cd apps/frontend && bun run build`
+- **Resultado:** validación del frontend en verde tras el ajuste. El editor queda dividido entre una island inicial ligera y un chunk diferido para el uploader.
+- **Impacto de bundle observado:**
+  - `ResourceEditorIsland`: `11.54 kB` (`3.72 kB gzip`)
+  - `resource-uploader`: `114.08 kB` (`34.10 kB gzip`)
+- **Nota operativa:** en desarrollo, si Vite mantiene dependencias optimizadas obsoletas de `@uppy/*`, puede seguir siendo necesario reiniciar `bun run dev` para regenerar `.vite/deps`.
+
+| Fecha | Agente | Acción / Entregable | Estado |
+|-------|--------|---------------------|--------|
+| 2026-03-28 | `@.agents/skills/frontend-ux-accesibilidad` | Ajuste del editor de recursos: carga diferida del uploader, estilos restaurados y warning de claves corregido | Completado |
