@@ -24,6 +24,9 @@ local.db
 # Preview serve directory
 .preview-serve
 
+# Generated elpx preview content (run prepare-elpx-preview.ts to regenerate)
+apps/frontend/public/api/
+
 # dotenv environment variable files
 .env
 .env.development.local

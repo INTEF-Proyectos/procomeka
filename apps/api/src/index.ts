@@ -6,6 +6,7 @@ import { publicRoutes } from "./routes/public.ts";
 import { adminRoutes } from "./routes/admin/index.ts";
 import { devRoutes } from "./routes/dev.ts";
 import { uploadRoutes } from "./routes/uploads.ts";
+import { elpxContentRoutes } from "./routes/elpx-content.ts";
 
 const app = new Hono<AuthEnv>();
 
@@ -44,6 +45,7 @@ app.get("/api/v1/config", (c) =>
 );
 
 app.route("/api/v1", publicRoutes);
+app.route("/api/v1/elpx", elpxContentRoutes);
 app.route("/api/admin", adminRoutes);
 app.route("/api/dev", devRoutes);
 app.route("/api/uploads", uploadRoutes);

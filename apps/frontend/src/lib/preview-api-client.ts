@@ -144,9 +144,34 @@ export class PreviewApiClient implements ApiClient {
 				[l.resourceId, l.level],
 			);
 		}
+
+		if (seed.elpxProjects) {
+			for (const e of seed.elpxProjects) {
+				await this.pglite.query(
+					`INSERT INTO "elpx_projects" (id, resource_id, hash, extract_path, original_filename, version, has_preview, created_at, updated_at) VALUES ($1, $2, $3, '', $4, 3, $5, $6, $7) ON CONFLICT (id) DO NOTHING`,
+					[e.id, e.resourceId, e.hash, e.originalFilename, e.hasPreview, now, now],
+				);
+			}
+		}
 	}
 
 	// --- Public API ---
+
+	private async enrichWithElpx(data: any[]) {
+		if (!data.length) return data;
+		const ids = data.map((r: any) => r.id);
+		const { listElpxProjectsByResourceIds } = await import("@procomeka/db/repository");
+		const elpxList = await listElpxProjectsByResourceIds(this.db, ids);
+		const elpxMap = new Map(elpxList.map((e: any) => [e.resourceId, e]));
+		const base = (window as unknown as { __BASE_URL__?: string }).__BASE_URL__ || "/";
+		return data.map((r: any) => {
+			const elpx = elpxMap.get(r.id);
+			const elpxPreview = elpx?.hasPreview === 1
+				? { hash: elpx.hash, previewUrl: `${base}api/v1/elpx/${elpx.hash}/` }
+				: null;
+			return { ...r, elpxPreview };
+		});
+	}
 
 	async listResources(opts?: {
 		q?: string;
@@ -157,7 +182,7 @@ export class PreviewApiClient implements ApiClient {
 		license?: string;
 	}): Promise<ResourceListResult> {
 		const { listResources: list } = await import("@procomeka/db/repository");
-		return list(this.db, {
+		const result = await list(this.db, {
 			limit: opts?.limit,
 			offset: opts?.offset,
 			search: opts?.q,
@@ -166,11 +191,15 @@ export class PreviewApiClient implements ApiClient {
 			language: opts?.language,
 			license: opts?.license,
 		});
+		return { ...result, data: await this.enrichWithElpx(result.data) };
 	}
 
 	async getResourceBySlug(slug: string): Promise<Resource | null> {
 		const { getResourceBySlug: get } = await import("@procomeka/db/repository");
-		return get(this.db, slug);
+		const r = await get(this.db, slug);
+		if (!r) return null;
+		const [enriched] = await this.enrichWithElpx([r]);
+		return enriched;
 	}
 
 	async getConfig(): Promise<AppConfig> {
@@ -330,6 +359,10 @@ export class PreviewApiClient implements ApiClient {
 
 	async cancelUpload(id: string): Promise<{ id: string; cancelled: boolean }> {
 		return { id, cancelled: true };
+	}
+
+	async getElpxProject(): Promise<import("./api-client.ts").ElpxProjectInfo | null> {
+		return null;
 	}
 
 	async listUsers(opts?: { q?: string; role?: string; limit?: number; offset?: number }) {

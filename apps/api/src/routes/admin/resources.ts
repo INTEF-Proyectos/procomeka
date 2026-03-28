@@ -103,6 +103,29 @@ resourceRoutes.get("/:id/uploads", async (c) => {
 	return c.json(await repo.listUploadSessionsForResource(db(), id));
 });
 
+resourceRoutes.get("/:id/elpx", async (c) => {
+	const user = getCurrentUser(c);
+	const { id } = c.req.param();
+	const resource = await repo.getResourceById(db(), id);
+	if (!resource) return c.json({ error: "Recurso no encontrado" }, 404);
+	if (!canManageResource(user, resource)) return c.json({ error: "Permisos insuficientes" }, 403);
+
+	const elpx = await repo.getElpxProjectByResourceId(db(), id);
+	if (!elpx) return c.json({ error: "Este recurso no tiene un proyecto eXeLearning asociado" }, 404);
+
+	const metadata = elpx.elpxMetadata ? JSON.parse(elpx.elpxMetadata) : null;
+	return c.json({
+		id: elpx.id,
+		hash: elpx.hash,
+		hasPreview: elpx.hasPreview === 1,
+		previewUrl: elpx.hasPreview === 1 ? `/api/v1/elpx/${elpx.hash}/` : null,
+		metadata,
+		originalFilename: elpx.originalFilename,
+		version: elpx.version,
+		createdAt: elpx.createdAt,
+	});
+});
+
 resourceRoutes.patch("/:id/status", async (c) => {
 	const user = getCurrentUser(c);
 	const { id } = c.req.param();

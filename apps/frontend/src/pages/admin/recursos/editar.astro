@@ -46,6 +46,27 @@ import AdminLayout from "../../../layouts/AdminLayout.astro";
 		<div id="error-message" class="error" role="alert" aria-live="polite" style="display:none;"></div>
 		<div id="success-message" class="success" role="status" aria-live="polite" style="display:none;"></div>
 
+		<section id="elpx-panel" class="elpx-panel" style="display:none;" aria-labelledby="elpx-title">
+			<div class="elpx-header">
+				<div>
+					<p class="eyebrow">eXeLearning</p>
+					<h2 id="elpx-title">Vista previa del recurso</h2>
+				</div>
+				<button id="elpx-apply-metadata" type="button" class="elpx-apply-btn" style="display:none;">
+					Aplicar metadatos del .elpx
+				</button>
+			</div>
+			<div id="elpx-preview-container" class="elpx-preview-container">
+				<iframe id="elpx-iframe" class="elpx-iframe"
+					sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"
+					referrerpolicy="no-referrer"
+					loading="lazy"
+					title="Vista previa del recurso eXeLearning"
+					src="about:blank"></iframe>
+			</div>
+			<p id="elpx-info" class="elpx-info"></p>
+		</section>
+
 		<section id="upload-panel" class="upload-panel" style="display:none;" aria-labelledby="upload-title">
 			<div class="upload-header">
 				<div>
@@ -172,6 +193,10 @@ import AdminLayout from "../../../layouts/AdminLayout.astro";
 	const statusAnnouncement = document.getElementById("status-announcement") as HTMLParagraphElement;
 	const archivedBadge = document.getElementById("archived-badge") as HTMLDivElement;
 	const uploadPanel = document.getElementById("upload-panel") as HTMLElement;
+	const elpxPanel = document.getElementById("elpx-panel") as HTMLElement;
+	const elpxIframe = document.getElementById("elpx-iframe") as HTMLIFrameElement;
+	const elpxInfo = document.getElementById("elpx-info") as HTMLParagraphElement;
+	const elpxApplyBtn = document.getElementById("elpx-apply-metadata") as HTMLButtonElement;
 
 	// Configurar enlaces con base path
 	const loginLink = document.getElementById("login-link") as HTMLAnchorElement;
@@ -382,6 +407,38 @@ import AdminLayout from "../../../layouts/AdminLayout.astro";
 			workflowSection.style.display = "block";
 			uploadPanel.style.display = "block";
 			form.style.display = "block";
+
+			// Load eXeLearning project info
+			const elpx = await api.getElpxProject(resourceId!).catch(() => null);
+			if (elpx?.hasPreview && elpx.previewUrl) {
+				elpxIframe.src = elpx.previewUrl;
+				elpxInfo.textContent = `Archivo: ${elpx.originalFilename} (eXeLearning v${elpx.version})`;
+				elpxPanel.style.display = "block";
+
+				// Show "apply metadata" button if elpx has metadata
+				if (elpx.metadata && (elpx.metadata.title || elpx.metadata.description)) {
+					elpxApplyBtn.style.display = "inline-flex";
+					elpxApplyBtn.addEventListener("click", () => {
+						const m = elpx.metadata!;
+						if (m.title) (document.getElementById("title") as HTMLInputElement).value = m.title;
+						if (m.description) (document.getElementById("description") as HTMLTextAreaElement).value = m.description;
+						if (m.author) (document.getElementById("author") as HTMLInputElement).value = m.author;
+						if (m.language) {
+							const langSelect = document.getElementById("language") as HTMLSelectElement;
+							const opt = langSelect.querySelector(`option[value="${m.language}"]`);
+							if (opt) langSelect.value = m.language;
+						}
+						if (m.license) {
+							const licSelect = document.getElementById("license") as HTMLSelectElement;
+							const opt = licSelect.querySelector(`option[value="${m.license}"]`);
+							if (opt) licSelect.value = m.license;
+						}
+						elpxApplyBtn.textContent = "Metadatos aplicados";
+						elpxApplyBtn.disabled = true;
+					});
+				}
+			}
+
 			await initResourceUploader({
 				resourceId: resourceId!,
 				root: uploadPanel,
@@ -534,6 +591,31 @@ import AdminLayout from "../../../layouts/AdminLayout.astro";
 		padding: 0; margin: -1px; overflow: hidden;
 		clip: rect(0,0,0,0); white-space: nowrap; border: 0;
 	}
+
+	/* --- eXeLearning panel --- */
+	.elpx-panel {
+		border: 1px solid #c7d2fe;
+		border-radius: 14px;
+		padding: 1rem;
+		margin-bottom: 1.5rem;
+		background: linear-gradient(180deg, #eef2ff 0%, #e0e7ff 100%);
+	}
+	.elpx-header {
+		display: flex; justify-content: space-between; align-items: center;
+		gap: 1rem; margin-bottom: 1rem;
+	}
+	.elpx-preview-container {
+		border: 1px solid #c7d2fe; border-radius: 8px; overflow: hidden; background: #fff;
+	}
+	.elpx-iframe { width: 100%; height: 500px; border: none; display: block; }
+	.elpx-info { font-size: 0.8rem; color: #6366f1; margin-top: 0.5rem; }
+	.elpx-apply-btn {
+		display: inline-flex; align-items: center; padding: 0.5rem 1rem;
+		border-radius: 999px; background: #4f46e5; color: white;
+		font-weight: 600; font-size: 0.85rem; border: none; cursor: pointer;
+	}
+	.elpx-apply-btn:hover:not(:disabled) { background: #4338ca; }
+	.elpx-apply-btn:disabled { opacity: 0.6; cursor: default; }
 
 	/* --- Form --- */
 	.upload-panel {
