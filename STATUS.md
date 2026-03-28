@@ -492,3 +492,40 @@ Antes de escribir código de negocio, se deben resolver las siguientes decisione
 | Fecha | Agente | Acción / Entregable | Estado |
 |-------|--------|---------------------|--------|
 | 2026-03-28 | `@.agents/skills/evaluacion-tecnologica` | ADR-0013 Framework UI para islands interactivas — Aceptado (Issue #50) | Aceptado |
+
+## Actualización 2026-03-28 (ADR-0013: bootstrap React islands)
+
+- **Agente en turno:** `@.agents/skills/frontend-ux-accesibilidad/SKILL.md` + `@.agents/skills/documentacion-y-roadmap/SKILL.md`
+- **Acción realizada:** Se inicia la materialización de la ADR-0013 integrando React en Astro para islands interactivas.
+- **Cambios aplicados:**
+  - `apps/frontend` integra `@astrojs/react`, `react` y `react-dom`.
+  - Se crea la frontera `src/islands/` con primitives compartidas para feedback, confirmación y tabla CRUD.
+  - `apps/frontend/src/pages/admin/categorias/index.astro` pasa a shell Astro + island React como piloto de migración.
+  - Se añaden artefactos de feature para trazabilidad en la Épica 001.
+- **Validación prevista:**
+  - `cd apps/frontend && bun test`
+  - `bun test`
+  - `cd apps/frontend && bun run build`
+  - `cd apps/frontend && PREVIEW_STATIC=true bun run build:preview`
+- **Riesgos abiertos:**
+  - Confirmar compatibilidad completa de React Testing Library sobre `bun test` en CI.
+  - Medir el impacto real de bundle antes de repetir el patrón en más rutas.
+- **Traspaso recomendado:** `@.agents/skills/frontend-ux-accesibilidad/SKILL.md` para continuar con `admin/colecciones` tras validar esta base.
+
+| Fecha | Agente | Acción / Entregable | Estado |
+|-------|--------|---------------------|--------|
+| 2026-03-28 | `@.agents/skills/frontend-ux-accesibilidad` + `@.agents/skills/documentacion-y-roadmap` | Bootstrap de React islands (ADR-0013), piloto en `admin/categorias` y trazabilidad de feature en Épica 001 | En validación |
+
+## Actualización 2026-03-28 (ADR-0013: validación completada)
+
+- **Validación ejecutada:**
+  - `cd apps/frontend && bun test`
+  - `cd apps/frontend && bun run build`
+  - `cd apps/frontend && PREVIEW_STATIC=true bun run build:preview`
+  - `bun run test`
+- **Resultado:** validación estándar en verde. La suite estándar del repositorio termina con 204 tests passing y 91.94% de cobertura de líneas.
+- **Nota operativa:** `bun test` en la raíz sigue sin ser el comando correcto para este repositorio porque intenta descubrir `e2e/example.spec.ts`; el comando canónico validado es `bun run test`.
+
+| Fecha | Agente | Acción / Entregable | Estado |
+|-------|--------|---------------------|--------|
+| 2026-03-28 | `@.agents/skills/frontend-ux-accesibilidad` + `@.agents/skills/documentacion-y-roadmap` | Bootstrap de React islands (ADR-0013), piloto en `admin/categorias`, documentación y validación estándar completadas | Completado |

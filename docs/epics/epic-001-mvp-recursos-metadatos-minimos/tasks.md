@@ -93,3 +93,21 @@ En desarrollo
 | review | published | curator |
 | published | archived | curator |
 | archived | draft | curator |
+
+## Actualización 2026-03-28 — Bootstrap React islands (ADR-0013)
+
+### Frontend
+- [x] Integrar React en Astro mediante `@astrojs/react`.
+- [x] Crear `src/islands/` como frontera explícita para componentes hidratados.
+- [x] Migrar `admin/categorias` a una island React como piloto reutilizable.
+
+### Testing
+- [x] Añadir `@testing-library/react` compatible con `bun test`.
+- [x] Crear prueba automatizada del flujo CRUD de categorías sobre la island.
+
+### Documentación
+- [x] Crear artefactos de feature en `features/feature-react-islands-bootstrap/`.
+- [ ] Registrar validación final y cierre de la iteración.
+
+### Cierre
+- [x] Registrar validación final y cierre de la iteración.
