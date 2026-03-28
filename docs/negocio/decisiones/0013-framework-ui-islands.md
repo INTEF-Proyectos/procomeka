@@ -312,3 +312,10 @@ Reabrir esta decisión si:
 - React Aria deja de mantenerse activamente.
 - Se detecta que más del 50% de las páginas requieren hidratación completa (indica deriva a SPA).
 - El rendimiento de Core Web Vitals se degrada respecto a la baseline actual.
+
+## Actualización de implementación — 2026-03-28
+
+- Se inicia la ejecución real de esta ADR con integración de `@astrojs/react` en `apps/frontend`.
+- La primera migración piloto se aplica sobre `admin/categorias`, que pasa de script imperativo en `.astro` a shell Astro + island React.
+- Se crea una base reutilizable en `src/islands/shared/` y `src/islands/crud/` para acelerar la migración de otros CRUDs.
+- La validación práctica del proyecto se mantiene alineada con la regla transversal vigente: **`bun test` sigue siendo el runner obligatorio**. React Testing Library se usa sobre Bun, sin introducir un runner alternativo en esta iteración.

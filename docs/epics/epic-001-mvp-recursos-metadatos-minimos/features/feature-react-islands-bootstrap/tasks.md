@@ -1,0 +1,25 @@
+# Tasks — Feature React Islands Bootstrap
+
+## Fecha
+2026-03-28
+
+## Estado
+En desarrollo
+
+## Bootstrap
+- [x] Añadir `@astrojs/react`, `react` y `react-dom` en `apps/frontend`.
+- [x] Registrar la integración React en `astro.config.ts`.
+- [x] Crear la frontera `src/islands/` para componentes React.
+
+## Piloto de categorías
+- [x] Sustituir el script inline de `admin/categorias` por una island React.
+- [x] Crear primitives compartidas para feedback, confirmación y tabla CRUD.
+- [x] Mantener alta, edición, borrado, filtro y paginación en la pantalla piloto.
+
+## Testing
+- [x] Añadir `@testing-library/react` al frontend.
+- [x] Crear test TypeScript del piloto con `bun test`.
+- [ ] Ejecutar build y suite de validación completa.
+
+## Cierre de validación — 2026-03-28
+- [x] Ejecutar build y suite de validación completa.
