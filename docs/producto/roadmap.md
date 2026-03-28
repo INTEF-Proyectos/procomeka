@@ -156,3 +156,19 @@ El MVP base de catálogo ya no está en fase de mera preparación. La plataforma
 ### Lectura ejecutiva
 
 El flujo editorial de recursos queda completo como experiencia de producto y ya existe una primera base de backoffice para la gestión interna. Los autores pueden crear recursos y enviarlos a revisión; los curadores pueden aprobar, rechazar o archivar. El siguiente foco de Fase 1 es profundizar búsqueda pública y elevar el backoffice desde CRUD mínimo a experiencia editorial más completa.
+
+## Actualización de estado — 2026-03-28 (Bootstrap React islands)
+
+### Confirmado en repositorio
+
+- ADR-0013 deja de ser solo una decisión documental y entra en ejecución real.
+- `apps/frontend` integra React como framework de islands en Astro.
+- `admin/categorias` se convierte en el primer piloto migrado desde script imperativo a island React.
+- Se introduce una base reutilizable para CRUDs hidratados en `src/islands/shared/` y `src/islands/crud/`.
+- La estrategia de validación se mantiene consistente con el repositorio: `bun test` + build Astro, sin runner alternativo.
+
+### Siguiente tramo recomendado
+
+1. Reutilizar la base de CRUD en `admin/colecciones`.
+2. Migrar `admin/usuarios` y `admin/recursos/index` con el mismo patrón.
+3. Medir bundle de las páginas hidratadas antes de atacar catálogo público o formularios complejos.

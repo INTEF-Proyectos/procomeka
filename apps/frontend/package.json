@@ -11,13 +11,20 @@
 		"test": "bun test"
 	},
 	"dependencies": {
+		"@astrojs/react": "^5.0.2",
 		"@electric-sql/pglite": "0.2.17",
 		"@procomeka/db": "workspace:*",
+		"@testing-library/dom": "^10.4.1",
+		"@testing-library/react": "^16.3.2",
+		"@types/react": "^19.2.14",
+		"@types/react-dom": "^19.2.3",
 		"@uppy/core": "5.2.0",
 		"@uppy/dashboard": "5.1.1",
 		"@uppy/tus": "5.1.1",
 		"astro": "5.18.1",
 		"drizzle-orm": "0.44.7",
+		"react": "^19.2.4",
+		"react-dom": "^19.2.4",
 		"typescript": "6.0.2"
 	},
 	"devDependencies": {

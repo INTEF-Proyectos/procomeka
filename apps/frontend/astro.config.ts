@@ -1,4 +1,5 @@
 import { defineConfig } from "astro/config";
+import react from "@astrojs/react";
 
 const isPreview = process.env.PREVIEW_STATIC === "true";
 const previewBase = process.env.PREVIEW_BASE ?? "/";
@@ -7,6 +8,7 @@ export default defineConfig({
 	site: isPreview ? "https://intef-proyectos.github.io" : "https://procomeka.es",
 	base: isPreview ? previewBase : "/",
 	output: "static",
+	integrations: [react()],
 	vite: {
 		define: {
 			"import.meta.env.PUBLIC_PREVIEW_MODE": JSON.stringify(isPreview ? "true" : "false"),
