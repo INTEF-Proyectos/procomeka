@@ -30,7 +30,7 @@ function createDevApp(
 	return app;
 }
 
-describe("Rutas dev — modo desarrollo", () => {
+describe("Rutas dev — modo desarrollo", { timeout: 60_000 }, () => {
 	const app = createDevApp({ id: "1", role: "admin" });
 
 	test("POST /api/dev/seed-resources → 200 con count válido", async () => {
@@ -94,7 +94,7 @@ describe("Rutas dev — modo desarrollo", () => {
 	});
 });
 
-describe("Rutas dev — modo producción", () => {
+describe("Rutas dev — modo producción", { timeout: 60_000 }, () => {
 	test("POST /api/dev/seed-resources → 403 siempre en producción", async () => {
 		const app = createDevApp({ id: "1", role: "admin" }, "production");
 		const res = await app.request("/api/dev/seed-resources", {

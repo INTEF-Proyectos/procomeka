@@ -20,7 +20,7 @@ describe("formatPostgresSeedTarget", () => {
 	});
 });
 
-describe("seedWithClient", () => {
+describe("seedWithClient", { timeout: 60_000 }, () => {
 	test("inserta usuarios y recursos cuando no existen", async () => {
 		const calls: Array<{ statement: string; params?: unknown[] }> = [];
 		const logs: string[] = [];

@@ -13,6 +13,28 @@ import AdminLayout from "../../../layouts/AdminLayout.astro";
 		<div id="error-message" class="error" role="alert" aria-live="polite" style="display:none;"></div>
 		<div id="success-message" class="success" role="status" aria-live="polite" style="display:none;"></div>
 
+		<section id="elpx-drawer" class="elpx-drawer" style="display:none;">
+			<div class="elpx-drawer-content">
+				<div class="elpx-drawer-icon">📦</div>
+				<h2>Sube un archivo .elpx</h2>
+				<p>Arrastra un archivo .elpx de eXeLearning para crear el recurso con sus metadatos automáticamente.</p>
+				<div id="elpx-dropzone" class="elpx-dropzone" tabindex="0">
+					<label class="elpx-file-label">
+						<span>Seleccionar archivo .elpx</span>
+						<input type="file" id="elpx-file-input" accept=".elpx,.elp" />
+					</label>
+					<p class="elpx-drop-hint">o arrastra aquí</p>
+				</div>
+				<div id="elpx-loading" class="elpx-loading" style="display:none;">
+					<span>Analizando archivo...</span>
+				</div>
+				<div id="elpx-error" class="elpx-error" role="alert" style="display:none;"></div>
+				<button type="button" id="skip-elpx" class="skip-link">Crear recurso manualmente</button>
+			</div>
+		</section>
+
+		<div id="elpx-success-banner" class="elpx-success-banner" style="display:none;"></div>
+
 		<form id="resource-form" style="display:none;" novalidate>
 			<div class="field">
 				<label for="title">Título *</label>
@@ -95,6 +117,26 @@ import AdminLayout from "../../../layouts/AdminLayout.astro";
 	const errorDiv = document.getElementById("error-message") as HTMLDivElement;
 	const successDiv = document.getElementById("success-message") as HTMLDivElement;
 
+	// Elpx drawer elements
+	const elpxDrawer = document.getElementById("elpx-drawer") as HTMLElement;
+	const elpxDropzone = document.getElementById("elpx-dropzone") as HTMLDivElement;
+	const elpxFileInput = document.getElementById("elpx-file-input") as HTMLInputElement;
+	const elpxLoading = document.getElementById("elpx-loading") as HTMLDivElement;
+	const elpxError = document.getElementById("elpx-error") as HTMLDivElement;
+	const skipElpxBtn = document.getElementById("skip-elpx") as HTMLButtonElement;
+	const elpxSuccessBanner = document.getElementById("elpx-success-banner") as HTMLDivElement;
+
+	// Form field references
+	const titleInput = document.getElementById("title") as HTMLInputElement;
+	const descriptionInput = document.getElementById("description") as HTMLTextAreaElement;
+	const authorInput = document.getElementById("author") as HTMLInputElement;
+	const languageSelect = document.getElementById("language") as HTMLSelectElement;
+	const licenseSelect = document.getElementById("license") as HTMLSelectElement;
+	const resourceTypeSelect = document.getElementById("resourceType") as HTMLSelectElement;
+
+	// Stored elpx file for later upload
+	let storedElpxFile: File | null = null;
+
 	// Configurar enlaces con base path
 	const loginLink = document.getElementById("login-link") as HTMLAnchorElement;
 	if (loginLink) loginLink.href = url("login");
@@ -125,11 +167,105 @@ import AdminLayout from "../../../layouts/AdminLayout.astro";
 				authCheck.style.display = "block";
 				return;
 			}
-			form.style.display = "block";
+			// Show elpx drawer instead of form directly
+			elpxDrawer.style.display = "block";
 		} catch {
 			authCheck.style.display = "block";
 		}
 	}
+
+	// --- Elpx drawer logic ---
+
+	function showFormOnly() {
+		elpxDrawer.style.display = "none";
+		form.style.display = "block";
+	}
+
+	skipElpxBtn.addEventListener("click", showFormOnly);
+
+	elpxFileInput.addEventListener("change", () => {
+		const file = elpxFileInput.files?.[0];
+		if (file) handleElpxFile(file);
+	});
+
+	elpxDropzone.addEventListener("dragover", (e) => {
+		e.preventDefault();
+		elpxDropzone.classList.add("is-dragover");
+	});
+
+	elpxDropzone.addEventListener("dragleave", () => {
+		elpxDropzone.classList.remove("is-dragover");
+	});
+
+	elpxDropzone.addEventListener("drop", (e) => {
+		e.preventDefault();
+		elpxDropzone.classList.remove("is-dragover");
+		const file = e.dataTransfer?.files[0];
+		if (file) handleElpxFile(file);
+	});
+
+	async function handleElpxFile(file: File) {
+		elpxLoading.style.display = "block";
+		elpxError.style.display = "none";
+
+		const formData = new FormData();
+		formData.append("file", file);
+
+		try {
+			const res = await fetch(url("api/admin/elpx/analyze"), {
+				method: "POST",
+				credentials: "include",
+				body: formData,
+			});
+
+			if (!res.ok) {
+				const err = await res.json().catch(() => ({ error: "Error al analizar el archivo" }));
+				elpxError.textContent = err.error || "Error al analizar el archivo";
+				elpxError.style.display = "block";
+				elpxLoading.style.display = "none";
+				return;
+			}
+
+			const { metadata, filename } = await res.json();
+
+			// Store file for later upload
+			storedElpxFile = file;
+
+			// Hide drawer, show form
+			elpxDrawer.style.display = "none";
+			form.style.display = "block";
+
+			// Prefill fields from metadata
+			if (metadata.title) titleInput.value = metadata.title;
+			if (metadata.description) descriptionInput.value = metadata.description;
+			if (metadata.author) authorInput.value = metadata.author;
+
+			if (metadata.language) {
+				const langOption = languageSelect.querySelector(`option[value="${metadata.language}"]`);
+				if (langOption) languageSelect.value = metadata.language;
+			}
+
+			if (metadata.license) {
+				const licOption = licenseSelect.querySelector(`option[value="${metadata.license}"]`);
+				if (licOption) licenseSelect.value = metadata.license;
+			}
+
+			// Default resourceType for elpx files
+			resourceTypeSelect.value = "actividad-interactiva";
+
+			// Show success banner
+			const displayName = filename || file.name;
+			elpxSuccessBanner.textContent = `Metadatos extraídos de ${displayName}. Revisa y crea el recurso.`;
+			elpxSuccessBanner.style.display = "block";
+		} catch {
+			elpxError.textContent = "Error de conexión al analizar el archivo";
+			elpxError.style.display = "block";
+		} finally {
+			elpxLoading.style.display = "none";
+		}
+	}
+
+	// --- Form submission ---
 
 	form.addEventListener("submit", async (e) => {
 		e.preventDefault();
@@ -138,19 +274,44 @@ import AdminLayout from "../../../layouts/AdminLayout.astro";
 		clearFieldErrors();
 
 		const body = {
-			title: (document.getElementById("title") as HTMLInputElement).value,
-			description: (document.getElementById("description") as HTMLTextAreaElement).value,
-			language: (document.getElementById("language") as HTMLSelectElement).value,
-			license: (document.getElementById("license") as HTMLSelectElement).value,
-			resourceType: (document.getElementById("resourceType") as HTMLSelectElement).value,
-			author: (document.getElementById("author") as HTMLInputElement).value || undefined,
+			title: titleInput.value,
+			description: descriptionInput.value,
+			language: languageSelect.value,
+			license: licenseSelect.value,
+			resourceType: resourceTypeSelect.value,
+			author: authorInput.value || undefined,
 			keywords: (document.getElementById("keywords") as HTMLInputElement).value || undefined,
 		};
+
+		const submitBtn = document.getElementById("submit-btn") as HTMLButtonElement;
+		submitBtn.disabled = true;
+		submitBtn.textContent = "Creando recurso…";
 
 		try {
 			const api = await getApiClient();
 			const data = await api.createResource(body);
-			successDiv.innerHTML = `Recurso creado. Redirigiendo al editor para adjuntar archivos…`;
+
+			// If there's a stored .elpx file, upload it to the resource now
+			if (storedElpxFile) {
+				submitBtn.textContent = "Subiendo archivo .elpx…";
+
+				const uploadForm = new FormData();
+				uploadForm.append("file", storedElpxFile);
+
+				const uploadRes = await fetch(url(`api/admin/elpx/upload/${data.id}`), {
+					method: "POST",
+					credentials: "include",
+					body: uploadForm,
+				});
+
+				if (!uploadRes.ok) {
+					const err = await uploadRes.json().catch(() => ({}));
+					console.error("Error subiendo .elpx:", err);
+					// Resource was created, redirect anyway — user can re-upload from edit page
+				}
+			}
+
+			successDiv.innerHTML = `Recurso creado. Redirigiendo al editor…`;
 			successDiv.style.display = "block";
 			window.setTimeout(() => {
 				window.location.href = url(`admin/recursos/editar?id=${data.id}`);
@@ -162,13 +323,16 @@ import AdminLayout from "../../../layouts/AdminLayout.astro";
 			}
 			errorDiv.textContent = e?.error ?? "Error al crear el recurso";
 			errorDiv.style.display = "block";
+		} finally {
+			submitBtn.disabled = false;
+			submitBtn.textContent = "Crear recurso";
 		}
 	});
 
 	checkAuth();
 </script>
 
-<style>
+<style is:global>
 	.form-container { max-width: 600px; margin: 0 auto; }
 	h1 { margin-bottom: 1.5rem; }
 	.field { margin-bottom: 1rem; }
@@ -183,13 +347,61 @@ import AdminLayout from "../../../layouts/AdminLayout.astro";
 	textarea { resize: vertical; }
 	.row { display: flex; gap: 1rem; }
 	.row .field { flex: 1; }
-	button {
+	button[type="submit"] {
 		width: 100%; padding: 0.75rem; background: #1a56db; color: white;
 		border: none; border-radius: 4px; font-size: 1rem; cursor: pointer; margin-top: 0.5rem;
 	}
-	button:hover { background: #1e40af; }
+	button[type="submit"]:hover { background: #1e40af; }
 	.error { background: #fee2e2; color: #991b1b; padding: 0.75rem; border-radius: 4px; margin-bottom: 1rem; }
 	.success { background: #d1fae5; color: #065f46; padding: 0.75rem; border-radius: 4px; margin-bottom: 1rem; }
 	.success a { color: #065f46; font-weight: 600; }
 	.field-error { display: block; color: #dc2626; font-size: 0.8rem; margin-top: 0.2rem; min-height: 1rem; }
+
+	/* Elpx drawer styles */
+	.elpx-drawer {
+		border: 2px solid #c7d2fe;
+		border-radius: 16px;
+		padding: 2rem;
+		margin-bottom: 1.5rem;
+		background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 50%, #c7d2fe 100%);
+		text-align: center;
+	}
+	.elpx-drawer-icon { font-size: 3rem; margin-bottom: 0.5rem; }
+	.elpx-drawer h2 { font-size: 1.3rem; margin: 0 0 0.5rem; color: #312e81; }
+	.elpx-drawer p { color: #4338ca; font-size: 0.9rem; margin-bottom: 1rem; }
+	.elpx-dropzone {
+		border: 2px dashed #818cf8;
+		border-radius: 12px;
+		padding: 1.5rem;
+		background: rgba(255,255,255,0.7);
+		margin-bottom: 1rem;
+		transition: border-color 0.15s, background 0.15s;
+	}
+	.elpx-dropzone.is-dragover {
+		border-color: #4f46e5;
+		background: rgba(255,255,255,0.95);
+	}
+	.elpx-file-label {
+		display: inline-block;
+		padding: 0.6rem 1.25rem;
+		background: #4f46e5;
+		color: white;
+		border-radius: 999px;
+		font-weight: 600;
+		cursor: pointer;
+		font-size: 0.9rem;
+	}
+	.elpx-file-label:hover { background: #4338ca; }
+	.elpx-file-label input { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
+	.elpx-drop-hint { color: #6366f1; font-size: 0.8rem; margin-top: 0.5rem; }
+	.elpx-loading { color: #4338ca; font-weight: 600; padding: 1rem; }
+	.elpx-error { background: #fee2e2; color: #991b1b; padding: 0.75rem; border-radius: 8px; margin-top: 0.5rem; }
+	.skip-link {
+		background: none; border: none; color: #6366f1; cursor: pointer;
+		text-decoration: underline; font-size: 0.85rem; margin-top: 0.5rem;
+	}
+	.elpx-success-banner {
+		background: #d1fae5; color: #065f46; padding: 0.75rem;
+		border-radius: 8px; margin-bottom: 1rem; font-weight: 600;
+	}
 </style>
