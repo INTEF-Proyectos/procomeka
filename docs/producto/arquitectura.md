@@ -10,11 +10,21 @@ Definida en Fase 0. Tecnologías decididas para todas las capas principales.
 
 ### Arquitectura actual (Legacy)
 
+> Análisis detallado disponible en `docs/casos/contexto-procomun-legacy/estado-del-arte.md`.
+
 El sistema anterior (el antiguo Procomún) está construido sobre una arquitectura más monolítica (evolucionada desde la red Agrega) e incluye múltiples componentes que han ido creciendo con el tiempo:
-- **Gestión de contenidos:** Integraba un repositorio documental principal para REA en diversos formatos (como paquetes SCORM).
-- **Banco Multimedia:** Un sistema integrado para almacenar, clasificar y servir archivos multimedia (imágenes, audio, vídeo).
-- **Herramientas de edición:** Integración embebida de eXeLearning online, permitiendo a los autores la edición en vivo de sus archivos de proyecto (.elpx) sin salir de la plataforma.
-- **Buscador:** Un motor de búsqueda interno para indexar recursos y material multimedia, con capacidades de filtrado.
+
+**Stack tecnológico confirmado:** Drupal (CMS), Matomo (analítica), Docker (contenedorización), apps nativas iOS/Android. CSS en migración de Bootstrap 3 a LESS.
+
+**Tres subsistemas principales:**
+
+- **Sistema PROCOMÚN central (Drupal):** Portal web con catalogación de ODEs, búsqueda con filtros (área, nivel, tipo, idioma), flujo editorial, gestión de usuarios (109.707 registrados), comunidades temáticas (55), artículos (23.509), itinerarios de aprendizaje (371) y newsletters (69). Autenticación con proveedores externos. Rol de "Publicador certificado".
+- **Repositorio Agrega3:** Gestión de paquetes SCORM, objetos .elpx (eXeLearning), metadatos LOM y federación con nodos externos.
+- **Banco Multimedia:** Anteriormente "Banco de imágenes y sonidos del INTEF". Integrado desde abril de 2023. Más de 100.000 recursos (fotografías, vídeos, ilustraciones, audios) con licencias seleccionables y búsqueda integrada.
+- **eXeLearning Online:** Edición de recursos interactivos directamente en el navegador, permitiendo modificar recursos propios tras publicación.
+- **Buscador unificado:** Motor de búsqueda interno que indexa ODEs y multimedia simultáneamente, con filtros por área temática, contexto educativo, tipo de contenido e idioma (es, en, ca, gl, eu).
+
+**Cifras de la plataforma (marzo 2026):** 78.798 ODEs, +100.000 multimedia, 109.707 usuarios, 23.509 artículos, 371 itinerarios, 55 comunidades.
 
 ### Proceso de migración
 

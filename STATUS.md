@@ -304,6 +304,32 @@ Antes de escribir código de negocio, se deben resolver las siguientes decisione
 |-------|--------|---------------------|--------|
 | 2026-03-27 | `@.agents/skills/documentacion-y-roadmap` | Alineación de README, roadmap y tasks con la implementación real de PostgreSQL dev, backoffice y cobertura | Completado |
 
+## Actualización 2026-03-27 (Caso de análisis: contexto de Procomún legacy)
+
+- **Agente en turno:** `@.agents/skills/documentacion-y-roadmap/SKILL.md` + `@.agents/skills/ingestas-y-migraciones/SKILL.md`
+- **Acción realizada:** Se documenta el estado del arte de la plataforma Procomún actual como base para planificar la migración de datos y funcionalidades a procomeka.
+- **Cambios aplicados:**
+  - Nuevo caso de análisis en `docs/casos/contexto-procomun-legacy/` con estado del arte, requisitos funcionales observados e información contractual pública.
+  - Stack legacy confirmado: Drupal, Matomo, Docker, apps nativas iOS/Android.
+  - Cifras documentadas: ~78.800 ODEs, ~100.000 multimedia, ~109.700 usuarios, ~23.500 artículos, 371 itinerarios, 55 comunidades.
+  - 13 grupos de requisitos funcionales observados con mapeo a procomeka y gaps identificados.
+  - 6 gaps funcionales críticos: Banco Multimedia como entidad propia, eXeLearning online, comunidades, artículos, app móvil, i18n de interfaz.
+  - Información contractual del expediente CE01698/2023 (adjudicación a ICA, 318.599,63 €).
+  - Carpeta `pliegos/` preparada para almacenar PPT y PCAP cuando se obtengan.
+  - Sección legacy de `docs/producto/arquitectura.md` enriquecida con hallazgos.
+  - Roadmap actualizado: migración de Procomún pasa de "No iniciada" a "En progreso" (fase de análisis).
+- **Validación:**
+  - Fuentes cruzadas: contratación pública, noticia oficial INTEF, observación directa de procomun.intef.es, fuente complementaria ICA.
+  - Hechos confirmados separados de hipótesis en toda la documentación.
+- **Riesgos abiertos:**
+  - El Pliego de Prescripciones Técnicas (PPT) del expediente CE01698/2023 no se ha podido obtener todavía; contiene los requisitos funcionales formales.
+  - No se tiene acceso al esquema de base de datos de Drupal/Procomún.
+  - No se conoce si existe API pública del Procomún actual.
+- **Traspaso recomendado:** `@.agents/skills/ingestas-y-migraciones/SKILL.md` para diseñar el plan ETL detallado una vez se obtengan los pliegos, y `@.agents/skills/metadatos-y-curacion/SKILL.md` para diseñar el mapeo de metadatos LOM → esquema procomeka.
+
+| Fecha | Agente | Acción / Entregable | Estado |
+|-------|--------|---------------------|--------|
+| 2026-03-27 | `@.agents/skills/documentacion-y-roadmap` + `@.agents/skills/ingestas-y-migraciones` | Caso de análisis de Procomún legacy: estado del arte, requisitos funcionales, info contractual, gaps de migración | Completado |
 ## Actualización 2026-03-27 (Issue #30 — uploads resumables)
 
 - **Agente en turno:** `@.agents/skills/backend-api-servicios/SKILL.md` + `@.agents/skills/frontend-ux-accesibilidad/SKILL.md` + `@.agents/skills/documentacion-y-roadmap/SKILL.md`
