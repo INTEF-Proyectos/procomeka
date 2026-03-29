@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import "../../lib/paraglide-client.ts";
+import * as m from "../../paraglide/messages.js";
 import { getApiClient } from "../../lib/get-api-client.ts";
 import { url } from "../../lib/paths.ts";
 import "./LoginIsland.css";
@@ -48,9 +50,9 @@ export function LoginIsland() {
         return;
       }
 
-      setError(result.error ?? "Credenciales incorrectas");
+      setError(result.error ?? m.auth_bad_credentials());
     } catch {
-      setError("Error de conexión con el servidor");
+      setError(m.auth_connection_error());
     } finally {
       setSubmitting(false);
     }
@@ -69,9 +71,9 @@ export function LoginIsland() {
         return;
       }
 
-      setError(result.error ?? "No se pudo iniciar el login institucional");
+      setError(result.error ?? m.auth_oidc_error());
     } catch {
-      setError("Error de conexión con el servidor");
+      setError(m.auth_connection_error());
     } finally {
       setOidcSubmitting(false);
     }
@@ -92,10 +94,8 @@ export function LoginIsland() {
           <div className="login-icon-circle">
             <span className="material-symbols-outlined" aria-hidden="true">lock</span>
           </div>
-          <h1 className="login-title">Iniciar sesión</h1>
-          <p className="login-subtitle">
-            Accede a tu cuenta para gestionar recursos y participar en la comunidad.
-          </p>
+          <h1 className="login-title">{m.auth_login_title()}</h1>
+          <p className="login-subtitle">{m.auth_login_subtitle()}</p>
         </div>
 
         {/* Error */}
@@ -109,13 +109,13 @@ export function LoginIsland() {
         {/* Form */}
         <form onSubmit={(event) => void handleSubmit(event)} className="login-form">
           <div className="login-field">
-            <label htmlFor="login-email">Correo electrónico</label>
+            <label htmlFor="login-email">{m.auth_email_label()}</label>
             <input
               type="email"
               id="login-email"
               required
               autoComplete="email"
-              placeholder="tu@email.com"
+              placeholder={m.auth_email_placeholder()}
               value={email}
               onChange={(event) => setEmail(event.currentTarget.value)}
               disabled={submitting || oidcSubmitting}
@@ -123,13 +123,13 @@ export function LoginIsland() {
           </div>
 
           <div className="login-field">
-            <label htmlFor="login-password">Contraseña</label>
+            <label htmlFor="login-password">{m.auth_password_label()}</label>
             <input
               type="password"
               id="login-password"
               required
               autoComplete="current-password"
-              placeholder="Tu contraseña"
+              placeholder={m.auth_password_placeholder()}
               value={password}
               onChange={(event) => setPassword(event.currentTarget.value)}
               disabled={submitting || oidcSubmitting}
@@ -137,7 +137,7 @@ export function LoginIsland() {
           </div>
 
           <button type="submit" className="login-submit" disabled={submitting || oidcSubmitting}>
-            {submitting ? "Entrando..." : "Entrar"}
+            {submitting ? m.auth_submitting() : m.auth_submit()}
           </button>
         </form>
 
@@ -145,7 +145,7 @@ export function LoginIsland() {
         {oidcEnabled && (
           <>
             <div className="login-separator">
-              <span>o</span>
+              <span>{m.auth_separator()}</span>
             </div>
             <button
               type="button"
@@ -154,21 +154,21 @@ export function LoginIsland() {
               onClick={() => void handleOidc()}
             >
               <span className="material-symbols-outlined" aria-hidden="true">badge</span>
-              {oidcSubmitting ? "Redirigiendo..." : "Acceder con cuenta institucional"}
+              {oidcSubmitting ? m.auth_oidc_redirecting() : m.auth_oidc()}
             </button>
           </>
         )}
 
         {/* Footer link */}
         <p className="login-footer">
-          ¿No tienes cuenta? <a href={url("registro")}>Crear cuenta</a>
+          {m.auth_no_account()} <a href={url("registro")}>{m.auth_create_account()}</a>
         </p>
 
         {/* Dev / test credentials — clickable to auto-fill */}
         <div className="login-dev-info">
           <p className="login-dev-title">
             <span className="material-symbols-outlined" aria-hidden="true">science</span>
-            Cuentas de prueba
+            {m.auth_test_accounts()}
           </p>
           <div className="login-dev-list">
             {DEV_USERS.map((u) => (

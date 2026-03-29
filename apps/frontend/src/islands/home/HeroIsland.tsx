@@ -1,13 +1,24 @@
 import { useEffect, useRef } from "react";
+import "../../lib/paraglide-client.ts";
+import * as m from "../../paraglide/messages.js";
+import { url } from "../../lib/paths.ts";
 import "./HeroIsland.css";
 
 const QUICK_FILTERS = [
-  { label: "Infantil", value: "Infantil" },
-  { label: "Primaria", value: "Primaria" },
-  { label: "Secundaria", value: "Secundaria" },
-  { label: "Bachillerato", value: "Bachillerato" },
-  { label: "FP", value: "FP" },
+  { key: "infantil" as const, value: "Infantil" },
+  { key: "primaria" as const, value: "Primaria" },
+  { key: "secundaria" as const, value: "Secundaria" },
+  { key: "bachillerato" as const, value: "Bachillerato" },
+  { key: "fp" as const, value: "FP" },
 ];
+
+const FILTER_LABELS: Record<string, () => string> = {
+  infantil: m.hero_filter_infantil,
+  primaria: m.hero_filter_primaria,
+  secundaria: m.hero_filter_secundaria,
+  bachillerato: m.hero_filter_bachillerato,
+  fp: m.hero_filter_fp,
+};
 
 export function HeroIsland() {
   const searchRef = useRef<HTMLFormElement>(null);
@@ -39,24 +50,22 @@ export function HeroIsland() {
     const query = input?.value?.trim() || "";
     const params = new URLSearchParams();
     if (query) params.set("q", query);
-    window.location.href = `${window.__BASE_URL__ || "/"}explorar${params.toString() ? `?${params}` : ""}`;
+    window.location.href = url("explorar") + (params.toString() ? `?${params}` : "");
   }
 
   function handleFilterClick(value: string) {
-    window.location.href = `${window.__BASE_URL__ || "/"}explorar?level=${encodeURIComponent(value)}`;
+    window.location.href = url("explorar") + `?level=${encodeURIComponent(value)}`;
   }
 
   return (
-    <section className="hero" aria-label="Buscar recursos educativos">
+    <section className="hero" aria-label={m.hero_search_label()}>
       <div className="hero-bg" aria-hidden="true" />
       <div className="hero-content">
         <h1 className="hero-title">
-          Encuentra y comparte el mejor{" "}
-          <span className="hero-title-accent">conocimiento educativo.</span>
+          {m.hero_title()}{" "}
+          <span className="hero-title-accent">{m.hero_title_accent()}</span>
         </h1>
-        <p className="hero-subtitle">
-          Accede a más de 100.000 objetos de aprendizaje, recursos y colecciones creadas por y para docentes.
-        </p>
+        <p className="hero-subtitle">{m.hero_subtitle()}</p>
 
         <div className="hero-search-container">
           <form ref={searchRef} className="hero-search-bar" onSubmit={handleSubmit} role="search">
@@ -66,14 +75,14 @@ export function HeroIsland() {
             <input
               className="hero-search-input"
               type="text"
-              placeholder="¿Qué quieres enseñar hoy? Ej: Cambio climático, Ecuaciones..."
-              aria-label="Buscar recursos educativos"
+              placeholder={m.hero_search_placeholder()}
+              aria-label={m.hero_search_label()}
             />
-            <button className="hero-search-btn" type="submit">Buscar</button>
+            <button className="hero-search-btn" type="submit">{m.hero_search_btn()}</button>
           </form>
 
-          <div className="hero-filters" role="group" aria-label="Filtros rápidos por nivel educativo">
-            <span className="hero-filters-label">Filtros rápidos:</span>
+          <div className="hero-filters" role="group" aria-label={m.hero_quick_filters_label()}>
+            <span className="hero-filters-label">{m.hero_quick_filters()}</span>
             {QUICK_FILTERS.map((filter) => (
               <button
                 key={filter.value}
@@ -81,7 +90,7 @@ export function HeroIsland() {
                 type="button"
                 onClick={() => handleFilterClick(filter.value)}
               >
-                {filter.label}
+                {FILTER_LABELS[filter.key]()}
               </button>
             ))}
           </div>

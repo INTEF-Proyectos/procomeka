@@ -1,0 +1,15 @@
+---
+import { locales, baseLocale } from "../../paraglide/runtime.js";
+import PublicLayout from "../../layouts/PublicLayout.astro";
+import { RegisterIsland } from "../../islands/auth/RegisterIsland.tsx";
+
+export function getStaticPaths() {
+  return locales
+    .filter((l) => l !== baseLocale)
+    .map((locale) => ({ params: { locale } }));
+}
+---
+
+<PublicLayout title="Crear cuenta" showNavSearch={true}>
+  <RegisterIsland client:load />
+</PublicLayout>

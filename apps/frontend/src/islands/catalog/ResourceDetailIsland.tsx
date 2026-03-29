@@ -5,6 +5,9 @@ import { url } from "../../lib/paths.ts";
 import { FILE_ICONS, formatBytes, STATUS_MAP, TYPE_ICONS } from "../../lib/resource-display.ts";
 import { RatingIsland } from "../social/RatingIsland.tsx";
 import { FavoriteIsland } from "../social/FavoriteIsland.tsx";
+import "../../lib/paraglide-client.ts";
+import * as m from "../../paraglide/messages.js";
+import { getLocale } from "../../paraglide/runtime.js";
 
 const EDITABLE_ROLES = new Set(["author", "curator", "admin"]);
 
@@ -23,12 +26,12 @@ function ShareButton() {
       className={`meta-action-btn${copied ? " meta-action-btn-success" : ""}`}
       type="button"
       onClick={handleShare}
-      aria-label={copied ? "Enlace copiado" : "Copiar enlace del recurso"}
+      aria-label={copied ? m.detail_shared_label() : m.detail_share_label()}
     >
       <span className="material-symbols-outlined" aria-hidden="true">
         {copied ? "check" : "share"}
       </span>
-      {copied ? "Copiado" : "Compartir"}
+      {copied ? m.detail_shared() : m.detail_share()}
     </button>
   );
 }
@@ -49,9 +52,9 @@ function EmbedSection({ title, previewUrl, slug }: { title: string; previewUrl: 
 
   return (
     <section className="embed-section">
-      <h2>Ponlo en tu web</h2>
+      <h2>{m.detail_embed_title()}</h2>
       <p className="embed-description">
-        Si quieres embeber este recurso en tu web, copia el siguiente código:
+        {m.detail_embed_desc()}
       </p>
       <div className="embed-code-wrapper">
         <textarea
@@ -60,7 +63,7 @@ function EmbedSection({ title, previewUrl, slug }: { title: string; previewUrl: 
           value={iframeCode}
           rows={3}
           onClick={(e) => (e.target as HTMLTextAreaElement).select()}
-          aria-label="Código de inserción iframe"
+          aria-label={m.detail_embed_label()}
         />
         <button
           className={`embed-copy-btn${copiedEmbed ? " embed-copy-success" : ""}`}
@@ -70,7 +73,7 @@ function EmbedSection({ title, previewUrl, slug }: { title: string; previewUrl: 
           <span className="material-symbols-outlined" aria-hidden="true">
             {copiedEmbed ? "check" : "content_copy"}
           </span>
-          {copiedEmbed ? "Copiado" : "Copiar código"}
+          {copiedEmbed ? m.detail_embed_copied() : m.detail_embed_copy()}
         </button>
       </div>
     </section>
@@ -79,7 +82,7 @@ function EmbedSection({ title, previewUrl, slug }: { title: string; previewUrl: 
 
 function resourceDate(dateValue: Resource["createdAt"]) {
   if (!dateValue) return "";
-  return new Date(dateValue).toLocaleDateString("es-ES", {
+  return new Date(dateValue).toLocaleDateString(getLocale(), {
     year: "numeric",
     month: "long",
     day: "numeric",
@@ -104,7 +107,7 @@ function ResourceDetailContent({ resource, session, stats, isFavorited }: { reso
   const updatedDate = resourceDate(resource.updatedAt);
   const canEdit = EDITABLE_ROLES.has(session?.user?.role ?? "reader");
   const currentUserId = session?.user?.id ?? null;
-  const authorName = resource.createdByName || resource.author || "Autor desconocido";
+  const authorName = resource.createdByName || resource.author || m.detail_unknown_author();
   const authorInitial = authorName.charAt(0).toUpperCase();
   const hasPreview = !!resource.elpxPreview?.previewUrl;
   const hasFiles = !!resource.mediaItems?.length;
@@ -114,9 +117,9 @@ function ResourceDetailContent({ resource, session, stats, isFavorited }: { reso
     <>
       {/* Breadcrumb */}
       <nav className="breadcrumb">
-        <a href={url("")}>Inicio</a>
+        <a href={url("")}>{m.detail_home()}</a>
         <span className="sep">/</span>
-        <a href={url("explorar")}>Explorar</a>
+        <a href={url("explorar")}>{m.detail_explore()}</a>
         <span className="sep">/</span>
         <span>{resource.title}</span>
       </nav>
@@ -131,7 +134,7 @@ function ResourceDetailContent({ resource, session, stats, isFavorited }: { reso
           {updatedDate || publicationDate ? (
             <span className="detail-date">
               <span className="material-symbols-outlined">calendar_today</span>
-              {updatedDate ? `Actualizado el ${updatedDate}` : `Publicado el ${publicationDate}`}
+              {updatedDate ? m.detail_updated({ date: updatedDate }) : m.detail_published_on({ date: publicationDate })}
             </span>
           ) : null}
         </div>
@@ -159,7 +162,7 @@ function ResourceDetailContent({ resource, session, stats, isFavorited }: { reso
             ) : null}
             {canEdit ? (
               <a href={url(`editar?id=${resource.id}`)} className="edit-btn">
-                Editar recurso
+                {m.detail_edit()}
               </a>
             ) : null}
           </div>
@@ -180,7 +183,7 @@ function ResourceDetailContent({ resource, session, stats, isFavorited }: { reso
                 className="detail-action-primary"
               >
                 <span className="material-symbols-outlined">visibility</span>
-                Ver Online
+                {m.detail_view_online()}
               </a>
             ) : null}
             {hasFiles && resource.mediaItems?.[0]?.url ? (
@@ -193,13 +196,13 @@ function ResourceDetailContent({ resource, session, stats, isFavorited }: { reso
                 }}
               >
                 <span className="material-symbols-outlined">download</span>
-                Descargar{totalFileSize > 0 ? ` (${formatBytes(totalFileSize)})` : ""}
+                {m.detail_download()}{totalFileSize > 0 ? ` (${formatBytes(totalFileSize)})` : ""}
                 {stats?.downloadCount ? <span className="detail-action-count">{stats.downloadCount}</span> : null}
               </a>
             ) : null}
             {!hasPreview && !hasFiles ? (
               <span style={{ color: "var(--color-on-surface-variant)", fontSize: "var(--text-body-md)" }}>
-                No hay archivos disponibles para este recurso.
+                {m.detail_no_files()}
               </span>
             ) : null}
           </div>
@@ -207,7 +210,7 @@ function ResourceDetailContent({ resource, session, stats, isFavorited }: { reso
           {/* Preview */}
           {hasPreview ? (
             <section className="elpx-preview-section">
-              <h2>Previsualizacion del Recurso</h2>
+              <h2>{m.detail_preview_title()}</h2>
               <div className="elpx-preview-wrapper">
                 <iframe
                   src={resource.elpxPreview!.previewUrl}
@@ -215,7 +218,7 @@ function ResourceDetailContent({ resource, session, stats, isFavorited }: { reso
                   sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"
                   referrerPolicy="no-referrer"
                   loading="lazy"
-                  title="Vista previa del recurso eXeLearning"
+                  title={m.detail_preview_iframe()}
                 />
               </div>
             </section>
@@ -233,7 +236,7 @@ function ResourceDetailContent({ resource, session, stats, isFavorited }: { reso
           {/* Description */}
           {resource.description ? (
             <section className="description-section">
-              <h2>Descripcion Pedagogica</h2>
+              <h2>{m.detail_description()}</h2>
               <p>{resource.description}</p>
             </section>
           ) : null}
@@ -241,7 +244,7 @@ function ResourceDetailContent({ resource, session, stats, isFavorited }: { reso
           {/* Files */}
           {hasFiles ? (
             <section className="files-section">
-              <h2>Archivos adjuntos</h2>
+              <h2>{m.detail_files()}</h2>
               <div className="files-grid">
                 {resource.mediaItems!.map((mediaItem) => {
                   const fileIcon = FILE_ICONS[mediaItem.mimeType || ""] ?? "&#128193;";
@@ -254,7 +257,7 @@ function ResourceDetailContent({ resource, session, stats, isFavorited }: { reso
                         dangerouslySetInnerHTML={{ __html: fileIcon }}
                       />
                       <div className="file-info">
-                        <span className="file-name">{mediaItem.filename || "Archivo"}</span>
+                        <span className="file-name">{mediaItem.filename || m.detail_file_default()}</span>
                         {size ? <span className="file-size">{size}</span> : null}
                       </div>
                     </a>
@@ -275,7 +278,7 @@ function ResourceDetailContent({ resource, session, stats, isFavorited }: { reso
           <div className="detail-meta-card">
             {/* Technical details */}
             <div className="meta-section">
-              <h3 className="meta-section-title">Detalles Tecnicos</h3>
+              <h3 className="meta-section-title">{m.detail_technical()}</h3>
               <div>
                 {resource.resourceType ? (
                   <div className="meta-row">
@@ -283,7 +286,7 @@ function ResourceDetailContent({ resource, session, stats, isFavorited }: { reso
                       <span className="material-symbols-outlined">category</span>
                     </div>
                     <div>
-                      <p className="meta-row-label">Tipo de recurso</p>
+                      <p className="meta-row-label">{m.detail_type()}</p>
                       <p className="meta-row-value">{resource.resourceType}</p>
                     </div>
                   </div>
@@ -295,7 +298,7 @@ function ResourceDetailContent({ resource, session, stats, isFavorited }: { reso
                       <span className="material-symbols-outlined">translate</span>
                     </div>
                     <div>
-                      <p className="meta-row-label">Idioma</p>
+                      <p className="meta-row-label">{m.detail_language()}</p>
                       <p className="meta-row-value">{resource.language}</p>
                     </div>
                   </div>
@@ -307,7 +310,7 @@ function ResourceDetailContent({ resource, session, stats, isFavorited }: { reso
                       <span className="material-symbols-outlined">architecture</span>
                     </div>
                     <div>
-                      <p className="meta-row-label">Materias</p>
+                      <p className="meta-row-label">{m.detail_subjects()}</p>
                       <p className="meta-row-value">{resource.subjects.join(", ")}</p>
                     </div>
                   </div>
@@ -319,7 +322,7 @@ function ResourceDetailContent({ resource, session, stats, isFavorited }: { reso
                       <span className="material-symbols-outlined">school</span>
                     </div>
                     <div>
-                      <p className="meta-row-label">Niveles educativos</p>
+                      <p className="meta-row-label">{m.detail_levels()}</p>
                       <p className="meta-row-value">{resource.levels.join(", ")}</p>
                     </div>
                   </div>
@@ -331,7 +334,7 @@ function ResourceDetailContent({ resource, session, stats, isFavorited }: { reso
                       <span className="material-symbols-outlined">event</span>
                     </div>
                     <div>
-                      <p className="meta-row-label">Fecha de publicacion</p>
+                      <p className="meta-row-label">{m.detail_pub_date()}</p>
                       <p className="meta-row-value">{publicationDate}</p>
                     </div>
                   </div>
@@ -342,7 +345,7 @@ function ResourceDetailContent({ resource, session, stats, isFavorited }: { reso
             {/* Keywords / Tags */}
             {keywords.length > 0 ? (
               <div className="meta-section">
-                <h3 className="meta-section-title">Etiquetas</h3>
+                <h3 className="meta-section-title">{m.detail_tags()}</h3>
                 <div className="meta-tags">
                   {keywords.map((keyword) => (
                     <span key={keyword} className="meta-tag">{keyword}</span>
@@ -412,7 +415,7 @@ export function ResourceDetailIsland() {
           }).catch(() => {});
         }
       } catch {
-        setError("Error al cargar el recurso.");
+        setError(m.detail_error());
         setResource(null);
       }
     })();
@@ -421,7 +424,7 @@ export function ResourceDetailIsland() {
   if (resource === undefined && !error) {
     return (
       <div className="detail-page">
-        <p className="loading">Cargando recurso...</p>
+        <p className="loading">{m.detail_loading()}</p>
       </div>
     );
   }
@@ -430,7 +433,7 @@ export function ResourceDetailIsland() {
     return (
       <div className="detail-page">
         <p className="empty-state">
-          {error} <a href={url("")}>Volver al inicio</a>
+          {error} <a href={url("")}>{m.resource_back_home()}</a>
         </p>
       </div>
     );
@@ -440,7 +443,7 @@ export function ResourceDetailIsland() {
     return (
       <div className="detail-page">
         <p className="empty-state">
-          No se encontro el recurso. <a href={url("")}>Volver al inicio</a>
+          {m.detail_not_found()} <a href={url("")}>{m.resource_back_home()}</a>
         </p>
       </div>
     );

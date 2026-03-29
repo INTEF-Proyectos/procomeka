@@ -1,0 +1,26 @@
+---
+import { locales, baseLocale } from "../../paraglide/runtime.js";
+import PublicLayout from "../../layouts/PublicLayout.astro";
+import { AdminPageIsland } from "../../islands/admin/AdminPageIsland.tsx";
+
+export function getStaticPaths() {
+  return locales
+    .filter((l) => l !== baseLocale)
+    .map((locale) => ({ params: { locale } }));
+}
+---
+
+<PublicLayout title="Administracion" showNavSearch={true}>
+  <AdminPageIsland client:load />
+</PublicLayout>
+
+<style>
+  :global(.public-main) {
+    max-width: none;
+    padding: 0;
+  }
+  /* Hide footer in admin — the sidebar is the navigation */
+  :global(.public-footer) {
+    display: none;
+  }
+</style>

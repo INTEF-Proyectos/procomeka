@@ -1,10 +1,18 @@
 ---
-import PublicLayout from "../layouts/PublicLayout.astro";
-import { HeroIsland } from "../islands/home/HeroIsland.tsx";
-import { FeaturedResourcesIsland } from "../islands/home/FeaturedResourcesIsland.tsx";
-import { setSsrLocale } from "../lib/i18n.ts";
-import * as m from "../paraglide/messages.js";
-const locale = Astro.currentLocale ?? "es";
+import { locales, baseLocale } from "../../paraglide/runtime.js";
+import PublicLayout from "../../layouts/PublicLayout.astro";
+import { HeroIsland } from "../../islands/home/HeroIsland.tsx";
+import { FeaturedResourcesIsland } from "../../islands/home/FeaturedResourcesIsland.tsx";
+import { setSsrLocale } from "../../lib/i18n.ts";
+import * as m from "../../paraglide/messages.js";
+
+export function getStaticPaths() {
+  return locales
+    .filter((l) => l !== baseLocale)
+    .map((locale) => ({ params: { locale } }));
+}
+
+const { locale } = Astro.params;
 setSsrLocale(locale);
 ---
 
