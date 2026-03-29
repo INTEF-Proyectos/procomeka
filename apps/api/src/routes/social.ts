@@ -16,8 +16,7 @@ import * as repo from "@procomeka/db/repository";
 
 const socialRoutes = new Hono<AuthEnv>();
 
-// Apply session middleware to all social routes so user is available when authenticated
-socialRoutes.use("*", sessionMiddleware);
+// Note: sessionMiddleware is applied externally (in index.ts) so tests can mock auth.
 
 // ---------------------------------------------------------------------------
 // Helpers
