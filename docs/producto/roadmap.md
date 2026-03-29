@@ -19,6 +19,7 @@ Catalogo MVP operativo con busqueda facetada, CRUD unificado, flujo editorial co
 | ADR capa frontend | Completado — ADR-0004 (Astro) |
 | ADR base de datos principal | Completado — ADR-0005 (PostgreSQL) |
 | ADR ORM y capa de acceso a datos | Completado — ADR-0006 (Drizzle ORM) |
+| ADR infraestructura Docker y operaciones | Completado — ADR-0015 (Evo1) |
 | Modelo de dominio v0 | Completado — borrador en `docs/producto/modelo-de-dominio.md` |
 
 ---
@@ -83,7 +84,7 @@ Catalogo MVP operativo con busqueda facetada, CRUD unificado, flujo editorial co
 | Integración LTI (Moodle) | No iniciada |
 | SSO educativo | No iniciada |
 | Observabilidad y alertas | No iniciada |
-| Documentación para operadores | No iniciada |
+| Documentación para operadores (Evo1) | Completado — guías en `docs/operaciones/` |
 
 ---
 
