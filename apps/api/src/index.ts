@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import { auth } from "./auth/config.ts";
+import { auth, getOidcProviders } from "./auth/config.ts";
 import { type AuthEnv, sessionMiddleware } from "./auth/middleware.ts";
 import { publicRoutes } from "./routes/public.ts";
 import { adminRoutes } from "./routes/admin/index.ts";
@@ -37,14 +37,20 @@ app.get("/", (c) =>
 	}),
 );
 
-app.get("/api/v1/config", (c) =>
-	c.json({
-		oidcEnabled: process.env.OIDC_ENABLED === "true",
+app.get("/api/v1/config", (c) => {
+	const oidcProviders = getOidcProviders();
+	return c.json({
+		oidcEnabled: oidcProviders.length > 0,
+		oidcProviders: oidcProviders.map((p) => ({
+			id: p.providerId,
+			name: p.name,
+		})),
+		// Keep for backward compatibility if needed, but the frontend should use oidcProviders
 		oidcEndSessionUrl: process.env.OIDC_ISSUER
 			? `${process.env.OIDC_ISSUER}/connect/endsession`
 			: null,
-	}),
-);
+	});
+});
 
 app.route("/api/v1", publicRoutes);
 // Social routes need session context for user-specific data (userScore, userFavorited)

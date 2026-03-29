@@ -14,7 +14,63 @@ import { getDb } from "../db.ts";
 import { getAuthBaseUrl, getFrontendUrl } from "./urls.ts";
 
 const frontendUrl = getFrontendUrl();
-const oidcEnabled = process.env.OIDC_ENABLED === "true";
+
+export interface OidcProviderConfig {
+	providerId: string;
+	name: string;
+	clientId: string;
+	clientSecret: string;
+	discoveryUrl?: string;
+	issuer?: string;
+	scopes?: string[];
+	pkce?: boolean;
+}
+
+export function getOidcProviders(): OidcProviderConfig[] {
+	const providersJson = process.env.OIDC_PROVIDERS;
+	if (providersJson) {
+		try {
+			const providers = JSON.parse(providersJson);
+			if (Array.isArray(providers)) {
+				return providers.map((p) => ({
+					providerId: p.id || p.providerId,
+					name: p.name || p.id || p.providerId,
+					clientId: p.clientId,
+					clientSecret: p.clientSecret,
+					discoveryUrl:
+						p.discoveryUrl ||
+						(p.issuer ? `${p.issuer}/.well-known/openid-configuration` : undefined),
+					issuer: p.issuer,
+					scopes: p.scopes || ["openid", "email", "profile"],
+					pkce: p.pkce ?? true,
+				}));
+			}
+		} catch (e) {
+			console.error("Error parsing OIDC_PROVIDERS:", e);
+		}
+	}
+
+	// Fallback to legacy single OIDC provider
+	if (process.env.OIDC_ENABLED === "true") {
+		return [
+			{
+				providerId: "oidc",
+				name: "Institucional",
+				clientId: process.env.OIDC_CLIENT_ID ?? "",
+				clientSecret: process.env.OIDC_CLIENT_SECRET ?? "",
+				discoveryUrl: process.env.OIDC_ISSUER
+					? `${process.env.OIDC_ISSUER}/.well-known/openid-configuration`
+					: undefined,
+				scopes: (process.env.OIDC_SCOPE ?? "openid email profile").split(" "),
+				pkce: true,
+			},
+		];
+	}
+
+	return [];
+}
+
+const oidcProviders = getOidcProviders();
 
 export const auth = betterAuth({
 	baseURL: getAuthBaseUrl(),
@@ -29,6 +85,11 @@ export const auth = betterAuth({
 		expiresIn: 60 * 60 * 24 * 7,
 		updateAge: 60 * 60 * 24,
 	},
+	account: {
+		accountLinking: {
+			enabled: true,
+		},
+	},
 	plugins: [
 		adminPlugin({
 			ac,
@@ -40,21 +101,18 @@ export const auth = betterAuth({
 			},
 			defaultRole: "reader",
 		}),
-		...(oidcEnabled
+		...(oidcProviders.length > 0
 			? [
 					genericOAuth({
-						config: [
-							{
-								providerId: "oidc",
-								clientId: process.env.OIDC_CLIENT_ID ?? "",
-								clientSecret: process.env.OIDC_CLIENT_SECRET ?? "",
-								discoveryUrl: process.env.OIDC_ISSUER
-									? `${process.env.OIDC_ISSUER}/.well-known/openid-configuration`
-									: "",
-								scopes: (process.env.OIDC_SCOPE ?? "openid email profile").split(" "),
-								pkce: true,
-							},
-						],
+						config: oidcProviders.map((p) => ({
+							providerId: p.providerId,
+							clientId: p.clientId,
+							clientSecret: p.clientSecret,
+							discoveryUrl: p.discoveryUrl,
+							issuer: p.issuer,
+							scopes: p.scopes,
+							pkce: p.pkce,
+						})),
 					}),
 				]
 			: []),

@@ -209,6 +209,12 @@
   color: var(--color-primary);
 }
 
+.login-oidc-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
 /* Footer link */
 .login-footer {
   text-align: center;

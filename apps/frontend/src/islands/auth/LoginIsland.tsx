@@ -10,8 +10,8 @@ export function LoginIsland() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [oidcSubmitting, setOidcSubmitting] = useState(false);
-  const [oidcEnabled, setOidcEnabled] = useState(true);
+  const [oidcSubmitting, setOidcSubmitting] = useState<string | null>(null);
+  const [oidcProviders, setOidcProviders] = useState<{ id: string; name: string }[]>([]);
 
   useEffect(() => {
     void (async () => {
@@ -27,8 +27,8 @@ export function LoginIsland() {
           return;
         }
 
-        if (config?.oidcEnabled === false) {
-          setOidcEnabled(false);
+        if (config?.oidcProviders) {
+          setOidcProviders(config.oidcProviders);
         }
       } catch {
         // No session or config: keep form visible
@@ -58,13 +58,13 @@ export function LoginIsland() {
     }
   }
 
-  async function handleOidc() {
+  async function handleOidc(providerId: string) {
     setError("");
-    setOidcSubmitting(true);
+    setOidcSubmitting(providerId);
 
     try {
       const api = await getApiClient();
-      const result = await api.signInOidc();
+      const result = await api.signInOidc(providerId);
 
       if (result.ok && result.redirectUrl) {
         window.location.href = result.redirectUrl;
@@ -75,7 +75,7 @@ export function LoginIsland() {
     } catch {
       setError(m.auth_connection_error());
     } finally {
-      setOidcSubmitting(false);
+      setOidcSubmitting(null);
     }
   }
 
@@ -136,26 +136,31 @@ export function LoginIsland() {
             />
           </div>
 
-          <button type="submit" className="login-submit" disabled={submitting || oidcSubmitting}>
+          <button type="submit" className="login-submit" disabled={submitting || !!oidcSubmitting}>
             {submitting ? m.auth_submitting() : m.auth_submit()}
           </button>
         </form>
 
         {/* OIDC */}
-        {oidcEnabled && (
+        {oidcProviders.length > 0 && (
           <>
             <div className="login-separator">
               <span>{m.auth_separator()}</span>
             </div>
-            <button
-              type="button"
-              className="login-oidc-btn"
-              disabled={oidcSubmitting || submitting}
-              onClick={() => void handleOidc()}
-            >
-              <span className="material-symbols-outlined" aria-hidden="true">badge</span>
-              {oidcSubmitting ? m.auth_oidc_redirecting() : m.auth_oidc()}
-            </button>
+            <div className="login-oidc-list">
+              {oidcProviders.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  className="login-oidc-btn"
+                  disabled={!!oidcSubmitting || submitting}
+                  onClick={() => void handleOidc(p.id)}
+                >
+                  <span className="material-symbols-outlined" aria-hidden="true">badge</span>
+                  {oidcSubmitting === p.id ? m.auth_oidc_redirecting() : `${m.auth_oidc()} ${p.name}`}
+                </button>
+              ))}
+            </div>
           </>
         )}
 
