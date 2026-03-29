@@ -7,13 +7,14 @@
  * Uso: bun run packages/db/src/extract-elpx-for-static.ts
  */
 import { execSync } from "node:child_process";
-import { readFileSync, mkdirSync, existsSync } from "node:fs";
+import { readFileSync, mkdirSync, existsSync, copyFileSync } from "node:fs";
 import path from "node:path";
 
 const repoRoot = path.resolve(import.meta.dir, "../../..");
 const seedJsonPath = path.join(repoRoot, "apps/frontend/public/preview/seed.json");
 const elpxDemoDir = path.join(repoRoot, "apps/api/src/test-fixtures/elpx/demo");
 const outputBase = path.join(repoRoot, "apps/frontend/public/api/v1/elpx");
+const outputRawDir = path.join(repoRoot, "apps/frontend/public/api/v1/elpx-raw");
 
 // Load seed.json
 const seedJson = JSON.parse(readFileSync(seedJsonPath, "utf-8"));
@@ -37,6 +38,8 @@ if (!firstElpx || !existsSync(firstElpx)) {
 	}
 }
 
+mkdirSync(outputRawDir, { recursive: true });
+
 let extracted = 0;
 for (const proj of elpxProjects) {
 	const slug = slugMap.get(proj.resourceId);
@@ -48,6 +51,9 @@ for (const proj of elpxProjects) {
 	const outDir = path.join(outputBase, proj.hash);
 	mkdirSync(outDir, { recursive: true });
 	execSync(`unzip -qo "${elpxFile}" -d "${outDir}"`, { stdio: "ignore" });
+
+	// Copy raw .elpx so the editor and download links can load it
+	copyFileSync(elpxFile, path.join(outputRawDir, `${proj.hash}.elpx`));
 	extracted++;
 }
 
