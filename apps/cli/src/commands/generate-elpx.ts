@@ -400,7 +400,8 @@ export async function generateDemoElpx(
 	outputDir: string,
 	log: Pick<typeof console, "log"> = console,
 ): Promise<Map<string, string>> {
-	const templatesDir = "/Users/ernesto/Downloads";
+	const repoRoot = path.resolve(import.meta.dir, "../../../..");
+	const templatesDir = path.join(repoRoot, "apps/api/src/test-fixtures/elpx/templates");
 
 	log.log("  Extrayendo plantillas .elpx (3 temas)...");
 	const templates: Map<string, Uint8Array>[] = [];
