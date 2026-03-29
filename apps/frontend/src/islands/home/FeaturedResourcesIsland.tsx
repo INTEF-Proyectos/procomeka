@@ -2,24 +2,24 @@ import { url } from "../../lib/paths.ts";
 import "./FeaturedResourcesIsland.css";
 
 const HERO_RESOURCE = {
-  image: "https://lh3.googleusercontent.com/aida-public/AB6AXuAqa9JkHhhdIsub96xo_Tk0j6GItYpA4HBi7J3F-fKAnW6R3ySc28XnxCsZ_t2z660b_ipx9zqd1x9_KHWOkMnkBY8pI1JuW9fnDwPWIE4NJoJ_HGhyuosL5j2Mex0TrKz5CPHmUZLQB2RD4GFTKWp6fH9oZ-MPNKkIcGwYiLXjSSP0mCnukqyDsZMP40t_bwoW4Y1KJrAe2qLKMktYu_RpG89igfbi-q9BaeJLTd4YRO43K7oFkl5HDwNptig1Mbop30r2zNIIg9Y",
-  imageAlt: "Espacio de trabajo digital con tablet mostrando gráficos educativos",
+  image: "https://picsum.photos/seed/sistemas-ia-etica-aplicaciones-aula/800/500",
+  imageAlt: "Recurso sobre inteligencia artificial y ética en el aula",
   level: "Bachillerato",
-  subject: "Matemáticas",
-  title: "Visualización de Funciones en 3D para Geometría Analítica",
-  description: "Un itinerario interactivo completo que utiliza Geogebra para explicar superficies regladas y volúmenes de revolución de forma intuitiva.",
-  rating: 4.9,
-  ratingCount: 128,
+  subject: "Informática",
+  title: "Sistemas de Inteligencia Artificial: Ética y Aplicaciones en el Aula",
+  description: "Secuencia didáctica que explora los fundamentos éticos de la inteligencia artificial y sus aplicaciones prácticas en contextos educativos de bachillerato.",
+  rating: 4.7,
+  ratingCount: 5,
 };
 
 const SECONDARY_RESOURCE = {
-  image: "https://lh3.googleusercontent.com/aida-public/AB6AXuD-kzR1lLTdeM2xf2F7rNMm-Jgcb3VnhX-oIyDmLr7l0CVjerRGviPG0f-D2OTfEDD3YHKf8gy_lP9TThE90G9JF8E-2Zm3ChyeLPCKe2wlJ3_sfjKcO7YIAUl1ngcA7wGszEnmF7TBUalxoCNAZ959WtCX0Emdn3hH0cBroy6l8jucmZDbKMS4wYHrcBX_yDdV-9UUtaNzgYnLwlHT9Wux6XjDfQeHW0n1nVcQUMFbWrGopUJoYpSLEWzOrQ2DWR-mwt-LEEZRIIk",
-  imageAlt: "Aula infantil con luz natural y materiales de aprendizaje",
+  image: "https://picsum.photos/seed/matematicas-divertidas-algoritmos-visuales/800/500",
+  imageAlt: "Matemáticas divertidas con algoritmos visuales para primaria",
   level: "Primaria",
-  subject: "Ciencias Naturales",
-  title: "El Ciclo de la Vida en el Huerto Escolar",
-  description: "Guía práctica con fichas descargables para crear un huerto sostenible en centros educativos.",
-  rating: 4.7,
+  subject: "Matemáticas",
+  title: "Matemáticas Divertidas con Algoritmos Visuales",
+  description: "Colección de actividades interactivas que utilizan representaciones visuales de algoritmos para enseñar conceptos matemáticos fundamentales.",
+  rating: 4.5,
 };
 
 export function FeaturedResourcesIsland() {

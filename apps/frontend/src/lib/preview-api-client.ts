@@ -15,7 +15,7 @@ import type {
 } from "./api-client.ts";
 
 interface SeedData {
-	users: { id: string; email: string; name: string; role: string }[];
+	users: { id: string; email: string; name: string; role: string; bio?: string }[];
 	resources: {
 		id: string;
 		slug: string;
@@ -27,11 +27,18 @@ interface SeedData {
 		keywords: string | null;
 		author: string | null;
 		publisher: string | null;
+		createdBy?: string;
 		editorialStatus: string;
+		featuredAt?: string | null;
+		createdAt?: string;
 	}[];
 	resourceSubjects: { resourceId: string; subject: string }[];
 	resourceLevels: { resourceId: string; level: string }[];
 	elpxProjects?: { id: string; resourceId: string; hash: string; originalFilename: string; hasPreview: number }[];
+	collections?: { id: string; slug: string; title: string; description: string; curatorId: string; resourceIds: string[] }[];
+	ratings?: { resourceId: string; userId: string; score: number }[];
+	favorites?: { resourceId: string; userId: string }[];
+	activityEvents?: { userId: string; type: string; resourceId: string; resourceTitle: string; resourceSlug: string; description: string; daysAgo: number }[];
 }
 
 const ROLE_KEY = "procomeka-preview-role";
@@ -81,14 +88,26 @@ export class PreviewApiClient implements ApiClient {
 	}
 
 	private userForRole(role: string): SessionUser {
+		// Buscar en seed data cargado, fallback a los hardcoded
+		if (this.seedData?.users) {
+			const found = this.seedData.users.find((u: { role: string }) => u.role === role);
+			if (found) return found as SessionUser;
+		}
 		return PreviewApiClient.DEMO_USERS.find(u => u.role === role) ?? PreviewApiClient.DEMO_USERS[0]!;
 	}
 
 	private static readonly DEMO_USERS: SessionUser[] = [
-		{ id: "demo-admin", email: "admin@example.com", name: "Admin", role: "admin" },
-		{ id: "demo-curator", email: "curator@example.com", name: "Curator", role: "curator" },
-		{ id: "demo-author", email: "author@example.com", name: "Author", role: "author" },
-		{ id: "demo-reader", email: "reader@example.com", name: "Reader", role: "reader" },
+		{ id: "demo-admin", email: "admin@example.com", name: "INTEF Oficial", role: "admin" },
+		{ id: "demo-curator", email: "curator@example.com", name: "Ana Belén Torres", role: "curator" },
+		{ id: "demo-author", email: "author@example.com", name: "Javier Hernández", role: "author" },
+		{ id: "demo-reader", email: "reader@example.com", name: "María López", role: "reader" },
+		{ id: "user-elena", email: "elena.martinez@edu.es", name: "Dra. Elena Martínez O.", role: "curator" },
+		{ id: "user-carlos", email: "carlos.ruiz@edu.es", name: "Carlos M. Ruiz", role: "author" },
+		{ id: "user-marta", email: "marta.segovia@edu.es", name: "Marta Segovia", role: "author" },
+		{ id: "user-sofia", email: "sofia.garcia@edu.es", name: "Sofía García", role: "author" },
+		{ id: "user-catedra", email: "catedra.tech@edu.es", name: "Cátedra Tecnología", role: "author" },
+		{ id: "user-pedro", email: "pedro.navarro@edu.es", name: "Pedro Navarro", role: "author" },
+		{ id: "user-lucia", email: "lucia.vega@edu.es", name: "Lucía Vega", role: "author" },
 	];
 
 	private async init() {
@@ -102,43 +121,69 @@ export class PreviewApiClient implements ApiClient {
 		const { createTables } = await import("@procomeka/db/setup");
 		await createTables(this.pglite);
 
-		// Ensure demo users exist (needed for FK constraints on social tables)
+		// Cargar seed.json (fuente única de verdad, generada desde seed-data.ts)
+		if (!this.seedData) {
+			// Usar __BASE_URL__ (set by Astro) o <base href> para resolver la ruta correcta
+			// independientemente de la página actual (/login/, /explorar/, etc.)
+			const base = (window as unknown as { __BASE_URL__?: string }).__BASE_URL__
+				?? document.querySelector("base")?.getAttribute("href")
+				?? "/";
+			const origin = window.location.origin;
+			const seedUrl = `${origin}${base}preview/seed.json`;
+			const res = await fetch(seedUrl);
+			this.seedData = await res.json();
+		}
+
+		// Insertar usuarios del seed.json (con bio y nombres reales)
 		const now = new Date().toISOString();
-		for (const u of PreviewApiClient.DEMO_USERS) {
+		for (const u of this.seedData!.users) {
 			await this.pglite.query(
-				`INSERT INTO "user" (id, email, email_verified, name, role, is_active, created_at, updated_at) VALUES ($1, $2, true, $3, $4, true, $5, $6) ON CONFLICT (id) DO NOTHING`,
-				[u.id, u.email, u.name, u.role, now, now],
+				`INSERT INTO "user" (id, email, email_verified, name, bio, role, is_active, created_at, updated_at) VALUES ($1, $2, true, $3, $4, $5, true, $6, $7) ON CONFLICT (id) DO UPDATE SET name = $3, bio = $4`,
+				[u.id, u.email, u.name, u.bio ?? null, u.role, now, now],
 			);
 		}
 
-		// Verificar si ya tiene datos
-		const check = await this.pglite.query(`SELECT count(*) as c FROM "resources"`);
-		if (Number(check.rows[0]?.c) === 0) {
+		// Verificar integridad: recursos + colecciones + ratings deben existir
+		const [resCheck, colCheck, ratCheck] = await Promise.all([
+			this.pglite.query(`SELECT count(*) as c FROM "resources"`),
+			this.pglite.query(`SELECT count(*) as c FROM "collections"`),
+			this.pglite.query(`SELECT count(*) as c FROM "ratings"`),
+		]);
+		const needsSeed = Number(resCheck.rows[0]?.c) === 0 || Number(colCheck.rows[0]?.c) === 0 || Number(ratCheck.rows[0]?.c) === 0;
+		if (needsSeed) {
+			await this.cleanAndSeed();
+		}
+	}
+
+	private async cleanAndSeed() {
+		// Limpiar todas las tablas en orden FK-seguro
+		const tables = ["downloads", "favorites", "ratings", "activity_events", "collection_resources", "collections", "resource_subjects", "resource_levels", "elpx_projects", "upload_sessions", "media_items", "resources"];
+		for (const t of tables) {
+			await this.pglite.query(`DELETE FROM "${t}"`);
+		}
+		try {
+			await this.loadSeedData();
+		} catch (err) {
+			// Si falla (ej: datos corruptos), limpiar otra vez e intentar una vez más
+			console.warn("[Preview] Seed failed, retrying after full clean:", err);
+			for (const t of tables) {
+				await this.pglite.query(`DELETE FROM "${t}"`);
+			}
 			await this.loadSeedData();
 		}
 	}
 
 	private async loadSeedData() {
-		if (!this.seedData) {
-			const { getBaseUrl } = await import("./paths.ts");
-			const res = await fetch(`${getBaseUrl()}preview/seed.json`);
-			this.seedData = await res.json();
-		}
-
+		// seedData ya cargado en init()
 		const seed = this.seedData!;
 		const now = new Date().toISOString();
 
-		for (const u of seed.users) {
-			await this.pglite.query(
-				`INSERT INTO "user" (id, email, email_verified, name, role, is_active, created_at, updated_at) VALUES ($1, $2, true, $3, $4, true, $5, $6) ON CONFLICT (id) DO NOTHING`,
-				[u.id, u.email, u.name, u.role, now, now],
-			);
-		}
+		// Usuarios ya insertados en init(), no repetir
 
 		for (const r of seed.resources) {
 			await this.pglite.query(
-				`INSERT INTO "resources" (id, slug, title, description, language, license, resource_type, keywords, author, publisher, editorial_status, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) ON CONFLICT (id) DO NOTHING`,
-				[r.id, r.slug, r.title, r.description, r.language, r.license, r.resourceType, r.keywords, r.author, r.publisher, r.editorialStatus, now, now],
+				`INSERT INTO "resources" (id, slug, title, description, language, license, resource_type, keywords, author, publisher, created_by, editorial_status, featured_at, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) ON CONFLICT (id) DO NOTHING`,
+				[r.id, r.slug, r.title, r.description, r.language, r.license, r.resourceType, r.keywords, r.author, r.publisher, r.createdBy ?? null, r.editorialStatus, r.featuredAt ?? null, r.createdAt ?? now, now],
 			);
 		}
 
@@ -159,8 +204,55 @@ export class PreviewApiClient implements ApiClient {
 		if (seed.elpxProjects) {
 			for (const e of seed.elpxProjects) {
 				await this.pglite.query(
-					`INSERT INTO "elpx_projects" (id, resource_id, hash, extract_path, original_filename, version, has_preview, created_at, updated_at) VALUES ($1, $2, $3, '', $4, 3, $5, $6, $7) ON CONFLICT (id) DO NOTHING`,
+					`INSERT INTO "elpx_projects" (id, resource_id, hash, extract_path, original_filename, version, has_preview, created_at, updated_at) VALUES ($1, $2, $3, '', $4, 3, $5, $6, $7) ON CONFLICT DO NOTHING`,
 					[e.id, e.resourceId, e.hash, e.originalFilename, e.hasPreview, now, now],
+				);
+			}
+		}
+
+		// Collections
+		if (seed.collections) {
+			for (const col of seed.collections) {
+				await this.pglite.query(
+					`INSERT INTO "collections" (id, slug, title, description, is_ordered, editorial_status, curator_id, created_at, updated_at) VALUES ($1, $2, $3, $4, 1, 'published', $5, $6, $7) ON CONFLICT (id) DO NOTHING`,
+					[col.id, col.slug, col.title, col.description, col.curatorId, now, now],
+				);
+				for (let i = 0; i < col.resourceIds.length; i++) {
+					await this.pglite.query(
+						`INSERT INTO "collection_resources" (collection_id, resource_id, position) VALUES ($1, $2, $3)`,
+						[col.id, col.resourceIds[i], i],
+					);
+				}
+			}
+		}
+
+		// Ratings
+		if (seed.ratings) {
+			for (const r of seed.ratings) {
+				await this.pglite.query(
+					`INSERT INTO "ratings" (id, resource_id, user_id, score, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6)`,
+					[crypto.randomUUID(), r.resourceId, r.userId, r.score, now, now],
+				);
+			}
+		}
+
+		// Favorites
+		if (seed.favorites) {
+			for (const f of seed.favorites) {
+				await this.pglite.query(
+					`INSERT INTO "favorites" (id, resource_id, user_id, created_at) VALUES ($1, $2, $3, $4)`,
+					[crypto.randomUUID(), f.resourceId, f.userId, now],
+				);
+			}
+		}
+
+		// Activity events
+		if ((seed as Record<string, unknown>).activityEvents) {
+			for (const evt of (seed as Record<string, unknown>).activityEvents as { userId: string; type: string; resourceId: string; resourceTitle: string; resourceSlug: string; description: string; daysAgo: number }[]) {
+				const eventDate = new Date(Date.now() - evt.daysAgo * 86400000).toISOString();
+				await this.pglite.query(
+					`INSERT INTO "activity_events" (id, user_id, type, resource_id, resource_title, resource_slug, description, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+					[crypto.randomUUID(), evt.userId, evt.type, evt.resourceId, evt.resourceTitle, evt.resourceSlug, evt.description, eventDate],
 				);
 			}
 		}
@@ -243,6 +335,11 @@ export class PreviewApiClient implements ApiClient {
 
 	async getConfig(): Promise<AppConfig> {
 		return { oidcEnabled: false, oidcEndSessionUrl: null };
+	}
+
+	async getPlatformStats(): Promise<{ users: number }> {
+		const result = await this.pglite.query(`SELECT count(*)::int as c FROM "user"`);
+		return { users: Number((result.rows[0] as { c: number })?.c ?? 0) };
 	}
 
 	// --- Auth ---
@@ -828,6 +925,36 @@ export class PreviewApiClient implements ApiClient {
 			ratingAvg: Math.round(Number((ratingResult.rows[0] as { avg: number })?.avg ?? 0) * 100) / 100,
 			ratingCount: Number((ratingResult.rows[0] as { c: number })?.c ?? 0),
 		};
+	}
+
+	async getBadgeConfig(): Promise<import("./api-client.ts").BadgeConfig> {
+		const result = await this.pglite.query(`SELECT key, value FROM platform_settings WHERE key LIKE 'badge_%'`);
+		const map: Record<string, string> = {};
+		for (const row of result.rows as { key: string; value: string }[]) map[row.key] = row.value;
+		return {
+			novedadDays: Number(map.badge_novedad_days ?? "30"),
+			destacadoMinRatings: Number(map.badge_destacado_min_ratings ?? "3"),
+			destacadoMinAvg: Number(map.badge_destacado_min_avg ?? "4.0"),
+			destacadoMinFavorites: Number(map.badge_destacado_min_favorites ?? "3"),
+		};
+	}
+
+	async getSettings(): Promise<Record<string, string>> {
+		const result = await this.pglite.query(`SELECT key, value FROM platform_settings`);
+		const map: Record<string, string> = {};
+		for (const row of result.rows as { key: string; value: string }[]) map[row.key] = row.value;
+		return map;
+	}
+
+	async updateSettings(settings: Record<string, string>): Promise<Record<string, string>> {
+		const now = new Date().toISOString();
+		for (const [key, value] of Object.entries(settings)) {
+			await this.pglite.query(
+				`INSERT INTO platform_settings (key, value, updated_at) VALUES ($1, $2, $3) ON CONFLICT (key) DO UPDATE SET value = $2, updated_at = $3`,
+				[key, String(value), now],
+			);
+		}
+		return this.getSettings();
 	}
 
 	async seedResources(count: number, clean?: boolean): Promise<{ count: number; durationMs: number }> {

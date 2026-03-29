@@ -58,7 +58,7 @@ function renderPaginationPages(currentPage: number, totalPages: number): Array<n
 	return pages;
 }
 
-function ResourceCard({ resource, initialFavorited = false, isLoggedIn = false }: { resource: Resource; initialFavorited?: boolean; isLoggedIn?: boolean }) {
+function ResourceCard({ resource, initialFavorited = false, isLoggedIn = false, badges }: { resource: Resource; initialFavorited?: boolean; isLoggedIn?: boolean; badges?: { text: string; variant: "primary" | "tertiary" }[] }) {
 	const description = resource.description || "";
 	const clipped = description.length > 140 ? `${description.slice(0, 140)}...` : description;
 	const hasPreview = !!resource.elpxPreview?.previewUrl;
@@ -80,12 +80,15 @@ function ResourceCard({ resource, initialFavorited = false, isLoggedIn = false }
 			return;
 		}
 		setBookmarked((prev) => !prev); // optimistic
+		setFavCount((prev) => prev + (bookmarked ? -1 : 1)); // optimistic
 		try {
 			const api = await getApiClient();
 			const result = await api.toggleFavorite(resource.slug);
 			setBookmarked(result.favorited);
+			setFavCount(result.count);
 		} catch {
 			setBookmarked((prev) => !prev); // rollback
+			setFavCount((prev) => prev + (bookmarked ? 1 : -1)); // rollback
 		}
 	}, [resource.slug, isLoggedIn]);
 
@@ -116,6 +119,17 @@ function ResourceCard({ resource, initialFavorited = false, isLoggedIn = false }
 		return () => window.removeEventListener("resize", rescale);
 	}, [hasPreview]);
 
+	const [favCount, setFavCount] = useState(Number((resource as Record<string, unknown>).favoriteCount ?? 0));
+	const rating = (resource as Record<string, unknown>).rating as { average: number; count: number } | undefined;
+
+	const badgeOverlay = badges && badges.length > 0 ? (
+		<div className="card-badges">
+			{badges.map((b) => (
+				<span key={b.text} className={`card-badge card-badge-${b.variant}`}>{b.text}</span>
+			))}
+		</div>
+	) : null;
+
 	return (
 		<a href={url(`recurso?slug=${resource.slug}`)} className={`resource-card${hasPreview ? " has-preview" : ""}`}>
 			{hasPreview ? (
@@ -128,6 +142,7 @@ function ResourceCard({ resource, initialFavorited = false, isLoggedIn = false }
 						title={m.catalog_preview()}
 					/>
 					<div className="card-preview-overlay" />
+					{badgeOverlay}
 				</div>
 			) : (
 				<div className="card-preview" style={{ background: `linear-gradient(135deg, var(--color-surface-container-low) 0%, var(--color-surface-container-high) 100%)` }}>
@@ -136,6 +151,7 @@ function ResourceCard({ resource, initialFavorited = false, isLoggedIn = false }
 						aria-hidden="true"
 						dangerouslySetInnerHTML={{ __html: getResourceIcon(resource.resourceType) }}
 					/>
+					{badgeOverlay}
 				</div>
 			)}
 			<div className="card-body">
@@ -155,6 +171,12 @@ function ResourceCard({ resource, initialFavorited = false, isLoggedIn = false }
 						</span>
 					</div>
 					<div className="card-actions">
+						{rating && rating.count > 0 && (
+							<span className="card-rating">
+								<span className="material-symbols-outlined card-rating-star" aria-hidden="true" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
+								<span className="card-rating-value">{rating.average.toFixed(1)}</span>
+							</span>
+						)}
 						<button
 							className={`card-action-btn${bookmarked ? " card-action-active" : ""}`}
 							aria-label={bookmarked ? m.common_remove_favorite() : m.common_save_favorite()}
@@ -163,6 +185,7 @@ function ResourceCard({ resource, initialFavorited = false, isLoggedIn = false }
 							type="button"
 						>
 							<span className="material-symbols-outlined" style={bookmarked ? { fontVariationSettings: "'FILL' 1" } : undefined}>bookmark</span>
+							{favCount > 0 && <span className="card-fav-count">{favCount}</span>}
 						</button>
 						<button
 							className={`card-action-btn${copied ? " card-action-copied" : ""}`}
@@ -194,6 +217,7 @@ export function CatalogIsland() {
 	const [sidebarOpen, setSidebarOpen] = useState(false);
 	const [favoritedSlugs, setFavoritedSlugs] = useState<Set<string>>(new Set());
 	const [isLoggedIn, setIsLoggedIn] = useState(false);
+	const [badgeConfig, setBadgeConfig] = useState<import("../../lib/api-client.ts").BadgeConfig>({ novedadDays: 30, destacadoMinRatings: 3, destacadoMinAvg: 4.0, destacadoMinFavorites: 3 });
 	const requestIdRef = useRef(0);
 	const listingStateRef = useRef<ListingState>(DEFAULT_LISTING_STATE);
 
@@ -293,11 +317,15 @@ export function CatalogIsland() {
 
 		void loadResources(nextState);
 
-		// Load user session + favorites
+		// Load user session + favorites + badge config
 		void (async () => {
 			try {
 				const api = await getApiClient();
-				const session = await api.getSession().catch(() => null);
+				const [session, config] = await Promise.all([
+					api.getSession().catch(() => null),
+					api.getBadgeConfig().catch(() => null),
+				]);
+				if (config) setBadgeConfig(config);
 				if (session?.user) {
 					setIsLoggedIn(true);
 					const favs = await api.getUserFavorites({ limit: 200 });
@@ -488,9 +516,20 @@ export function CatalogIsland() {
 					{!loading && !error && resources.length === 0 ? (
 						<p className="empty">{m.catalog_empty()}</p>
 					) : null}
-					{!loading && !error && resources.map((resource) => (
-						<ResourceCard key={resource.id} resource={resource} initialFavorited={favoritedSlugs.has(resource.slug)} isLoggedIn={isLoggedIn} />
-					))}
+					{!loading && !error && resources.map((resource) => {
+						const r = resource as Record<string, unknown>;
+						const cardBadges: { text: string; variant: "primary" | "tertiary" }[] = [];
+						const createdAt = resource.createdAt ? new Date(resource.createdAt as string) : null;
+						if (createdAt && Math.floor((Date.now() - createdAt.getTime()) / 86400000) <= badgeConfig.novedadDays) {
+							cardBadges.push({ text: "Novedad", variant: "primary" });
+						}
+						const rating = r.rating as { average: number; count: number } | undefined;
+						const favCount = Number(r.favoriteCount ?? 0);
+						if (rating && rating.count >= badgeConfig.destacadoMinRatings && rating.average >= badgeConfig.destacadoMinAvg && favCount >= badgeConfig.destacadoMinFavorites) {
+							cardBadges.push({ text: "Destacado", variant: "tertiary" });
+						}
+						return <ResourceCard key={resource.id} resource={resource} initialFavorited={favoritedSlugs.has(resource.slug)} isLoggedIn={isLoggedIn} badges={cardBadges} />;
+					})}
 				</div>
 
 				<nav className="pagination" aria-label={m.pagination_label()} hidden={pagination.totalPages <= 1}>

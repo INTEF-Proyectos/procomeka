@@ -235,9 +235,122 @@ export function AdminDashboardSection({
 				</a>
 			</div>
 
+			{/* Badge settings */}
+			<BadgeSettingsSection />
+
 			{/* Dev tools — only on localhost/preview */}
 			<DevToolsSection />
 		</>
+	);
+}
+
+function BadgeSettingsSection() {
+	const [settings, setSettings] = useState({
+		badge_novedad_days: "30",
+		badge_destacado_min_ratings: "3",
+		badge_destacado_min_avg: "4.0",
+		badge_destacado_min_favorites: "3",
+	});
+	const [loaded, setLoaded] = useState(false);
+	const [saving, setSaving] = useState(false);
+	const [message, setMessage] = useState("");
+
+	useEffect(() => {
+		void (async () => {
+			try {
+				const api = await getApiClient();
+				const all = await api.getSettings();
+				setSettings((prev) => ({ ...prev, ...all }));
+			} catch { /* use defaults */ }
+			finally { setLoaded(true); }
+		})();
+	}, []);
+
+	async function handleSave() {
+		setSaving(true);
+		setMessage("");
+		try {
+			const api = await getApiClient();
+			await api.updateSettings(settings);
+			setMessage("Configuracion guardada");
+			setTimeout(() => setMessage(""), 3000);
+		} catch {
+			setMessage("Error al guardar");
+		} finally {
+			setSaving(false);
+		}
+	}
+
+	if (!loaded) return null;
+
+	return (
+		<div style={{ marginTop: "2rem" }}>
+			<div className="admin-section-header">
+				<h2 style={{ fontFamily: "var(--font-display)", fontSize: "1.25rem", fontWeight: 700 }}>
+					<span className="material-symbols-outlined" style={{ fontSize: "20px", marginRight: "0.5rem", verticalAlign: "middle" }}>tune</span>
+					Configuracion de Badges
+				</h2>
+				<p>Define los criterios para mostrar "Novedad" y "Destacado" en las tarjetas de recursos</p>
+			</div>
+			<div className="admin-dev-tools" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+				<label className="admin-dev-tools-row" style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
+					<span className="admin-dev-tools-label">Novedad: dias desde creacion</span>
+					<input
+						type="number"
+						className="admin-dev-tools-select"
+						value={settings.badge_novedad_days}
+						onChange={(e) => setSettings({ ...settings, badge_novedad_days: e.target.value })}
+						min="1"
+						max="365"
+						style={{ width: "100%" }}
+					/>
+				</label>
+				<label className="admin-dev-tools-row" style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
+					<span className="admin-dev-tools-label">Destacado: minimo valoraciones</span>
+					<input
+						type="number"
+						className="admin-dev-tools-select"
+						value={settings.badge_destacado_min_ratings}
+						onChange={(e) => setSettings({ ...settings, badge_destacado_min_ratings: e.target.value })}
+						min="1"
+						max="100"
+						style={{ width: "100%" }}
+					/>
+				</label>
+				<label className="admin-dev-tools-row" style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
+					<span className="admin-dev-tools-label">Destacado: media minima</span>
+					<input
+						type="number"
+						className="admin-dev-tools-select"
+						value={settings.badge_destacado_min_avg}
+						onChange={(e) => setSettings({ ...settings, badge_destacado_min_avg: e.target.value })}
+						min="1"
+						max="5"
+						step="0.1"
+						style={{ width: "100%" }}
+					/>
+				</label>
+				<label className="admin-dev-tools-row" style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
+					<span className="admin-dev-tools-label">Destacado: minimo favoritos</span>
+					<input
+						type="number"
+						className="admin-dev-tools-select"
+						value={settings.badge_destacado_min_favorites}
+						onChange={(e) => setSettings({ ...settings, badge_destacado_min_favorites: e.target.value })}
+						min="1"
+						max="100"
+						style={{ width: "100%" }}
+					/>
+				</label>
+			</div>
+			<div style={{ marginTop: "1rem", display: "flex", alignItems: "center", gap: "1rem" }}>
+				<button type="button" className="admin-dev-btn admin-dev-btn--primary" onClick={handleSave} disabled={saving}>
+					<span className="material-symbols-outlined">save</span>
+					{saving ? "Guardando..." : "Guardar cambios"}
+				</button>
+				{message && <span style={{ fontSize: "0.875rem", color: "var(--color-primary)" }}>{message}</span>}
+			</div>
+		</div>
 	);
 }
 

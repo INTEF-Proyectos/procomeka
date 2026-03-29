@@ -21,6 +21,45 @@ const socialRoutes = new Hono<AuthEnv>();
 // Helpers
 // ---------------------------------------------------------------------------
 
+/** Enrich an array of resources with elpxPreview + social aggregates */
+async function enrichResources<T extends { id: string }>(rows: T[]) {
+	if (rows.length === 0) return [] as (T & { elpxPreview: { hash: string; previewUrl: string } | null; favoriteCount: number; rating: { average: number; count: number } })[];
+	const db = getDb().db;
+	const resourceIds = rows.map((r) => r.id);
+
+	// Elpx preview
+	const elpxList = await repo.listElpxProjectsByResourceIds(db, resourceIds);
+	const elpxMap = new Map(elpxList.map((e: { resourceId: string; hash: string; hasPreview: number }) => [e.resourceId, e]));
+
+	// Social aggregates — one query per resource (simple, works everywhere)
+	const socialMap = new Map<string, { favCount: number; ratingAvg: number; ratingCount: number }>();
+	for (const rid of resourceIds) {
+		const [favResult, ratResult] = await Promise.all([
+			db.select({ count: sql<number>`count(*)` }).from(favorites).where(eq(favorites.resourceId, rid)),
+			db.select({ avg: sql<number>`coalesce(avg(${ratings.score}), 0)`, count: sql<number>`count(*)` }).from(ratings).where(eq(ratings.resourceId, rid)),
+		]);
+		socialMap.set(rid, {
+			favCount: Number(favResult[0]?.count ?? 0),
+			ratingAvg: Number(ratResult[0]?.avg ?? 0),
+			ratingCount: Number(ratResult[0]?.count ?? 0),
+		});
+	}
+
+	return rows.map((r) => {
+		const elpx = elpxMap.get(r.id);
+		const elpxPreview = elpx?.hasPreview === 1
+			? { hash: elpx.hash, previewUrl: `/api/v1/elpx/${elpx.hash}/` }
+			: null;
+		const social = socialMap.get(r.id);
+		return {
+			...r,
+			elpxPreview,
+			favoriteCount: social?.favCount ?? 0,
+			rating: { average: Math.round((social?.ratingAvg ?? 0) * 100) / 100, count: social?.ratingCount ?? 0 },
+		};
+	});
+}
+
 async function resolveResourceBySlug(slug: string) {
 	const db = getDb().db;
 	const rows = await db
@@ -236,8 +275,9 @@ socialRoutes.get("/users/me/favorites", requireAuth, async (c) => {
 		.innerJoin(resources, eq(favorites.resourceId, resources.id))
 		.where(and(eq(favorites.userId, currentUser.id), isNull(resources.deletedAt)));
 
+	const enriched = await enrichResources(rows);
 	return c.json({
-		data: rows,
+		data: enriched,
 		total: Number(countResult[0]?.count ?? 0),
 		limit,
 		offset,
@@ -280,8 +320,9 @@ socialRoutes.get("/users/me/ratings", requireAuth, async (c) => {
 		.innerJoin(resources, eq(ratings.resourceId, resources.id))
 		.where(and(eq(ratings.userId, currentUser.id), isNull(resources.deletedAt)));
 
+	const enrichedRatings = await enrichResources(rows);
 	return c.json({
-		data: rows,
+		data: enrichedRatings,
 		total: Number(countResult[0]?.count ?? 0),
 		limit,
 		offset,
@@ -317,12 +358,13 @@ socialRoutes.get("/users/me/dashboard", requireAuth, async (c) => {
 			.limit(5),
 	]);
 
+	const enrichedRecent = await enrichResources(recentResources);
 	return c.json({
 		draftCount: Number(draftResult[0]?.count ?? 0),
 		publishedCount: Number(publishedResult[0]?.count ?? 0),
 		favoriteCount: Number(favResult[0]?.count ?? 0),
 		ratingCount: Number(ratingCountResult[0]?.count ?? 0),
-		recentResources,
+		recentResources: enrichedRecent,
 	});
 });
 

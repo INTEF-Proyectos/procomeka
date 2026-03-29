@@ -70,6 +70,11 @@ export class HttpApiClient implements ApiClient {
 		return res.json();
 	}
 
+	async getPlatformStats(): Promise<{ users: number }> {
+		const res = await fetch("/api/v1/stats");
+		return res.json();
+	}
+
 	async getSession(): Promise<SessionData | null> {
 		try {
 			const res = await fetch("/api/auth/get-session", { credentials: "include" });
@@ -467,6 +472,26 @@ export class HttpApiClient implements ApiClient {
 
 	async getResourceStats(slug: string): Promise<{ downloadCount: number; favoriteCount: number; ratingAvg: number; ratingCount: number }> {
 		const res = await fetch(`/api/v1/resources/${slug}/stats`);
+		return res.json();
+	}
+
+	async getBadgeConfig(): Promise<import("./api-client.ts").BadgeConfig> {
+		const res = await fetch("/api/v1/config/badges");
+		return res.json();
+	}
+
+	async getSettings(): Promise<Record<string, string>> {
+		const res = await fetch("/api/admin/settings", { credentials: "include" });
+		return res.json();
+	}
+
+	async updateSettings(settings: Record<string, string>): Promise<Record<string, string>> {
+		const res = await fetch("/api/admin/settings", {
+			method: "PUT",
+			headers: { "Content-Type": "application/json" },
+			credentials: "include",
+			body: JSON.stringify(settings),
+		});
 		return res.json();
 	}
 

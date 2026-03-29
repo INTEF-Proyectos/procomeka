@@ -20,12 +20,14 @@ function FavoritesTab({
   favoriteCount,
   onLoad,
   onUnfavorite,
+  badgeConfig,
 }: {
   favorites: Resource[];
   favoritesLoaded: boolean;
   favoriteCount: number;
   onLoad: () => void;
   onUnfavorite: (slug: string) => void;
+  badgeConfig: import("../../lib/api-client.ts").BadgeConfig;
 }) {
   useEffect(() => {
     if (!favoritesLoaded) onLoad();
@@ -69,9 +71,13 @@ function FavoritesTab({
                 license: resource.license,
                 author: resource.author ?? null,
                 thumbnailUrl: null,
+                elpxPreview: (resource as Record<string, unknown>).elpxPreview as { hash: string; previewUrl: string } | null ?? null,
+                rating: (resource as Record<string, unknown>).rating as { average: number; count: number } | undefined,
+                favoriteCount: Number((resource as Record<string, unknown>).favoriteCount ?? 0),
                 editorialStatus: resource.editorialStatus,
                 createdAt: typeof resource.createdAt === "string" ? resource.createdAt : "",
               }}
+              badges={computeBadges(resource as unknown as Record<string, unknown>, badgeConfig)}
               href={url(`recurso?slug=${resource.slug}`)}
               isFavorited={true}
               onToggleFavorite={() => { onUnfavorite(resource.slug); return Promise.resolve({ favorited: false }); }}
@@ -239,6 +245,20 @@ function ActivityTab() {
   );
 }
 
+function computeBadges(resource: Record<string, unknown>, config: import("../../lib/api-client.ts").BadgeConfig): { text: string; variant: "primary" | "tertiary" }[] {
+  const badges: { text: string; variant: "primary" | "tertiary" }[] = [];
+  const createdAt = resource.createdAt ? new Date(resource.createdAt as string) : null;
+  if (createdAt && Math.floor((Date.now() - createdAt.getTime()) / 86400000) <= config.novedadDays) {
+    badges.push({ text: "Novedad", variant: "primary" });
+  }
+  const rating = resource.rating as { average: number; count: number } | undefined;
+  const favCount = Number(resource.favoriteCount ?? 0);
+  if (rating && rating.count >= config.destacadoMinRatings && rating.average >= config.destacadoMinAvg && favCount >= config.destacadoMinFavorites) {
+    badges.push({ text: "Destacado", variant: "tertiary" });
+  }
+  return badges;
+}
+
 interface ProfileEditState {
   name: string;
   bio: string;
@@ -254,6 +274,7 @@ export function PublicDashboardIsland() {
   const [editForm, setEditForm] = useState<ProfileEditState>({ name: "", bio: "" });
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState("");
+  const [badgeConfig, setBadgeConfig] = useState<import("../../lib/api-client.ts").BadgeConfig>({ novedadDays: 30, destacadoMinRatings: 3, destacadoMinAvg: 4.0, destacadoMinFavorites: 3 });
 
   useEffect(() => {
     void (async () => {
@@ -269,13 +290,17 @@ export function PublicDashboardIsland() {
 
         const { user } = session;
 
-        // Fetch dashboard data — may fail if endpoint not ready, that's ok
-        const dashData = await api.getUserDashboard().catch(() => ({
-          draftCount: 0,
-          publishedCount: 0,
-          favoriteCount: 0,
-          recentResources: [],
-        }));
+        // Fetch dashboard data + badge config
+        const [dashData, config] = await Promise.all([
+          api.getUserDashboard().catch(() => ({
+            draftCount: 0,
+            publishedCount: 0,
+            favoriteCount: 0,
+            recentResources: [],
+          })),
+          api.getBadgeConfig().catch(() => null),
+        ]);
+        if (config) setBadgeConfig(config);
 
         setDashboard({
           user: {
@@ -298,6 +323,9 @@ export function PublicDashboardIsland() {
             license: (r.license as string) || "",
             author: (r.createdByName as string) || (r.author as string) || null,
             thumbnailUrl: null,
+            elpxPreview: (r.elpxPreview as { hash: string; previewUrl: string }) ?? null,
+            rating: (r.rating as { average: number; count: number }) ?? undefined,
+            favoriteCount: Number(r.favoriteCount ?? 0),
             editorialStatus: (r.editorialStatus as string) || "draft",
             createdAt: (r.createdAt as string) || "",
           })),
@@ -435,6 +463,7 @@ export function PublicDashboardIsland() {
                   <ResourceCard
                     resource={resource}
                     href={url(`recurso?slug=${resource.slug}`)}
+                    badges={computeBadges(resource as unknown as Record<string, unknown>, badgeConfig)}
                   />
                   <a href={url(`editar?id=${resource.id}`)} className="dashboard-edit-icon" aria-label={m.profile_edit_resource({ title: resource.title })}>
                     <span className="material-symbols-outlined">edit</span>
@@ -468,6 +497,7 @@ export function PublicDashboardIsland() {
         favoriteCount={dashboard.favoriteCount}
         onLoad={loadFavorites}
         onUnfavorite={handleUnfavorite}
+        badgeConfig={badgeConfig}
       />,
     },
     {

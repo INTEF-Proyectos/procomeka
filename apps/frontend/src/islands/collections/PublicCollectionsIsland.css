@@ -210,3 +210,25 @@
 		flex-direction: column;
 	}
 }
+
+/* ===== Iframe preview in resource cards ===== */
+.col-res-preview {
+	position: relative;
+	width: 100%;
+	aspect-ratio: 16 / 10;
+	overflow: hidden;
+	background: white;
+	border-radius: 0.75rem;
+	margin-bottom: 1rem;
+}
+/* Iframe +20px extra para ocultar scrollbar (ver HomeDataIsland.css) */
+.col-res-preview iframe {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: calc(1024px + 20px);
+	height: 768px;
+	border: 0;
+	transform-origin: top left;
+	pointer-events: none;
+}

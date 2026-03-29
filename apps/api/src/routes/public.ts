@@ -26,12 +26,20 @@ publicRoutes.get("/resources", async (c) => {
 	const elpxProjects = await repo.listElpxProjectsByResourceIds(getDb().db, resourceIds);
 	const elpxMap = new Map(elpxProjects.map((e: { resourceId: string; hash: string; hasPreview: number }) => [e.resourceId, e]));
 
-	const data = result.data.map((r: { id: string }) => {
-		const elpx = elpxMap.get(r.id);
+	const data = result.data.map((r: Record<string, unknown>) => {
+		const elpx = elpxMap.get(r.id as string);
 		const elpxPreview = elpx?.hasPreview === 1
 			? { hash: elpx.hash, previewUrl: `/api/v1/elpx/${elpx.hash}/` }
 			: null;
-		return { ...r, elpxPreview };
+		return {
+			...r,
+			elpxPreview,
+			favoriteCount: Number(r.favoriteCount ?? 0),
+			rating: {
+				average: Math.round(Number(r.ratingAvg ?? 0) * 100) / 100,
+				count: Number(r.ratingCount ?? 0),
+			},
+		};
 	});
 
 	return c.json({ ...result, data });
@@ -107,18 +115,35 @@ publicRoutes.get("/taxonomies/:type", async (c) => {
 	return c.json(result.data);
 });
 
-publicRoutes.get("/collections", (c) =>
-	{
-		const { limit, offset, search } = parsePagination(c);
-		return repo.listCollections(getDb().db, {
-			limit,
-			offset,
-			search,
-			status: "published",
-			resourceStatus: "published",
-		}).then((result) => c.json(result));
-	},
-);
+publicRoutes.get("/collections", async (c) => {
+	const { limit, offset, search } = parsePagination(c);
+	const result = await repo.listCollections(getDb().db, {
+		limit,
+		offset,
+		search,
+		status: "published",
+		resourceStatus: "published",
+	});
+
+	// Enrich each collection with elpx preview of its first resource
+	const db = getDb().db;
+	const enriched = await Promise.all(result.data.map(async (col: { id: string }) => {
+		try {
+			const colResources = await repo.listCollectionResources(db, col.id, { limit: 1, status: "published" });
+			if (colResources.length > 0) {
+				const firstRes = colResources[0] as { resourceId: string };
+				const elpxList = await repo.listElpxProjectsByResourceIds(db, [firstRes.resourceId]);
+				const elpx = elpxList[0];
+				if (elpx?.hasPreview === 1) {
+					return { ...col, elpxPreview: { hash: elpx.hash, previewUrl: `/api/v1/elpx/${elpx.hash}/` } };
+				}
+			}
+		} catch { /* ignore enrichment errors */ }
+		return { ...col, elpxPreview: null };
+	}));
+
+	return c.json({ ...result, data: enriched });
+});
 
 publicRoutes.get("/collections/:slug", async (c) => {
 	const { slug } = c.req.param();
@@ -135,7 +160,42 @@ publicRoutes.get("/collections/:slug", async (c) => {
 		status: "published",
 	});
 
-	return c.json({ ...collection, resources });
+	// Enrich resources with elpx preview
+	const resourceIds = resources.map((r: { resourceId: string }) => r.resourceId).filter(Boolean);
+	let enrichedResources = resources;
+	if (resourceIds.length > 0) {
+		const elpxProjects = await repo.listElpxProjectsByResourceIds(getDb().db, resourceIds);
+		const elpxMap = new Map(elpxProjects.map((e: { resourceId: string; hash: string; hasPreview: number }) => [e.resourceId, e]));
+		enrichedResources = resources.map((r: { resourceId: string }) => {
+			const elpx = elpxMap.get(r.resourceId);
+			const elpxPreview = elpx?.hasPreview === 1
+				? { hash: elpx.hash, previewUrl: `/api/v1/elpx/${elpx.hash}/` }
+				: null;
+			return { ...r, elpxPreview };
+		});
+	}
+
+	return c.json({ ...collection, resources: enrichedResources });
+});
+
+publicRoutes.get("/config/badges", async (c) => {
+	const settings = await repo.getAllSettings(getDb().db);
+	return c.json({
+		novedadDays: Number(settings.badge_novedad_days ?? "30"),
+		destacadoMinRatings: Number(settings.badge_destacado_min_ratings ?? "3"),
+		destacadoMinAvg: Number(settings.badge_destacado_min_avg ?? "4.0"),
+		destacadoMinFavorites: Number(settings.badge_destacado_min_favorites ?? "3"),
+	});
+});
+
+publicRoutes.get("/stats", async (c) => {
+	const db = getDb().db;
+	const { sql: sqlTag } = await import("drizzle-orm");
+	const { user } = await import("@procomeka/db/schema");
+	const [userCount] = await db.select({ count: sqlTag<number>`count(*)` }).from(user);
+	return c.json({
+		users: Number(userCount?.count ?? 0),
+	});
 });
 
 export { publicRoutes };

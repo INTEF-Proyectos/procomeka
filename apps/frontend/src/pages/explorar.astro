@@ -340,11 +340,12 @@ const initialQuery = Astro.url.searchParams.get("q") ?? "";
     z-index: 0;
   }
 
+  /* Iframe +20px extra para ocultar scrollbar (ver HomeDataIsland.css) */
   .card-preview iframe {
     position: absolute;
     top: 0;
     left: 0;
-    width: 1200px;
+    width: calc(1200px + 20px);
     height: 675px;
     border: none;
     pointer-events: none;
@@ -541,6 +542,64 @@ const initialQuery = Astro.url.searchParams.get("q") ?? "";
   .loading {
     color: var(--color-on-surface-variant);
     grid-column: 1 / -1;
+  }
+
+  /* -- Badges (Novedad / Destacado) ---------------------------------- */
+  .card-badges {
+    position: absolute;
+    top: 0.75rem;
+    left: 0.75rem;
+    display: flex;
+    gap: 0.5rem;
+    z-index: 2;
+  }
+
+  .card-badge {
+    font-size: 10px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    line-height: 1.4;
+  }
+
+  .card-badge-primary {
+    background: rgba(0, 63, 177, 0.9);
+    color: white;
+  }
+
+  .card-badge-tertiary {
+    background: rgba(124, 52, 0, 0.9);
+    color: white;
+  }
+
+  /* -- Rating star ---------------------------------------------------- */
+  .card-rating {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    padding: 0.25rem 0;
+  }
+
+  .card-rating-star {
+    font-size: 18px;
+    color: var(--color-tertiary);
+  }
+
+  .card-rating-value {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--color-on-surface);
+  }
+
+  /* -- Favorite count ------------------------------------------------- */
+  .card-fav-count {
+    font-size: 11px;
+    font-weight: 600;
+    margin-left: 2px;
   }
 
   /* -- Pagination (Stitch rounded pill style) ------------------------ */

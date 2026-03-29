@@ -1,4 +1,4 @@
-import { startTransition, useEffect, useState, type FormEvent } from "react";
+import { startTransition, useEffect, useRef, useState, type FormEvent } from "react";
 import type { CollectionDetailRecord, CollectionRecord } from "../../lib/api-client.ts";
 import { getApiClient } from "../../lib/get-api-client.ts";
 import { url } from "../../lib/paths.ts";
@@ -16,6 +16,29 @@ interface CollectionLocationState {
 function truncate(text: string, maxLength: number) {
 	if (text.length <= maxLength) return text;
 	return `${text.slice(0, maxLength)}...`;
+}
+
+function CollectionIframePreview({ src }: { src: string }) {
+	const ref = useRef<HTMLDivElement>(null);
+	useEffect(() => {
+		if (!ref.current) return;
+		const wrapper = ref.current;
+		const iframe = wrapper.querySelector("iframe");
+		if (!iframe) return;
+		function rescale() {
+			const w = wrapper.clientWidth || 280;
+			const scale = w / 1024;
+			iframe!.style.transform = `scale(${scale})`;
+		}
+		rescale();
+		window.addEventListener("resize", rescale);
+		return () => window.removeEventListener("resize", rescale);
+	}, [src]);
+	return (
+		<div className="col-res-preview" ref={ref}>
+			<iframe src={src} loading="lazy" tabIndex={-1} sandbox="allow-scripts allow-same-origin" title="Vista previa" />
+		</div>
+	);
 }
 
 function coverStyle(coverImageUrl?: string | null) {
@@ -180,18 +203,23 @@ export function PublicCollectionsIsland() {
 						</div>
 					</div>
 					<div className="collection-resource-grid">
-						{detail.resources.map((resource) => (
-							<a key={resource.resourceId} href={url(`recurso?slug=${resource.slug}`)} className="collection-resource-card">
-								<p className="collection-resource-type">{resource.resourceType}</p>
-								<h3>{resource.title}</h3>
-								<p>{truncate(resource.description ?? "", 180)}</p>
-								<div className="collection-resource-meta">
-									<span>{resource.language.toUpperCase()}</span>
-									<span>{resource.license}</span>
-									<span>{resource.author ?? resource.createdByName ?? "Sin autor"}</span>
-								</div>
-							</a>
-						))}
+						{detail.resources.map((resource) => {
+							const rec = resource as Record<string, unknown>;
+							const elpxPreview = rec.elpxPreview as { hash: string; previewUrl: string } | null;
+							return (
+								<a key={resource.resourceId} href={url(`recurso?slug=${resource.slug}`)} className="collection-resource-card">
+									{elpxPreview && <CollectionIframePreview src={elpxPreview.previewUrl} />}
+									<p className="collection-resource-type">{resource.resourceType}</p>
+									<h3>{resource.title}</h3>
+									<p>{truncate(resource.description ?? "", 180)}</p>
+									<div className="collection-resource-meta">
+										<span>{resource.language.toUpperCase()}</span>
+										<span>{resource.license}</span>
+										<span>{resource.author ?? resource.createdByName ?? "Sin autor"}</span>
+									</div>
+								</a>
+							);
+						})}
 					</div>
 				</section>
 			</section>

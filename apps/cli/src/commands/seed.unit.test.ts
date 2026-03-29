@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { DEV_RESOURCES, DEV_USERS } from "@procomeka/db/seed-data";
+import { DEMO_USERS, DEMO_RESOURCES, DEMO_COLLECTIONS, DEMO_RATINGS, DEMO_FAVORITES } from "@procomeka/db/seed-data";
 import { formatPostgresSeedTarget, resolveSeedMode, seedWithClient } from "./seed.ts";
 
 describe("resolveSeedMode", () => {
@@ -21,7 +21,7 @@ describe("formatPostgresSeedTarget", () => {
 });
 
 describe("seedWithClient", { timeout: 60_000 }, () => {
-	test("inserta usuarios y recursos cuando no existen", { timeout: 30_000 }, async () => {
+	test("ejecuta delete+insert idempotente para todas las entidades", { timeout: 30_000 }, async () => {
 		const calls: Array<{ statement: string; params?: unknown[] }> = [];
 		const logs: string[] = [];
 		let closed = false;
@@ -30,9 +30,6 @@ describe("seedWithClient", { timeout: 60_000 }, () => {
 			{
 				async query(statement, params) {
 					calls.push({ statement, params });
-					if (statement.includes('SELECT id FROM "user"') || statement.includes('SELECT id FROM "resources"')) {
-						return { rows: [] };
-					}
 					return { rows: [] };
 				},
 				async close() {
@@ -47,42 +44,30 @@ describe("seedWithClient", { timeout: 60_000 }, () => {
 		);
 
 		expect(closed).toBe(true);
-		expect(calls.filter((call) => call.statement.includes('INSERT INTO "user"')).length).toBe(DEV_USERS.length);
-		expect(calls.filter((call) => call.statement.includes('INSERT INTO "account"')).length).toBe(DEV_USERS.length);
-		expect(calls.filter((call) => call.statement.includes('INSERT INTO "resources"')).length).toBe(DEV_RESOURCES.length);
-		expect(calls.some((call) => call.statement.includes('INSERT INTO "resource_subjects"'))).toBe(true);
-		expect(calls.some((call) => call.statement.includes('INSERT INTO "resource_levels"'))).toBe(true);
+
+		// Verifica limpieza previa (DELETE)
+		expect(calls.some((c) => c.statement.includes('DELETE FROM "user"'))).toBe(true);
+		expect(calls.some((c) => c.statement.includes('DELETE FROM "resources"'))).toBe(true);
+		expect(calls.some((c) => c.statement.includes('DELETE FROM "collections"'))).toBe(true);
+		expect(calls.some((c) => c.statement.includes('DELETE FROM "ratings"'))).toBe(true);
+		expect(calls.some((c) => c.statement.includes('DELETE FROM "favorites"'))).toBe(true);
+		expect(calls.some((c) => c.statement.includes('DELETE FROM "downloads"'))).toBe(true);
+
+		// Verifica inserciones
+		expect(calls.filter((c) => c.statement.includes('INSERT INTO "user"')).length).toBe(DEMO_USERS.length);
+		expect(calls.filter((c) => c.statement.includes('INSERT INTO "account"')).length).toBe(DEMO_USERS.length);
+		expect(calls.filter((c) => c.statement.includes('INSERT INTO "resources"')).length).toBe(DEMO_RESOURCES.length);
+		expect(calls.some((c) => c.statement.includes('INSERT INTO "resource_subjects"'))).toBe(true);
+		expect(calls.some((c) => c.statement.includes('INSERT INTO "resource_levels"'))).toBe(true);
+		expect(calls.filter((c) => c.statement.includes('INSERT INTO "collections" ')).length).toBe(DEMO_COLLECTIONS.length);
+		expect(calls.some((c) => c.statement.includes('INSERT INTO "collection_resources"'))).toBe(true);
+		expect(calls.filter((c) => c.statement.includes('INSERT INTO "ratings"')).length).toBe(DEMO_RATINGS.length);
+		expect(calls.filter((c) => c.statement.includes('INSERT INTO "favorites"')).length).toBe(DEMO_FAVORITES.length);
+		expect(calls.some((c) => c.statement.includes('INSERT INTO "downloads"'))).toBe(true);
+		expect(calls.some((c) => c.statement.includes('INSERT INTO "activity_events"'))).toBe(true);
+
+		// Verifica mensaje final
 		expect(logs.at(-1)).toBe("\nSeed completado. Directorio PGlite: /tmp/procomeka");
-	});
-
-	test("omite entidades ya existentes y soporta resultados estilo postgres", async () => {
-		const logs: string[] = [];
-		let resourceSelects = 0;
-
-		await seedWithClient(
-			{
-				async query(statement) {
-					if (statement.includes('SELECT id FROM "user"')) {
-						return [{ id: "existing-user" }];
-					}
-					if (statement.includes('SELECT id FROM "resources"')) {
-						resourceSelects += 1;
-						return resourceSelects === 1 ? [{ id: "existing-resource" }] : [];
-					}
-					return [];
-				},
-				async close() {},
-			},
-			{
-				now: "2026-03-27T10:00:00.000Z",
-				log: { log: (message: string) => logs.push(message) },
-				successTarget: "Base PostgreSQL: postgres://localhost/procomeka",
-			},
-		);
-
-		expect(logs.some((message) => message.includes(`${DEV_USERS[0]?.email} ya existe`))).toBe(true);
-		expect(logs.some((message) => message.includes(`${DEV_RESOURCES[0]?.slug} ya existe`))).toBe(true);
-		expect(logs.some((message) => message.includes(`  + ${DEV_RESOURCES[1]?.slug}`))).toBe(true);
 	});
 
 	test("cierra el cliente aunque falle una consulta", async () => {

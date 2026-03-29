@@ -15,6 +15,8 @@ import { user } from "./schema/auth.ts";
 import { taxonomies } from "./schema/taxonomies.ts";
 import { uploadSessions } from "./schema/uploads.ts";
 import { elpxProjects } from "./schema/elpx.ts";
+import { ratings, favorites } from "./schema/social.ts";
+import { platformSettings } from "./schema/settings.ts";
 
 type DrizzleDB = {
 	select: (...args: unknown[]) => unknown;
@@ -119,9 +121,13 @@ export async function listResources(
 			createdBy: resources.createdBy,
 			createdByName: user.name,
 			editorialStatus: resources.editorialStatus,
+			featuredAt: resources.featuredAt,
 			deletedAt: resources.deletedAt,
 			createdAt: resources.createdAt,
 			updatedAt: resources.updatedAt,
+			favoriteCount: sql<number>`(SELECT count(*) FROM favorites WHERE favorites.resource_id = ${resources.id})`,
+			ratingAvg: sql<number>`(SELECT coalesce(avg(score), 0) FROM ratings WHERE ratings.resource_id = ${resources.id})`,
+			ratingCount: sql<number>`(SELECT count(*) FROM ratings WHERE ratings.resource_id = ${resources.id})`,
 		})
 		.from(resources)
 		.leftJoin(user, eq(resources.createdBy, user.id))
@@ -1099,4 +1105,30 @@ export async function listElpxProjectsByResourceIds(db: DrizzleDB, resourceIds: 
 		})
 		.from(elpxProjects)
 		.where(sql`${elpxProjects.resourceId} IN (${sql.join(resourceIds.map(id => sql`${id}`), sql`, `)})`);
+}
+
+// ---------------------------------------------------------------------------
+// Platform Settings
+// ---------------------------------------------------------------------------
+
+export async function getAllSettings(db: DrizzleDB): Promise<Record<string, string>> {
+	const rows = await db.select().from(platformSettings);
+	const result: Record<string, string> = {};
+	for (const row of rows) {
+		result[row.key] = row.value;
+	}
+	return result;
+}
+
+export async function upsertSettings(db: DrizzleDB, entries: { key: string; value: string }[]): Promise<void> {
+	const now = new Date();
+	for (const entry of entries) {
+		await db
+			.insert(platformSettings)
+			.values({ key: entry.key, value: entry.value, updatedAt: now })
+			.onConflictDoUpdate({
+				target: platformSettings.key,
+				set: { value: entry.value, updatedAt: now },
+			});
+	}
 }

@@ -56,3 +56,8 @@ apps/frontend/src/paraglide/
 .DS_Store
 playwright-report/
 test-results/
+
+# Demo elpx generados (regenerar con bun run cli seed)
+apps/api/src/test-fixtures/elpx/demo/
+# Elpx extraídos para estática (regenerar con extract-elpx-for-static.ts)
+apps/frontend/public/api/v1/elpx/

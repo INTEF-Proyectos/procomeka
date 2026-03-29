@@ -174,6 +174,13 @@ export interface AppConfig {
 	oidcEndSessionUrl: string | null;
 }
 
+export interface BadgeConfig {
+	novedadDays: number;
+	destacadoMinRatings: number;
+	destacadoMinAvg: number;
+	destacadoMinFavorites: number;
+}
+
 export interface SignInResult {
 	ok: boolean;
 	error?: string;
@@ -209,6 +216,7 @@ export interface ApiClient {
 	listPublicCollections(opts?: { q?: string; limit?: number; offset?: number }): Promise<PaginatedResult<CollectionRecord>>;
 	getPublicCollectionBySlug(slug: string): Promise<CollectionDetailRecord | null>;
 	getConfig(): Promise<AppConfig>;
+	getPlatformStats(): Promise<{ users: number }>;
 
 	// Auth
 	getSession(): Promise<SessionData | null>;
@@ -259,6 +267,11 @@ export interface ApiClient {
 	getUserActivity(opts?: { limit?: number; offset?: number }): Promise<PaginatedResult<import("./types/user-extended.ts").ActivityItem>>;
 	trackDownload(slug: string): Promise<{ count: number }>;
 	getResourceStats(slug: string): Promise<{ downloadCount: number; favoriteCount: number; ratingAvg: number; ratingCount: number }>;
+
+	// Badges / Settings
+	getBadgeConfig(): Promise<BadgeConfig>;
+	getSettings(): Promise<Record<string, string>>;
+	updateSettings(settings: Record<string, string>): Promise<Record<string, string>>;
 
 	// Dev
 	seedResources(count: number, clean?: boolean): Promise<{ count: number; durationMs: number }>;

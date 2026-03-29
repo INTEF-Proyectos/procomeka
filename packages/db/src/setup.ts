@@ -9,6 +9,7 @@ export const SCHEMA_STATEMENTS = [
 		email_verified BOOLEAN NOT NULL DEFAULT false,
 		name TEXT,
 		image TEXT,
+		bio TEXT,
 		role VARCHAR(50) NOT NULL DEFAULT 'reader',
 		is_active BOOLEAN NOT NULL DEFAULT true,
 		banned BOOLEAN DEFAULT false,
@@ -211,6 +212,15 @@ export const SCHEMA_STATEMENTS = [
 		ALTER TABLE "resources" ADD COLUMN created_by TEXT REFERENCES "user"(id);
 	EXCEPTION WHEN duplicate_column THEN NULL;
 	END $$`,
+	`DO $$ BEGIN
+		ALTER TABLE "user" ADD COLUMN bio TEXT;
+	EXCEPTION WHEN duplicate_column THEN NULL;
+	END $$`,
+	`CREATE TABLE IF NOT EXISTS "platform_settings" (
+		key VARCHAR(100) PRIMARY KEY,
+		value TEXT NOT NULL,
+		updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+	)`,
 ] as const;
 
 const SEED_TAXONOMIES = `
@@ -244,9 +254,19 @@ INSERT INTO taxonomies (id, slug, name, type, created_at, updated_at) VALUES
 ON CONFLICT (id) DO NOTHING
 `;
 
+const SEED_SETTINGS = `
+INSERT INTO platform_settings (key, value, updated_at) VALUES
+  ('badge_novedad_days', '30', NOW()),
+  ('badge_destacado_min_ratings', '3', NOW()),
+  ('badge_destacado_min_avg', '4.0', NOW()),
+  ('badge_destacado_min_favorites', '3', NOW())
+ON CONFLICT (key) DO NOTHING
+`;
+
 export async function createTables(executor: { exec: (sql: string) => Promise<unknown> }) {
 	for (const statement of SCHEMA_STATEMENTS) {
 		await executor.exec(statement);
 	}
 	await executor.exec(SEED_TAXONOMIES);
+	await executor.exec(SEED_SETTINGS);
 }
