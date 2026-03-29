@@ -42,7 +42,8 @@ Catalogo MVP operativo con busqueda facetada, CRUD unificado, flujo editorial co
 | CRUD builder generico | Completado — `buildCrudRoutes` elimina boilerplate, entidades unificadas |
 | Entidades como taxonomias | Completado — tipos de recurso, idiomas y licencias gestionables desde admin |
 | Migracion a React islands | Completado — todas las páginas interactivas migradas (ADR-0013) |
-| Design system y rediseño UI | En progreso — 25+ componentes, tokens, social UI lista, endpoints pendientes |
+| Design system y rediseño UI | Completado — 25+ componentes, tokens, social UI, badges dinámicos, landing interactiva |
+| Datos de demo y seed realista | Completado — 11 usuarios, 22 recursos con .elpx, 8 colecciones, social data, admin settings |
 | eXeLearning editor | Completado — integración servidor + estáticos |
 
 ---
@@ -207,7 +208,8 @@ La Fase 1 del MVP está prácticamente completa. La migración a React islands a
 | CRUD builder genérico | **Completado** |
 | Entidades como taxonomías | **Completado** |
 | Migración a React islands | **Completado** — todas las páginas interactivas migradas |
-| Design system (Epic 003) | **En progreso** — componentes listos, endpoints social pendientes |
+| Design system (Epic 003) | **Completado** — componentes, tokens, badges dinámicos, landing interactiva |
+| Datos de demo y seed | **Completado** — 11 usuarios, 22 recursos .elpx, 8 colecciones, badges, settings |
 | Importación piloto desde CSV | **No iniciada** |
 | eXeLearning editor | **Completado** — integración servidor + estáticos |
 
@@ -231,3 +233,61 @@ La Fase 1 del MVP está prácticamente completa. La migración a React islands a
 - El RBAC de colecciones se endurece: la gestión pasa a `curator` y `admin`; `author` queda fuera del backoffice de colecciones.
 - La validación completa del repositorio queda verde con `bun run test` (`337 pass`, `0 fail`, cobertura 91.77%).
 - Queda una limitación arquitectónica documentada: el detalle público se sirve en `/colecciones?slug=...` mientras el frontend siga en salida estática Astro.
+
+## Actualización 2026-03-29 — Datos de demo, badges y landing dinámica
+
+### Datos de demo realistas (issue #64)
+
+- 11 usuarios con roles, bio y contraseñas demo (4 base actualizados + 7 nuevos del ámbito educativo).
+- 22 recursos educativos con contenido .elpx real generado desde 3 plantillas eXeLearning (temas default, flux, universal).
+- 8 colecciones temáticas con recursos asociados y orden editorial.
+- 50 valoraciones (3-8 por recurso, medias 3.5-5), 34 favoritos (2-5 por usuario), ~4100 descargas simuladas.
+- 15 eventos de actividad para el feed del dashboard.
+- Seed idempotente (delete + insert con IDs deterministas).
+- Generador de .elpx que usa plantillas reales, modifica content.xml/HTML con contenido educativo y SVG temáticos.
+- Fuente única de datos: `seed-data.ts` genera `seed.json` para la versión estática (PGlite en navegador).
+
+### Sistema de badges configurable
+
+- Tabla `platform_settings` para configuración de la plataforma (key-value).
+- Badges "Novedad" (días desde creación) y "Destacado" (min ratings + media + favoritos) calculados dinámicamente.
+- Umbrales configurables desde el panel admin (sección "Configuración de Badges").
+- API pública `GET /config/badges` para que el frontend calcule los badges.
+- Badges visibles en catálogo, dashboard y landing.
+
+### Social aggregates en listado de recursos
+
+- `listResources()` devuelve `favoriteCount`, `ratingAvg`, `ratingCount` via subqueries.
+- Endpoints del dashboard (`/users/me/dashboard`, `/favorites`, `/ratings`) enriquecidos con elpx preview + social data.
+- Contador de favoritos reactivo (se actualiza al marcar/desmarcar).
+- Estrella con media de valoración visible en todas las tarjetas.
+
+### Landing page dinámica
+
+- Stats reales desde la API (recursos, docentes, colecciones, novedades).
+- Recursos destacados aleatorios con iframe preview del contenido .elpx.
+- Colecciones temáticas con carrusel horizontal y gradientes de color.
+- CTA con mejor contraste (textos blancos, feature cards legibles).
+- Últimas novedades con iframe preview, fecha relativa y título.
+- Truco CSS +20px para ocultar scrollbar de iframes cross-origin.
+
+### Mejoras de la versión estática
+
+- `generate-seed-json.ts`: genera seed.json desde seed-data.ts (fuente única).
+- `extract-elpx-for-static.ts`: extrae .elpx generados a `public/api/v1/elpx/` para servir previews.
+- `build:preview` actualizado para usar la nueva cadena de generación.
+- PGlite en navegador: seed robusto con cleanAndSeed, ON CONFLICT, verificación de integridad.
+
+### Refactorizaciones
+
+- Hook compartido `useIframeScale` (4 componentes unificados).
+- CSS de catálogo extraído a `catalog.css` (elimina ~1460 líneas duplicadas).
+- Helper `buildElpxPreview` + `buildElpxMap` en API (5 call sites unificados).
+- `computeResourceBadges` y `DEFAULT_BADGE_CONFIG` en shared-utils.
+- `enrichResources` optimizado: 2 batch queries con `inArray` en vez de 2N individuales.
+- Tipo `Resource` extendido (rating, favoriteCount, featuredAt, userScore) — eliminados casts unsafe.
+
+### Validación
+
+- 359 tests pasando (3 fallos pre-existentes no relacionados).
+- Seed idempotente verificado (re-ejecutable sin errores).
