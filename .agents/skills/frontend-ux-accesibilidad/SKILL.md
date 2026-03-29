@@ -3,8 +3,8 @@ name: frontend-ux-accesibilidad
 description: Rol de Frontend Lead, UX y Accesibilidad. Usa este skill para diseñar la experiencia pública y editorial de la plataforma, incluyendo descubrimiento, facetas, ficha de recurso, curación pública, búsqueda y navegación.
 metadata:
   author: procomeka
-  version: "1.1"
-  última actualización: 2026-03-28
+  version: "2.0"
+  última actualización: 2026-03-29
 ---
 
 # Skill: Frontend, UX y Accesibilidad
@@ -19,9 +19,15 @@ Construir una experiencia clara, accesible y rápida tanto para la parte públic
 
 ## Stack frontend
 
-Astro es el framework frontend adoptado (ADR-0004). Los componentes interactivos se implementan como islas con hidratación selectiva. Todo el código es TypeScript strict sobre Bun.
-
-Para uploads resumibles se usa Uppy con el plugin Tus (ADR-0011), integrado como script de cliente dentro de las páginas Astro del backoffice editorial.
+- **Meta-framework**: Astro 5 (ADR-0004) — genera HTML estático por defecto, con hidratación parcial por islas.
+- **Framework de islas**: React 19 (ADR-0013) — todos los componentes interactivos son React islands hidratados con `client:*`.
+- **Design system**: componentes propios en `src/ui/` (25+ componentes: Button, Dialog, Badge, Chip, Tabs, Pagination, ResourceCard, StarRating, etc.).
+- **Tokens de diseño**: `src/styles/design-tokens.css` — 40+ tokens de color (light + dark), Plus Jakarta Sans (display) + Inter (body), escalas de spacing/radius/shadow.
+- **Iconos**: Google Material Symbols (`material-symbols-outlined`).
+- **CSS**: archivos `.css` colocados junto a cada componente `.tsx`. No se usa Tailwind ni CSS-in-JS.
+- **Uploads resumibles**: Uppy con plugin Tus (ADR-0011), integrado como island React.
+- **Testing**: @testing-library/react + bun test para unitarios, Playwright para E2E.
+- **TypeScript strict** sobre Bun en todo el código.
 
 ## Principios de diseño
 
@@ -43,21 +49,249 @@ Para uploads resumibles se usa Uppy con el plugin Tus (ADR-0011), integrado como
 
 ---
 
-## Patrones Astro
+## Arquitectura de islands React + Astro
 
-### Directivas de hidratación (client directives)
+### Cómo funciona
 
-Por defecto, los componentes de framework UI en Astro se renderizan como HTML estático sin JavaScript de cliente. Las directivas `client:*` controlan cuándo y cómo se hidrata un componente. Elegir la directiva correcta es clave para el rendimiento.
+Las páginas Astro (`.astro`) son HTML estático. Los componentes React se incrustan como islands con directivas `client:*` que controlan cuándo se hidratan:
+
+```astro
+---
+import { CatalogIsland } from "../islands/catalog/CatalogIsland.tsx";
+---
+<Layout>
+  <CatalogIsland client:load />
+</Layout>
+```
+
+React y react-dom se cargan una sola vez y se comparten entre todas las islands de la página (deduplicación automática de Astro).
+
+### Directivas de hidratación
 
 | Directiva | Cuándo se hidrata | Usar para |
 |---|---|---|
-| `client:load` | Inmediatamente al cargar la página | Elementos interactivos visibles desde el inicio que necesitan JS al instante: menús desplegables del header, botones de acción principal, formularios con validación en tiempo real |
-| `client:idle` | Cuando el navegador está idle (`requestIdleCallback`) | Elementos interactivos de prioridad media que no necesitan funcionar al instante: paneles de filtros colapsables, widgets de valoración, botones de compartir |
-| `client:visible` | Cuando el componente entra en el viewport (`IntersectionObserver`) | Elementos below-the-fold o pesados: carruseles de recursos relacionados, gráficos de estadísticas, listas infinitas al final de la página |
-| `client:media="(query)"` | Cuando se cumple la media query CSS | Elementos que solo son interactivos en ciertos tamaños: sidebar de facetas que en móvil es un drawer interactivo pero en escritorio es HTML estático |
-| `client:only="framework"` | Solo en cliente, sin SSR | Componentes que dependen de APIs del navegador y no pueden renderizarse en servidor (canvas, Web Audio, widgets de terceros sin soporte SSR) |
+| `client:load` | Inmediatamente al cargar la página | Islands que son el contenido principal: catálogo, formularios, admin, login |
+| `client:idle` | Cuando el navegador está idle | Islands de prioridad media: widgets de valoración, botones de compartir |
+| `client:visible` | Cuando entra en el viewport | Islands below-the-fold: carruseles, secciones de comentarios |
+| `client:media="(query)"` | Cuando se cumple la media query | Islands condicionales por tamaño: sidebar en móvil como drawer |
+| `client:only="react"` | Solo en cliente, sin SSR | Componentes que dependen de APIs del navegador |
 
-**Regla del proyecto**: usar `client:load` solo donde sea imprescindible. La mayoría de islas deben usar `client:idle` o `client:visible`. Si un componente no necesita interactividad, no ponerle directiva -- se renderiza como HTML estático.
+**Regla del proyecto**: usar `client:load` para islands que son el contenido funcional principal de la página. Para islands secundarias o below-the-fold usar `client:idle` o `client:visible`.
+
+### Paso de datos de Astro a React
+
+Pasar datos del frontmatter Astro como props de la island:
+
+```astro
+---
+const resourceId = Astro.url.searchParams.get("id");
+---
+<ResourceEditorIsland client:load resourceId={resourceId} />
+```
+
+Para datos no serializables o que requieren consultas de cliente, la island los obtiene via `fetch` al montar (patrón dominante del proyecto).
+
+---
+
+## Estructura de islands
+
+### Organización en `src/islands/`
+
+```
+islands/
+├── admin/           → AdminPageIsland, AdminSidebar, AdminDashboardSection,
+│                      AdminResourcesSection, AdminUsersSection, etc.
+├── auth/            → LoginIsland, RegisterIsland
+├── catalog/         → CatalogIsland, CatalogSearchIsland, ResourceDetailIsland
+├── crud/            → CrudTable, TaxonomyCrudIsland, CollectionsCrudIsland,
+│                      ResourcesTableIsland, UsersCrudIsland
+├── dashboard/       → DashboardIsland, PublicDashboardIsland
+├── home/            → HeroIsland, FeaturedResourcesIsland
+├── layout/          → BaseNavIsland, PublicNavIsland, AdminNavIsland, PreviewBannerIsland
+├── resources/       → ResourceFormIsland, ResourceEditorIsland
+├── social/          → CommentSectionIsland, RatingIsland, FavoriteIsland
+└── shared/          → AccessibleFeedback, ConfirmDialog, ModalFrame
+```
+
+### Convenciones de islands
+
+1. **Nombre**: `*Island.tsx` para las islands principales que se montan en páginas Astro.
+2. **Un solo export**: cada island exporta una función con nombre (no default export).
+3. **Props tipadas**: interface explícita para las props que recibe de Astro.
+4. **Estado y efectos**: las islands gestionan su propio estado con `useState`/`useEffect` y llaman a la API via `getApiClient()`.
+5. **Sin dependencia entre islands**: la comunicación entre islands usa CustomEvents del DOM cuando es necesaria (ejemplo: `CATALOG_QUERY_CHANGE_EVENT` entre CatalogSearchIsland y CatalogIsland).
+
+---
+
+## Design system (`src/ui/`)
+
+### Componentes disponibles
+
+**Inputs y acciones**: `Button`, `IconButton`, `Input`, `SearchBar`, `Select`, `Checkbox`
+**Display**: `Badge`, `Chip`, `Skeleton`, `EmptyState`
+**Navegación**: `Breadcrumb`, `Tabs`, `Pagination`
+**Layout**: `PageHeader`, `Drawer`, `Dialog`
+**Recurso**: `ResourceCard`, `ResourceGrid`, `FilterPanel`, `MetadataList`
+**Social**: `StarRating`, `RatingSummary`, `FavoriteButton`, `CommentItem`, `CommentList`
+
+### Convenciones de componentes UI
+
+1. Cada componente tiene su propio archivo `.css` junto al `.tsx`.
+2. Usan clases BEM-like para scoping (`btn-primary`, `dialog-header`, `card-body`).
+3. Los tokens de diseño se consumen como custom properties CSS (`var(--color-primary)`, `var(--spacing-md)`).
+4. Los iconos usan `<span className="material-symbols-outlined">nombre</span>` con `aria-hidden="true"`.
+5. Props tipadas con interfaces TypeScript exportadas.
+
+### Patrón de componente
+
+```tsx
+import type { ReactNode } from "react";
+import "./MiComponente.css";
+
+interface MiComponenteProps {
+  variant?: "primary" | "secondary";
+  children: ReactNode;
+}
+
+export function MiComponente({ variant = "primary", children }: MiComponenteProps) {
+  return (
+    <div className={`mi-componente mi-componente-${variant}`}>
+      {children}
+    </div>
+  );
+}
+```
+
+---
+
+## Patrones React del proyecto
+
+### Formularios
+
+Los formularios del proyecto usan estado controlado con `useState` (no React Hook Form). Patrón estándar:
+
+```tsx
+const [form, setForm] = useState<FormState>(EMPTY_FORM);
+const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+const [busy, setBusy] = useState(false);
+
+function setFieldValue(field: keyof FormState, value: string) {
+  setForm((current) => ({ ...current, [field]: value }));
+  setFieldErrors((current) => ({ ...current, [field]: "" }));
+}
+
+async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  event.preventDefault();
+  setBusy(true);
+  // ... llamada a API, gestión de errores por campo
+}
+```
+
+Los campos con error reciben `aria-invalid="true"` y tienen un `<span>` con `role="alert"` asociado via `aria-describedby`:
+
+```tsx
+<input
+  type="text"
+  id="title"
+  required
+  aria-describedby="title-error"
+  aria-invalid={fieldErrors.title ? "true" : undefined}
+  value={form.title}
+  onChange={(e) => setFieldValue("title", e.currentTarget.value)}
+/>
+<span id="title-error" className="field-error" role="alert">
+  {fieldErrors.title ?? ""}
+</span>
+```
+
+### Diálogos modales
+
+El proyecto tiene dos niveles de diálogos:
+
+1. **`ModalFrame`** (`shared/`): overlay básico con cierre por Escape y click fuera. Bloquea scroll.
+2. **`Dialog`** (`ui/`): diálogo completo con trap de foco, header con título y botón de cierre, restauración de foco al cerrar.
+
+Ambos usan `role="dialog"`, `aria-modal="true"` y `aria-labelledby` para el título.
+
+### Feedback accesible
+
+El componente `AccessibleFeedback` muestra mensajes de éxito/error con `role="alert"` o `role="status"`:
+
+```tsx
+<AccessibleFeedback message={errorMessage} variant="error" polite={false} />
+<AccessibleFeedback message={successMessage} variant="success" />
+```
+
+### Tablas CRUD
+
+El componente genérico `CrudTable<T>` renderiza tablas con columnas tipadas:
+
+```tsx
+<CrudTable
+  columns={[
+    { id: "name", header: "Nombre", cell: (row) => row.name },
+    { id: "actions", header: "", cell: (row) => <button>Editar</button> },
+  ]}
+  rows={items}
+  getRowKey={(row) => row.id}
+  emptyMessage="No hay elementos"
+/>
+```
+
+### Peticiones a la API
+
+Todas las islands usan `getApiClient()` para obtener un cliente tipado. Patrón habitual al montar:
+
+```tsx
+useEffect(() => {
+  void (async () => {
+    const api = await getApiClient();
+    const result = await api.listResources({ limit: 20 });
+    setResources(result.data);
+  })();
+}, []);
+```
+
+### Comunicación entre islands
+
+Cuando dos islands en la misma página necesitan coordinarse (ej: barra de búsqueda + resultados), usan CustomEvents del DOM:
+
+```tsx
+// Emitir desde SearchBarIsland
+dispatchCatalogQuerySync(query);
+
+// Escuchar en CatalogIsland
+useEffect(() => {
+  function handleQueryChange(event: Event) {
+    const { query } = (event as CustomEvent<CatalogQueryDetail>).detail;
+    // actualizar estado...
+  }
+  window.addEventListener(CATALOG_QUERY_CHANGE_EVENT, handleQueryChange);
+  return () => window.removeEventListener(CATALOG_QUERY_CHANGE_EVENT, handleQueryChange);
+}, []);
+```
+
+### Actualizaciones optimistas
+
+Para acciones sociales (favoritos, valoraciones), se actualiza el estado local inmediatamente y se revierte si la API falla:
+
+```tsx
+const handleBookmark = useCallback(async (e: React.MouseEvent) => {
+  e.preventDefault();
+  setBookmarked((prev) => !prev); // optimistic
+  try {
+    const api = await getApiClient();
+    const result = await api.toggleFavorite(resource.slug);
+    setBookmarked(result.favorited);
+  } catch {
+    setBookmarked((prev) => !prev); // rollback
+  }
+}, [resource.slug]);
+```
+
+---
+
+## Patrones Astro
 
 ### Scripts en archivos `.astro`
 
@@ -66,127 +300,26 @@ Los bloques `<script>` en archivos `.astro` se procesan y empaquetan por Astro. 
 ```astro
 <script>
   import { getApiClient } from "../lib/get-api-client.ts";
-  import { url } from "../lib/paths.ts";
-
-  const api = await getApiClient();
   // lógica de cliente...
 </script>
 ```
 
-Cada `<script>` se ejecuta una vez por página, se empaqueta automáticamente y se deduplica si el componente se usa varias veces. No es necesario `type="module"`.
+**Nota**: con la migración a React islands, la mayoría de la lógica de cliente está ahora en los componentes React. Los `<script>` de Astro se reservan para lógica mínima que no justifica una island (analytics, theme toggle).
 
-Para pasar datos del frontmatter al script de cliente, usar `data-*` en el HTML y leerlos con `querySelector`:
+### TypeScript en Astro
 
-```astro
----
-const resourceId = Astro.params.id;
----
-<div data-resource-id={resourceId} id="uploader-root">...</div>
-
-<script>
-  const root = document.getElementById("uploader-root");
-  const resourceId = root?.dataset.resourceId;
-</script>
-```
-
-No usar `define:vars` para pasar datos complejos -- solo acepta tipos serializables y genera un `<script is:inline>` que no se empaqueta.
-
-### Formularios sin framework JS
-
-Para formularios del backoffice editorial (crear recurso, editar metadatos), usar HTML nativo con `<script>` de Astro en lugar de un framework de islas. Patrón del proyecto:
-
-1. El formulario es HTML estático renderizado por Astro (SSG/SSR).
-2. Un `<script>` se encarga de la validación y el envío via `fetch`.
-3. Los errores se muestran en `<span>` con `role="alert"` asociados a cada campo via `aria-describedby`.
-4. El campo inválido recibe `aria-invalid="true"` y su `<span>` de error se llena con el mensaje.
-
-```astro
-<div class="field">
-  <label for="title">Título *</label>
-  <input type="text" id="title" required aria-describedby="title-error" />
-  <span id="title-error" class="field-error" role="alert"></span>
-</div>
-```
-
-Este patrón evita enviar un framework JS completo al cliente solo para un formulario. El formulario funciona con la semántica nativa del navegador y la accesibilidad se gestiona con ARIA estándar.
-
----
-
-## TypeScript en Astro
-
-### Props de componentes
-
-Definir siempre una interfaz `Props` en el frontmatter del componente. Astro la usa para tipar `Astro.props`:
+Definir siempre una interfaz `Props` en el frontmatter del componente `.astro`:
 
 ```astro
 ---
-import { Image } from "astro:assets";
-
 interface Props {
-  imagePath: string;
-  altText: string;
-  name: string;
-  age: number;
+  title: string;
+  description?: string;
 }
 
-const { imagePath, altText, name, age } = Astro.props;
+const { title, description } = Astro.props;
 ---
 ```
-
-### Inferencia de tipos en rutas dinámicas
-
-Para páginas con `getStaticPaths()`, usar los tipos de utilidad de Astro para inferir los tipos de params y props automáticamente:
-
-```astro
----
-import type {
-  InferGetStaticParamsType,
-  InferGetStaticPropsType,
-  GetStaticPaths,
-} from "astro";
-
-export const getStaticPaths = (async () => {
-  const posts = await getCollection("blog");
-  return posts.map((post) => ({
-    params: { id: post.id },
-    props: { draft: post.data.draft, title: post.data.title },
-  }));
-}) satisfies GetStaticPaths;
-
-type Params = InferGetStaticParamsType<typeof getStaticPaths>;
-type Props = InferGetStaticPropsType<typeof getStaticPaths>;
-
-const { id } = Astro.params as Params;
-const { title } = Astro.props;
----
-```
-
-### Content Collections con esquemas Zod
-
-Las colecciones de contenido se definen en `src/content.config.ts` con `defineCollection`, un loader y un schema Zod. Astro genera tipos TypeScript automáticamente a partir del schema:
-
-```typescript
-import { defineCollection } from "astro:content";
-import { glob, file } from "astro/loaders";
-import { z } from "astro/zod";
-
-const recursos = defineCollection({
-  loader: glob({ base: "./src/content/recursos", pattern: "**/*.md" }),
-  schema: z.object({
-    title: z.string(),
-    description: z.string(),
-    language: z.string(),
-    license: z.string(),
-    resourceType: z.string(),
-    pubDate: z.coerce.date(),
-    keywords: z.array(z.string()).optional(),
-  }),
-});
-
-export const collections = { recursos };
-```
-
-Los datos se consultan con `getCollection("recursos")` o `getEntry("recursos", id)`, ambos tipados.
 
 ---
 
@@ -194,7 +327,7 @@ Los datos se consultan con `getCollection("recursos")` o `getEntry("recursos", i
 
 ### Componente `<Image />`
 
-Usar el componente `<Image />` de `astro:assets` para todas las imágenes. Astro optimiza automáticamente: convierte a WebP, añade `width`, `height`, `decoding="async"` y `loading="lazy"`:
+Usar el componente `<Image />` de `astro:assets` para todas las imágenes estáticas. Astro optimiza automáticamente: convierte a WebP, añade `width`, `height`, `decoding="async"` y `loading="lazy"`:
 
 ```astro
 ---
@@ -204,53 +337,17 @@ import portada from "../assets/portada-recurso.png";
 <Image src={portada} alt="Descripción del recurso educativo" />
 ```
 
-El HTML generado incluye los atributos de rendimiento y accesibilidad automáticamente:
+**Regla del proyecto**: toda `<img>` debe tener `alt` descriptivo. Para imágenes decorativas usar `alt=""` y `role="presentation"`.
 
-```html
-<img
-  src="/_astro/portada-recurso.hash.webp"
-  width="1600"
-  height="900"
-  decoding="async"
-  loading="lazy"
-  alt="Descripción del recurso educativo"
-/>
-```
+### Imágenes en componentes React
 
-### Imágenes responsivas con `getImage()`
-
-Para componentes que necesitan variantes (miniatura en tarjeta de recurso, imagen completa en ficha), usar `getImage()`:
-
-```astro
----
-import type { ImageMetadata } from "astro";
-import { getImage } from "astro:assets";
-
-interface Props {
-  mobileImgUrl: string | ImageMetadata;
-  desktopImgUrl: string | ImageMetadata;
-  alt: string;
-}
-
-const { mobileImgUrl, desktopImgUrl, alt } = Astro.props;
-
-const mobileImg = await getImage({ src: mobileImgUrl, format: "webp", width: 200, height: 200 });
-const desktopImg = await getImage({ src: desktopImgUrl, format: "webp", width: 800, height: 200 });
----
-<picture>
-  <source media="(max-width: 799px)" srcset={mobileImg.src} />
-  <source media="(min-width: 800px)" srcset={desktopImg.src} />
-  <img src={desktopImg.src} alt={alt} />
-</picture>
-```
-
-**Regla del proyecto**: toda `<img>` debe tener `alt` descriptivo. Para imágenes decorativas usar `alt=""` y `role="presentation"`. Nunca omitir `alt`.
+Las imágenes dinámicas en React islands (miniaturas de recursos, avatares) usan `<img>` estándar con `loading="lazy"` y dimensiones explícitas para evitar CLS.
 
 ---
 
 ## View Transitions
 
-Para transiciones entre páginas sin recarga completa, Astro ofrece el módulo `astro:transitions`:
+Para transiciones entre páginas sin recarga completa, Astro ofrece `astro:transitions`:
 
 ```astro
 ---
@@ -261,36 +358,13 @@ import { ClientRouter } from "astro:transitions";
 </head>
 ```
 
-Animaciones disponibles: `fade` y `slide` desde `astro:transitions`. Se aplican por elemento:
-
-```astro
----
-import { fade } from "astro:transitions";
----
-<main transition:animate={fade({ duration: '0.2s' })}>
-  <slot />
-</main>
-```
-
-Usar `transition:name` para conectar elementos entre páginas (por ejemplo, la miniatura de una tarjeta de recurso con la imagen de la ficha):
-
-```astro
-<!-- En la tarjeta del listado -->
-<img transition:name={`recurso-img-${recurso.id}`} src={recurso.thumbnail} alt={recurso.title} />
-
-<!-- En la ficha del recurso -->
-<img transition:name={`recurso-img-${recurso.id}`} src={recurso.imagen} alt={recurso.title} />
-```
-
-**Precaución**: las View Transitions requieren que los scripts de cliente se re-ejecuten correctamente tras la navegación. Los `<script>` de Astro se manejan automáticamente, pero event listeners manuales sobre `document` pueden necesitar re-binding.
+**Precaución**: las View Transitions re-ejecutan scripts. Las React islands se rehidratan automáticamente, pero event listeners manuales sobre `document` pueden necesitar re-binding.
 
 ---
 
 ## Integración Uppy/Tus para uploads resumibles
 
-### Inicialización
-
-Uppy se inicializa con restricciones obtenidas de la API (ADR-0011). Configuración base del proyecto:
+Uppy se integra como island React (no como script suelto). Configuración base:
 
 ```typescript
 import Uppy from "@uppy/core";
@@ -315,167 +389,50 @@ uppy.use(Tus, {
 ```
 
 **Notas clave**:
-- `retryDelays: [0, 1000, 3000, 5000]` hace que Uppy reintente automáticamente hasta 4 veces con retardo progresivo. Poner `null` para desactivar reintentos.
-- `chunkSize` solo modificar si es estrictamente necesario (ver docs de `tus-js-client`). El valor por defecto es `Infinity` (un solo PATCH).
-- `allowedMetaFields` limita qué campos de metadata se envían al servidor tus. Solo incluir los que la API espera.
-- `headers` acepta un objeto estático o una función que recibe el archivo y devuelve headers. Usar la función para tokens de autenticación dinámicos:
-
-```typescript
-headers: (file) => ({
-  authorization: `Bearer ${getToken()}`,
-}),
-```
-
-### TypeScript con Uppy
-
-Para respuestas tipadas, especialmente en el evento `upload-success`, usar el genérico `TusBody`:
-
-```typescript
-import Uppy from "@uppy/core";
-import Tus, { type TusBody } from "@uppy/tus";
-
-interface ResourceMeta {
-  resourceId: string;
-  filename: string;
-  mimeType: string;
-}
-
-const uppy = new Uppy<ResourceMeta, TusBody>();
-```
-
-### Eventos principales
-
-| Evento | Cuándo se dispara | Uso en el proyecto |
-|---|---|---|
-| `file-added` | Se añade un archivo a la cola | Actualizar la lista visual de archivos en cola |
-| `upload-progress` | Progreso parcial de un archivo | Actualizar barra de progreso individual y global |
-| `upload-success` | Un archivo se sube con éxito | Mostrar feedback, refrescar lista de uploads persistidos |
-| `upload-error` | Un archivo falla | Mostrar error, verificar si es error de red |
-| `file-removed` | Se quita un archivo de la cola | Actualizar lista visual |
-| `complete` | Toda la cola termina (éxitos y fallos) | Balance final: `result.successful` y `result.failed` |
-
-### Gestión de errores
-
-Distinguir errores de red de otros errores para mostrar mensajes apropiados al usuario:
-
-```typescript
-uppy.on("upload-error", (file, error, response) => {
-  if (error.isNetworkError) {
-    // Posible problema de firewall, ISP o conexión inestable
-    feedback.textContent = "Error de conexión. Uppy reintentará automáticamente.";
-  } else {
-    feedback.textContent = error?.message ?? "Error durante la subida";
-  }
-});
-```
-
-El evento `complete` permite hacer un balance final de la cola completa:
-
-```typescript
-uppy.on("complete", (result) => {
-  if (result.failed.length > 0) {
-    feedback.textContent = `${result.failed.length} archivo(s) fallaron.`;
-  }
-});
-```
-
-### Restricciones de archivos
-
-Las restricciones se configuran al crear la instancia. Los valores se obtienen dinámicamente de la API para mantener consistencia con los límites del servidor:
-
-```typescript
-restrictions: {
-  maxFileSize: 1000000,          // bytes por archivo individual
-  maxNumberOfFiles: 5,           // archivos por lote
-  minNumberOfFiles: 1,           // mínimo para iniciar subida
-  maxTotalFileSize: 5000000,     // bytes totales del lote
-  allowedFileTypes: ["image/*", ".pdf", ".doc", ".docx"],
-  requiredMetaFields: ["resourceId"],
-}
-```
-
-`maxNumberOfFiles` afecta también al diálogo nativo del navegador: con valor `1`, el `<input>` solo permite seleccionar un archivo. `allowedFileTypes` acepta wildcards MIME (`image/*`), tipos exactos (`application/pdf`) o extensiones (`.pdf`).
-
-### Internacionalización de la UI de estado
-
-Para adaptar los textos de progreso al español:
-
-```typescript
-uppy.setOptions({
-  locale: {
-    strings: {
-      uploading: "Subiendo",
-      complete: "Completado",
-      uploadFailed: "La subida falló",
-      paused: "Pausado",
-      retry: "Reintentar",
-      cancel: "Cancelar",
-      pause: "Pausar",
-      resume: "Reanudar",
-      done: "Hecho",
-    },
-  },
-});
-```
-
-### Prevención de cierre accidental
-
-Mientras hay uploads activos, interceptar el cierre de pestaña:
-
-```typescript
-window.addEventListener("beforeunload", (event) => {
-  const hasActive = uppy.getFiles().some(
-    (file) => (file.progress?.uploadComplete ?? false) === false
-  );
-  if (!hasActive) return;
-  event.preventDefault();
-  event.returnValue = "";
-});
-```
+- `retryDelays: [0, 1000, 3000, 5000]` hace que Uppy reintente automáticamente hasta 4 veces con retardo progresivo.
+- `allowedMetaFields` limita qué campos de metadata se envían al servidor tus.
+- Los valores de restricciones se obtienen dinámicamente de la API para consistencia con los límites del servidor.
 
 ### Destrucción
 
-Al desmontar el componente o navegar a otra página, llamar siempre a `uppy.destroy()` para liberar recursos y cancelar listeners.
+Al desmontar la island, llamar siempre a `uppy.destroy()` en el cleanup del `useEffect` para liberar recursos.
 
 ---
 
 ## Accesibilidad específica del proyecto
 
-### ARIA en formularios
+### ARIA en formularios React
 
 Patrón obligatorio para campos con validación:
 
 1. Cada `<input>` tiene `aria-describedby` apuntando a su `<span>` de error.
-2. El `<span>` de error tiene `role="alert"` para que los lectores de pantalla anuncien errores automáticamente al aparecer.
-3. Al fallar la validación, el campo recibe `aria-invalid="true"` y el borde cambia a rojo.
+2. El `<span>` de error tiene `role="alert"` para que los lectores de pantalla anuncien errores automáticamente.
+3. Al fallar la validación, el campo recibe `aria-invalid="true"`.
 4. Los mensajes globales de éxito usan `role="status"` con `aria-live="polite"`.
-5. Los mensajes globales de error usan `role="alert"` con `aria-live="polite"`.
+5. Los mensajes globales de error usan `role="alert"`.
 
-```html
-<input type="text" id="title" required aria-describedby="title-error" />
-<span id="title-error" class="field-error" role="alert"></span>
+### Diálogos y foco
 
-<div id="error-message" class="error" role="alert" aria-live="polite" style="display:none;"></div>
-<div id="success-message" class="success" role="status" aria-live="polite" style="display:none;"></div>
-```
+- `Dialog` implementa trap de foco: al abrir, mueve el foco al primer elemento focusable; al cerrar con Escape, restaura el foco al activador.
+- `ModalFrame` gestiona cierre por Escape y click fuera del contenido.
+- Ambos usan `role="dialog"`, `aria-modal="true"` y `aria-labelledby`.
 
 ### Semántica HTML
 
 - Usar `<main>`, `<nav>`, `<header>`, `<footer>`, `<section>`, `<article>` correctamente. Cada página tiene un solo `<main>`.
 - Los encabezados (`<h1>` a `<h6>`) siguen jerarquía estricta: un solo `<h1>` por página, sin saltar niveles.
 - Los listados de recursos usan `<ul>` con `<li>`. Las tablas de datos usan `<table>` con `<thead>`, `<th scope>`.
-- Los enlaces de acción usan `<a>` si navegan, `<button>` si ejecutan una acción. Nunca `<div onclick>`.
+- Los enlaces de acción usan `<a>` si navegan, `<button>` si ejecutan una acción. Nunca `<div onClick>`.
 
 ### Navegación por teclado
 
 - Todos los controles interactivos deben ser alcanzables con Tab.
-- Los menús desplegables y drawers de facetas deben gestionar el foco: al abrir, mover el foco al primer elemento; al cerrar con Escape, devolver el foco al activador.
-- Los diálogos modales usan `<dialog>` nativo o implementan trap de foco manual.
-- Las tarjetas de recurso en el listado: el enlace principal (título) recibe el foco; las acciones secundarias (favorito, compartir) son botones con `aria-label` descriptivo.
+- Los drawers y diálogos gestionan el foco correctamente (ver sección de diálogos).
+- Las tarjetas de recurso: el enlace principal (título/card completa) recibe el foco; las acciones secundarias (favorito, compartir) son botones con `aria-label` descriptivo.
 
 ### Directivas de hidratación y accesibilidad
 
-Los componentes de framework UI que gestionen foco, anuncios ARIA o navegación por teclado deben usar `client:load` o `client:idle` -- nunca `client:visible`, porque el usuario de lector de pantalla podría interactuar antes de que el componente sea visible en el viewport.
+Los componentes React que gestionen foco, anuncios ARIA o navegación por teclado deben usar `client:load` o `client:idle` — nunca `client:visible`, porque el usuario de lector de pantalla podría interactuar antes de que el componente sea visible en el viewport.
 
 ---
 
@@ -483,36 +440,57 @@ Los componentes de framework UI que gestionen foco, anuncios ARIA o navegación 
 
 ### Estrategia de hidratación parcial
 
-Astro envía cero JavaScript de cliente por defecto. Cada isla con `client:*` añade JS. Directrices:
+Astro envía cero JavaScript de cliente por defecto. Cada island React añade JS. Directrices:
 
-1. **Presupuesto de JS**: máximo 50 KB de JS comprimido por página pública. Las páginas editoriales pueden llegar a 100 KB por la integración Uppy.
-2. **Mayoría estática**: las páginas de listado, ficha de recurso y colecciones deben tener como mucho 1-2 islas interactivas (filtros, carrusel).
-3. **Prioridad de directiva**: `client:visible` > `client:idle` > `client:load`. Usar `client:load` solo para lo imprescindible (header interactivo, auth check).
+1. **Deduplicación de React**: `react` + `react-dom` se cargan una sola vez (~80-90 KB gzip) y se comparten entre todas las islands.
+2. **Mayoría estática**: las páginas de contenido estático (landing, about) minimizan islands. Las páginas funcionales (catálogo, admin) pueden ser una island grande.
+3. **Prioridad de directiva**: `client:visible` > `client:idle` > `client:load`. Usar `client:load` para la island principal de la página.
 
 ### Imágenes
 
-- Siempre usar `<Image />` de `astro:assets` para optimización automática (WebP, dimensiones, lazy loading).
+- Usar `<Image />` de `astro:assets` para imágenes estáticas.
 - Las miniaturas de tarjetas de recurso deben tener dimensiones explícitas para evitar layout shift (CLS).
-- Las imágenes above-the-fold (hero, logo) usan `loading="eager"`. El resto usa `loading="lazy"` (por defecto en `<Image />`).
+- Las imágenes above-the-fold usan `loading="eager"`. El resto usa `loading="lazy"`.
 
 ### Prefetch
 
-Astro soporta prefetch de enlaces con el atributo `data-astro-prefetch`:
+Astro soporta prefetch de enlaces con `data-astro-prefetch`. Usarlo en los enlaces de tarjetas de recurso para que la ficha cargue instantáneamente.
 
-```html
-<a href="/recurso/123" data-astro-prefetch>Ver recurso</a>
+---
+
+## Testing de componentes React
+
+### Unitarios con @testing-library/react
+
+```tsx
+import { render, screen } from "@testing-library/react";
+import { expect, test } from "bun:test";
+import { Button } from "./Button.tsx";
+
+test("renders button with label", () => {
+  render(<Button>Guardar</Button>);
+  expect(screen.getByRole("button", { name: "Guardar" })).toBeDefined();
+});
 ```
 
-Usar prefetch en los enlaces de tarjetas de recurso del listado para que la ficha cargue instantáneamente al hacer clic.
+Los test files van junto al componente con sufijo `.unit.test.tsx`.
+
+### Convenciones de testing
+
+- Testear comportamiento, no implementación.
+- Usar roles ARIA (`getByRole`) como selector principal.
+- Los tests de islands verifican flujos completos (montar → cargar datos → interactuar → verificar resultado).
+- Runner: `bun test` (no Vitest, no Jest).
 
 ---
 
 ## Entregables
 
-- Flujos de usuario y wireframes textuales para descubrimiento, búsqueda (simple/avanzada) y ficha de recurso.
+- Flujos de usuario y wireframes textuales para descubrimiento, búsqueda y ficha de recurso.
 - Arquitectura de la UI para el panel de facetas.
-- Decisiones de navegación y comportamiento de estados vacíos (zero results) con justificación.
-- Lista de componentes necesarios (ej. tarjetas de recurso, inputs de autocompletado).
+- Decisiones de navegación y comportamiento de estados vacíos.
+- Componentes React con tipos, accesibilidad y CSS.
+- Tests unitarios de componentes con @testing-library/react.
 - Reglas de accesibilidad específicas del proyecto y criterios de validación UX.
 
 ## Regla

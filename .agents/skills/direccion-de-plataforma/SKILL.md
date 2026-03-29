@@ -22,17 +22,27 @@ Decidir cómo se distribuye la responsabilidad entre capas del sistema y qué so
 - **Runtime**: Bun (API, scripts, tests, builds)
 - La elección de frameworks y servicios se decide por ADR, no de forma predeterminada
 
-## Capas del sistema a decidir
+## Capas del sistema (decisiones tomadas)
 
-| Capa | Opciones típicas a evaluar |
-|------|---------------------------|
-| Frontend público | Next.js, Nuxt, Remix, Astro |
-| Backend / API | Hono + Bun, Elysia, Fastify |
-| Gestión de contenido | Payload CMS, Directus, Strapi, custom |
-| Base de datos | PostgreSQL (prod), PGlite (dev/preview) |
-| Búsqueda | Base de datos principal (FTS nativo) |
-| Autenticación | Better Auth, Lucia, Auth.js, Clerk |
-| Almacenamiento | Disco local o volumen montado |
+| Capa | Decisión | ADR |
+|------|----------|-----|
+| Frontend público | Astro 5 + React 19 (islands) | ADR-0004, ADR-0013 |
+| Backend / API | Hono + Bun | ADR-0003 |
+| Base de datos | PostgreSQL (prod), PGlite (dev/preview) | ADR-0005, ADR-0010 |
+| ORM | Drizzle ORM | ADR-0006 |
+| Búsqueda | PostgreSQL FTS nativo | — |
+| Autenticación | Better Auth (password + OIDC) | ADR-0007 |
+| Autorización | RBAC (reader, author, curator, admin) | ADR-0008 |
+| Uploads | Tus protocol (resumable) | ADR-0011 |
+| Almacenamiento | Disco local / volumen montado (prod: pendiente ADR S3) | ADR-0012 |
+
+### Capas pendientes de decisión
+
+| Capa | Opciones a evaluar |
+|------|-------------------|
+| Gestión de contenido | Custom (actual) vs Payload CMS, Directus |
+| Búsqueda avanzada | PostgreSQL FTS (actual) vs Meilisearch, Typesense |
+| Almacenamiento prod | S3 / MinIO vs volumen montado |
 
 ## Marco de decisión
 

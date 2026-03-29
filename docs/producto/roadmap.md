@@ -40,6 +40,9 @@ Catalogo MVP operativo con busqueda facetada, CRUD unificado, flujo editorial co
 | Subidas resumables | Completado — ADR-0011 (Tus), ADR-0012 (IndexedDB preview), panel de uploads multiarchivo |
 | CRUD builder generico | Completado — `buildCrudRoutes` elimina boilerplate, entidades unificadas |
 | Entidades como taxonomias | Completado — tipos de recurso, idiomas y licencias gestionables desde admin |
+| Migracion a React islands | Completado — todas las páginas interactivas migradas (ADR-0013) |
+| Design system y rediseño UI | En progreso — 25+ componentes, tokens, social UI lista, endpoints pendientes |
+| eXeLearning editor | Completado — integración servidor + estáticos |
 
 ---
 
@@ -167,8 +170,48 @@ El flujo editorial de recursos queda completo como experiencia de producto y ya 
 - Se introduce una base reutilizable para CRUDs hidratados en `src/islands/shared/` y `src/islands/crud/`.
 - La estrategia de validación se mantiene consistente con el repositorio: `bun test` + build Astro, sin runner alternativo.
 
+## Actualización de estado — 2026-03-29 (Rediseño completo + React islands migración completa)
+
+### Confirmado en repositorio
+
+- PR #61: rediseño completo de la interfaz pública y backoffice.
+- PR #53: integración de eXeLearning editor (servidor + estáticos).
+- Migración completa de React islands: todas las páginas interactivas migradas de vanilla JS a React 19.
+- Design system con 25+ componentes React en `src/ui/` (Button, Dialog, Badge, Chip, Tabs, Pagination, ResourceCard, StarRating, CommentList, etc.).
+- Tokens de diseño: 40+ tokens de color, tipografía (Plus Jakarta Sans + Inter), escalas de spacing, radios, sombras, modo oscuro.
+- Feature islands completos en `src/islands/`: admin (6 sections), auth (login + registro), catalog (búsqueda + detalle), crud (taxonomías, colecciones, recursos, usuarios), dashboard, home (hero + featured), layout (nav pública + admin + preview banner), resources (editor + formulario), social (comentarios, rating, favoritos).
+- Componentes compartidos: CrudTable genérico, ConfirmDialog, ModalFrame con trap de foco, AccessibleFeedback.
+- Catálogo público completo con React: filtros dinámicos, paginación, grid/list toggle, favoritos optimistas, compartir.
+- Formulario de recursos en React con validación inline, errores ARIA, estados de carga.
+- Epic 003 en progreso: schema social (ratings, favorites, comments, comment_votes) creado en BD, componentes de UI listos (CommentSectionIsland, RatingIsland, FavoriteIsland), endpoints parcialmente implementados.
+- Nuevas páginas: landing (`/`), búsqueda (`/buscar`), registro (`/registro`), perfil (`/perfil`).
+- React 19.2.4 + @astrojs/react 5.0.2 + @testing-library/react 16.3.2.
+
+### Lectura ejecutiva
+
+La Fase 1 del MVP está prácticamente completa. La migración a React islands abarca todo el frontend interactivo y se ha creado un design system sólido. El principal gap funcional es completar los endpoints de la API social (ratings, comments, favorites) para conectar los componentes de UI ya construidos. La importación piloto CSV sigue sin iniciar.
+
+### Estado de Fase 1 actualizado
+
+| Épica | Estado |
+|-------|--------|
+| Modelo de metadatos mínimo | **Completado** |
+| Arquitectura base del sistema | **Completado** |
+| Autenticación y autorización | **Completado** |
+| Flujo editorial de recursos | **Completado** |
+| Búsqueda y facetas iniciales | **Completado** |
+| API REST pública v1 | **Completado** |
+| Frontend público mínimo | **Completado** — rediseñado con design system completo |
+| Subidas resumables | **Completado** |
+| CRUD builder genérico | **Completado** |
+| Entidades como taxonomías | **Completado** |
+| Migración a React islands | **Completado** — todas las páginas interactivas migradas |
+| Design system (Epic 003) | **En progreso** — componentes listos, endpoints social pendientes |
+| Importación piloto desde CSV | **No iniciada** |
+| eXeLearning editor | **Completado** — integración servidor + estáticos |
+
 ### Siguiente tramo recomendado
 
-1. Reutilizar la base de CRUD en `admin/colecciones`.
-2. Migrar `admin/usuarios` y `admin/recursos/index` con el mismo patrón.
-3. Medir bundle de las páginas hidratadas antes de atacar catálogo público o formularios complejos.
+1. Implementar endpoints API social: ratings, comments, favorites (conectar componentes de UI existentes).
+2. Importación piloto desde CSV.
+3. Medir rendimiento: Core Web Vitals, bundle sizes, load testing básico.
