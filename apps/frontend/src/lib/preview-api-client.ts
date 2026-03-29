@@ -512,24 +512,6 @@ export class PreviewApiClient implements ApiClient {
 		return { resourceId: "", userId: this.currentUser.id, score, createdAt: new Date().toISOString() };
 	}
 
-	async getResourceComments(_slug: string, _opts?: { limit?: number; offset?: number }) {
-		return { data: [], total: 0, limit: 20, offset: 0 };
-	}
-
-	async createComment(_slug: string, body: string, parentId?: string) {
-		return { id: crypto.randomUUID(), resourceId: "", userId: this.currentUser.id, userName: this.currentUser.name, parentId: parentId ?? null, body, status: "visible", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
-	}
-
-	async editComment(_id: string, body: string) {
-		return { id: _id, body, updatedAt: new Date().toISOString() };
-	}
-
-	async deleteComment(_id: string) {}
-
-	async voteComment(_id: string) {
-		return { voted: true };
-	}
-
 	async toggleFavorite(_slug: string) {
 		return { favorited: true, count: 1 };
 	}
@@ -555,12 +537,16 @@ export class PreviewApiClient implements ApiClient {
 		};
 	}
 
+	async getUserActivity(_opts?: { limit?: number; offset?: number }) {
+		return { data: [] as import("./types/user-extended.ts").ActivityItem[], total: 0, limit: 30, offset: 0 };
+	}
+
 	async trackDownload(_slug: string) {
 		return { count: 0 };
 	}
 
 	async getResourceStats(_slug: string) {
-		return { downloadCount: 0, favoriteCount: 0, ratingAvg: 0, ratingCount: 0, commentCount: 0 };
+		return { downloadCount: 0, favoriteCount: 0, ratingAvg: 0, ratingCount: 0 };
 	}
 
 	async seedResources(count: number, clean?: boolean): Promise<{ count: number; durationMs: number }> {

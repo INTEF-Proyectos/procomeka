@@ -27,6 +27,9 @@ export interface CrudRouteConfig<TEntity> {
 	listFilters?: (user: User, params: Record<string, string | undefined>) => Record<string, unknown>;
 	prepareCreate?: (body: Record<string, unknown>, user: User) => Record<string, unknown> | Promise<Record<string, unknown>>;
 
+	afterCreate?: (user: User, result: unknown, data: Record<string, unknown>) => Promise<void>;
+	afterUpdate?: (user: User, id: string, entity: TEntity, data: Record<string, unknown>) => Promise<void>;
+
 	roles?: { create?: string; update?: string; remove?: string };
 	notFoundMessage?: string;
 }
@@ -73,6 +76,9 @@ export function buildCrudRoutes<TEntity>(config: CrudRouteConfig<TEntity>): Hono
 			}
 			const data = config.prepareCreate ? await config.prepareCreate(body, user) : body;
 			const result = await config.create!(db(), data);
+			if (config.afterCreate) {
+				try { await config.afterCreate(user, result, data); } catch { /* fire-and-forget */ }
+			}
 			return c.json(result, 201);
 		};
 		if (config.roles?.create) {
@@ -99,6 +105,9 @@ export function buildCrudRoutes<TEntity>(config: CrudRouteConfig<TEntity>): Hono
 				if (!v.valid) return c.json({ error: "Validación fallida", details: v.errors }, 400);
 			}
 			await config.update!(db(), id, body);
+			if (config.afterUpdate) {
+				try { await config.afterUpdate(user, id, entity, body); } catch { /* fire-and-forget */ }
+			}
 			return c.json({ id, updated: true });
 		};
 		if (config.roles?.update) {

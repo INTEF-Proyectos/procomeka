@@ -1,14 +1,13 @@
 import { Hono } from "hono";
 import { type AuthEnv, sessionMiddleware, requireAuth } from "../auth/middleware.ts";
-import { parsePagination } from "../helpers.ts";
+import { parsePagination, logActivity } from "../helpers.ts";
 import { getDb } from "../db.ts";
-import { eq, and, sql, desc, isNull, asc } from "drizzle-orm";
+import { eq, and, sql, desc, isNull } from "drizzle-orm";
 import {
 	ratings,
 	favorites,
-	comments,
-	commentVotes,
 	downloads,
+	activityEvents,
 	resources,
 	user,
 } from "@procomeka/db/schema";
@@ -25,7 +24,7 @@ const socialRoutes = new Hono<AuthEnv>();
 async function resolveResourceBySlug(slug: string) {
 	const db = getDb().db;
 	const rows = await db
-		.select({ id: resources.id, editorialStatus: resources.editorialStatus })
+		.select({ id: resources.id, title: resources.title, slug: resources.slug, editorialStatus: resources.editorialStatus })
 		.from(resources)
 		.where(and(eq(resources.slug, slug), isNull(resources.deletedAt)))
 		.limit(1);
@@ -126,294 +125,22 @@ socialRoutes.post("/resources/:slug/ratings", requireAuth, async (c) => {
 		});
 	}
 
+	await logActivity({
+		userId: currentUser.id,
+		type: "rating_given",
+		resourceId: resource.id,
+		resourceTitle: resource.title,
+		resourceSlug: resource.slug,
+		description: `Valoraste «${resource.title}» con ${body.score} estrellas`,
+		metadata: { score: body.score },
+	});
+
 	return c.json({
 		resourceId: resource.id,
 		userId: currentUser.id,
 		score: body.score,
 		createdAt: now.toISOString(),
 	});
-});
-
-// ---------------------------------------------------------------------------
-// GET /resources/:slug/comments
-// ---------------------------------------------------------------------------
-socialRoutes.get("/resources/:slug/comments", async (c) => {
-	const { slug } = c.req.param();
-	const { limit, offset } = parsePagination(c);
-
-	const resource = await resolveResourceBySlug(slug);
-	if (!resource) {
-		return c.json({ error: "Recurso no encontrado" }, 404);
-	}
-
-	const db = getDb().db;
-
-	// Fetch top-level comments (no parentId) that are not deleted
-	const topLevelComments = await db
-		.select({
-			id: comments.id,
-			resourceId: comments.resourceId,
-			userId: comments.userId,
-			userName: user.name,
-			parentId: comments.parentId,
-			body: comments.body,
-			status: comments.status,
-			createdAt: comments.createdAt,
-			updatedAt: comments.updatedAt,
-			deletedAt: comments.deletedAt,
-		})
-		.from(comments)
-		.leftJoin(user, eq(comments.userId, user.id))
-		.where(
-			and(
-				eq(comments.resourceId, resource.id),
-				isNull(comments.parentId),
-				isNull(comments.deletedAt),
-			),
-		)
-		.orderBy(desc(comments.createdAt))
-		.limit(limit)
-		.offset(offset);
-
-	// Count total top-level comments
-	const countResult = await db
-		.select({ count: sql<number>`count(*)` })
-		.from(comments)
-		.where(
-			and(
-				eq(comments.resourceId, resource.id),
-				isNull(comments.parentId),
-				isNull(comments.deletedAt),
-			),
-		);
-	const total = Number(countResult[0]?.count ?? 0);
-
-	// Fetch replies for all top-level comments in batch
-	const commentIds = topLevelComments.map((c: { id: string }) => c.id);
-	let repliesMap = new Map<string, typeof topLevelComments>();
-
-	if (commentIds.length > 0) {
-		const allReplies = await db
-			.select({
-				id: comments.id,
-				resourceId: comments.resourceId,
-				userId: comments.userId,
-				userName: user.name,
-				parentId: comments.parentId,
-				body: comments.body,
-				status: comments.status,
-				createdAt: comments.createdAt,
-				updatedAt: comments.updatedAt,
-				deletedAt: comments.deletedAt,
-			})
-			.from(comments)
-			.leftJoin(user, eq(comments.userId, user.id))
-			.where(
-				and(
-					sql`${comments.parentId} IN (${sql.join(commentIds.map((id: string) => sql`${id}`), sql`, `)})`,
-					isNull(comments.deletedAt),
-				),
-			)
-			.orderBy(asc(comments.createdAt));
-
-		for (const reply of allReplies) {
-			const parentId = reply.parentId!;
-			if (!repliesMap.has(parentId)) repliesMap.set(parentId, []);
-			repliesMap.get(parentId)!.push(reply);
-		}
-	}
-
-	const data = topLevelComments.map((comment: { id: string }) => ({
-		comment,
-		replies: repliesMap.get(comment.id) ?? [],
-	}));
-
-	return c.json({ data, total, limit, offset });
-});
-
-// ---------------------------------------------------------------------------
-// POST /resources/:slug/comments (auth required)
-// ---------------------------------------------------------------------------
-socialRoutes.post("/resources/:slug/comments", requireAuth, async (c) => {
-	const { slug } = c.req.param();
-	const currentUser = c.get("user")!;
-	const body = await c.req.json<{ body: string; parentId?: string }>();
-
-	if (!body.body?.trim()) {
-		return c.json({ error: "El comentario no puede estar vacio" }, 400);
-	}
-
-	const resource = await resolveResourceBySlug(slug);
-	if (!resource) {
-		return c.json({ error: "Recurso no encontrado" }, 404);
-	}
-
-	const db = getDb().db;
-
-	// Validate parentId if provided
-	if (body.parentId) {
-		const parentRows = await db
-			.select({ id: comments.id, resourceId: comments.resourceId })
-			.from(comments)
-			.where(and(eq(comments.id, body.parentId), isNull(comments.deletedAt)))
-			.limit(1);
-		const parent = parentRows[0];
-		if (!parent || parent.resourceId !== resource.id) {
-			return c.json({ error: "Comentario padre no encontrado" }, 404);
-		}
-	}
-
-	const id = crypto.randomUUID();
-	const now = new Date();
-
-	await db.insert(comments).values({
-		id,
-		resourceId: resource.id,
-		userId: currentUser.id,
-		parentId: body.parentId ?? null,
-		body: body.body.trim(),
-		status: "visible",
-		createdAt: now,
-		updatedAt: now,
-	});
-
-	return c.json({
-		id,
-		resourceId: resource.id,
-		userId: currentUser.id,
-		userName: (currentUser as any).name ?? null,
-		parentId: body.parentId ?? null,
-		body: body.body.trim(),
-		status: "visible",
-		createdAt: now.toISOString(),
-		updatedAt: now.toISOString(),
-	}, 201);
-});
-
-// ---------------------------------------------------------------------------
-// PATCH /comments/:id (auth required - owner only)
-// ---------------------------------------------------------------------------
-socialRoutes.patch("/comments/:id", requireAuth, async (c) => {
-	const { id } = c.req.param();
-	const currentUser = c.get("user")!;
-	const body = await c.req.json<{ body: string }>();
-
-	if (!body.body?.trim()) {
-		return c.json({ error: "El comentario no puede estar vacio" }, 400);
-	}
-
-	const db = getDb().db;
-	const rows = await db
-		.select({
-			id: comments.id,
-			userId: comments.userId,
-			deletedAt: comments.deletedAt,
-		})
-		.from(comments)
-		.where(eq(comments.id, id))
-		.limit(1);
-
-	const comment = rows[0];
-	if (!comment || comment.deletedAt) {
-		return c.json({ error: "Comentario no encontrado" }, 404);
-	}
-
-	if (comment.userId !== currentUser.id) {
-		return c.json({ error: "Solo puedes editar tus propios comentarios" }, 403);
-	}
-
-	const now = new Date();
-	await db
-		.update(comments)
-		.set({ body: body.body.trim(), updatedAt: now })
-		.where(eq(comments.id, id));
-
-	return c.json({
-		id,
-		body: body.body.trim(),
-		updatedAt: now.toISOString(),
-	});
-});
-
-// ---------------------------------------------------------------------------
-// DELETE /comments/:id (auth required - owner or curator+)
-// ---------------------------------------------------------------------------
-socialRoutes.delete("/comments/:id", requireAuth, async (c) => {
-	const { id } = c.req.param();
-	const currentUser = c.get("user")!;
-	const userRole = (currentUser as any).role ?? "reader";
-
-	const db = getDb().db;
-	const rows = await db
-		.select({
-			id: comments.id,
-			userId: comments.userId,
-			deletedAt: comments.deletedAt,
-		})
-		.from(comments)
-		.where(eq(comments.id, id))
-		.limit(1);
-
-	const comment = rows[0];
-	if (!comment || comment.deletedAt) {
-		return c.json({ error: "Comentario no encontrado" }, 404);
-	}
-
-	const isCuratorOrAbove = ["curator", "admin"].includes(userRole);
-	if (comment.userId !== currentUser.id && !isCuratorOrAbove) {
-		return c.json({ error: "Permisos insuficientes" }, 403);
-	}
-
-	// Soft delete
-	await db
-		.update(comments)
-		.set({ deletedAt: new Date(), updatedAt: new Date() })
-		.where(eq(comments.id, id));
-
-	return c.body(null, 204);
-});
-
-// ---------------------------------------------------------------------------
-// POST /comments/:id/vote (auth required - toggle)
-// ---------------------------------------------------------------------------
-socialRoutes.post("/comments/:id/vote", requireAuth, async (c) => {
-	const { id } = c.req.param();
-	const currentUser = c.get("user")!;
-
-	const db = getDb().db;
-
-	// Check comment exists
-	const commentRows = await db
-		.select({ id: comments.id, deletedAt: comments.deletedAt })
-		.from(comments)
-		.where(eq(comments.id, id))
-		.limit(1);
-
-	if (!commentRows[0] || commentRows[0].deletedAt) {
-		return c.json({ error: "Comentario no encontrado" }, 404);
-	}
-
-	// Toggle vote
-	const existingVote = await db
-		.select({ id: commentVotes.id })
-		.from(commentVotes)
-		.where(and(eq(commentVotes.commentId, id), eq(commentVotes.userId, currentUser.id)))
-		.limit(1);
-
-	if (existingVote[0]) {
-		await db.delete(commentVotes).where(eq(commentVotes.id, existingVote[0].id));
-		return c.json({ voted: false });
-	}
-
-	await db.insert(commentVotes).values({
-		id: crypto.randomUUID(),
-		commentId: id,
-		userId: currentUser.id,
-		voteType: "useful",
-		createdAt: new Date(),
-	});
-
-	return c.json({ voted: true });
 });
 
 // ---------------------------------------------------------------------------
@@ -449,6 +176,17 @@ socialRoutes.post("/resources/:slug/favorite", requireAuth, async (c) => {
 		});
 		favorited = true;
 	}
+
+	await logActivity({
+		userId: currentUser.id,
+		type: favorited ? "favorite_added" : "favorite_removed",
+		resourceId: resource.id,
+		resourceTitle: resource.title,
+		resourceSlug: resource.slug,
+		description: favorited
+			? `Marcaste como favorito «${resource.title}»`
+			: `Quitaste de favoritos «${resource.title}»`,
+	});
 
 	// Return current count
 	const countResult = await db
@@ -589,6 +327,48 @@ socialRoutes.get("/users/me/dashboard", requireAuth, async (c) => {
 });
 
 // ---------------------------------------------------------------------------
+// GET /users/me/activity (auth required)
+// ---------------------------------------------------------------------------
+socialRoutes.get("/users/me/activity", requireAuth, async (c) => {
+	const { limit, offset } = parsePagination(c);
+	const currentUser = c.get("user")!;
+	const db = getDb().db;
+
+	const rows = await db
+		.select({
+			id: activityEvents.id,
+			type: activityEvents.type,
+			resourceId: activityEvents.resourceId,
+			resourceTitle: activityEvents.resourceTitle,
+			resourceSlug: activityEvents.resourceSlug,
+			description: activityEvents.description,
+			metadata: activityEvents.metadata,
+			createdAt: activityEvents.createdAt,
+		})
+		.from(activityEvents)
+		.where(eq(activityEvents.userId, currentUser.id))
+		.orderBy(desc(activityEvents.createdAt))
+		.limit(limit)
+		.offset(offset);
+
+	const countResult = await db
+		.select({ count: sql<number>`count(*)` })
+		.from(activityEvents)
+		.where(eq(activityEvents.userId, currentUser.id));
+
+	return c.json({
+		data: rows.map(r => ({
+			...r,
+			metadata: r.metadata ? JSON.parse(r.metadata) : null,
+			createdAt: r.createdAt instanceof Date ? r.createdAt.toISOString() : r.createdAt,
+		})),
+		total: Number(countResult[0]?.count ?? 0),
+		limit,
+		offset,
+	});
+});
+
+// ---------------------------------------------------------------------------
 // POST /resources/:slug/download (log download event)
 // ---------------------------------------------------------------------------
 socialRoutes.post("/resources/:slug/download", async (c) => {
@@ -610,6 +390,17 @@ socialRoutes.post("/resources/:slug/download", async (c) => {
 		userId: currentUser?.id ?? null,
 		createdAt: new Date(),
 	});
+
+	if (currentUser?.id) {
+		await logActivity({
+			userId: currentUser.id,
+			type: "resource_downloaded",
+			resourceId: resource.id,
+			resourceTitle: resource.title,
+			resourceSlug: resource.slug,
+			description: `Descargaste «${resource.title}»`,
+		});
+	}
 
 	const countResult = await db
 		.select({ count: sql<number>`count(*)` })
@@ -633,7 +424,7 @@ socialRoutes.get("/resources/:slug/stats", async (c) => {
 	const db = getDb().db;
 	const rid = resource.id;
 
-	const [dlResult, favResult, ratingResult, commentResult] = await Promise.all([
+	const [dlResult, favResult, ratingResult] = await Promise.all([
 		db
 			.select({ count: sql<number>`count(*)` })
 			.from(downloads)
@@ -649,10 +440,6 @@ socialRoutes.get("/resources/:slug/stats", async (c) => {
 			})
 			.from(ratings)
 			.where(eq(ratings.resourceId, rid)),
-		db
-			.select({ count: sql<number>`count(*)` })
-			.from(comments)
-			.where(and(eq(comments.resourceId, rid), isNull(comments.deletedAt))),
 	]);
 
 	// Check if current user has favorited this resource
@@ -672,7 +459,6 @@ socialRoutes.get("/resources/:slug/stats", async (c) => {
 		favoriteCount: Number(favResult[0]?.count ?? 0),
 		ratingAvg: Math.round(Number(ratingResult[0]?.avg ?? 0) * 100) / 100,
 		ratingCount: Number(ratingResult[0]?.count ?? 0),
-		commentCount: Number(commentResult[0]?.count ?? 0),
 		userFavorited,
 	});
 });

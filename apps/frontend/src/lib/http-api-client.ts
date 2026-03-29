@@ -353,58 +353,6 @@ export class HttpApiClient implements ApiClient {
 		return res.json();
 	}
 
-	async getResourceComments(slug: string, opts?: { limit?: number; offset?: number }) {
-		const params = new URLSearchParams();
-		if (opts?.limit) params.set("limit", String(opts.limit));
-		if (opts?.offset) params.set("offset", String(opts.offset));
-		const qs = params.toString();
-		const res = await fetch(`/api/v1/resources/${slug}/comments${qs ? `?${qs}` : ""}`);
-		return res.json();
-	}
-
-	async createComment(slug: string, body: string, parentId?: string) {
-		const res = await fetch(`/api/v1/resources/${slug}/comments`, {
-			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			credentials: "include",
-			body: JSON.stringify({ body, parentId }),
-		});
-		if (!res.ok) {
-			const err = await res.json().catch(() => ({}));
-			throw err;
-		}
-		return res.json();
-	}
-
-	async editComment(id: string, body: string) {
-		const res = await fetch(`/api/v1/comments/${id}`, {
-			method: "PATCH",
-			headers: { "Content-Type": "application/json" },
-			credentials: "include",
-			body: JSON.stringify({ body }),
-		});
-		if (!res.ok) {
-			const err = await res.json().catch(() => ({}));
-			throw err;
-		}
-		return res.json();
-	}
-
-	async deleteComment(id: string): Promise<void> {
-		await fetch(`/api/v1/comments/${id}`, {
-			method: "DELETE",
-			credentials: "include",
-		});
-	}
-
-	async voteComment(id: string) {
-		const res = await fetch(`/api/v1/comments/${id}/vote`, {
-			method: "POST",
-			credentials: "include",
-		});
-		return res.json();
-	}
-
 	async toggleFavorite(slug: string) {
 		const res = await fetch(`/api/v1/resources/${slug}/favorite`, {
 			method: "POST",
@@ -436,6 +384,15 @@ export class HttpApiClient implements ApiClient {
 		return res.json();
 	}
 
+	async getUserActivity(opts?: { limit?: number; offset?: number }): Promise<import("./api-client.ts").PaginatedResult<import("./types/user-extended.ts").ActivityItem>> {
+		const params = new URLSearchParams();
+		if (opts?.limit) params.set("limit", String(opts.limit));
+		if (opts?.offset) params.set("offset", String(opts.offset));
+		const qs = params.toString();
+		const res = await fetch(`/api/v1/users/me/activity${qs ? `?${qs}` : ""}`, { credentials: "include" });
+		return res.json();
+	}
+
 	async trackDownload(slug: string): Promise<{ count: number }> {
 		const res = await fetch(`/api/v1/resources/${slug}/download`, {
 			method: "POST",
@@ -444,7 +401,7 @@ export class HttpApiClient implements ApiClient {
 		return res.json();
 	}
 
-	async getResourceStats(slug: string): Promise<{ downloadCount: number; favoriteCount: number; ratingAvg: number; ratingCount: number; commentCount: number }> {
+	async getResourceStats(slug: string): Promise<{ downloadCount: number; favoriteCount: number; ratingAvg: number; ratingCount: number }> {
 		const res = await fetch(`/api/v1/resources/${slug}/stats`);
 		return res.json();
 	}

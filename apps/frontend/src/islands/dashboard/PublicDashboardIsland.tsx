@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { DashboardSummary } from "../../lib/types/user-extended.ts";
+import type { ActivityItem, DashboardSummary } from "../../lib/types/user-extended.ts";
 import type { Resource } from "../../lib/api-client.ts";
 import { Tabs } from "../../ui/Tabs.tsx";
 import { ResourceCard } from "../../ui/ResourceCard.tsx";
@@ -146,6 +146,79 @@ function RatingsTab() {
   );
 }
 
+const ACTIVITY_ICONS: Record<string, string> = {
+  resource_created: "add_circle",
+  resource_updated: "edit",
+  resource_published: "publish",
+  resource_drafted: "draft",
+  resource_status_changed: "swap_horiz",
+  rating_given: "star",
+  favorite_added: "bookmark",
+  favorite_removed: "bookmark_border",
+  file_uploaded: "upload_file",
+  resource_downloaded: "download",
+};
+
+function ActivityTab() {
+  const [items, setItems] = useState<ActivityItem[]>([]);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    void (async () => {
+      try {
+        const api = await getApiClient();
+        const result = await api.getUserActivity({ limit: 30 });
+        setItems(result.data);
+      } catch {
+        // ignore
+      } finally {
+        setLoaded(true);
+      }
+    })();
+  }, []);
+
+  if (!loaded) {
+    return <div className="dashboard-tab-content"><Skeleton lines={3} /></div>;
+  }
+
+  if (items.length === 0) {
+    return (
+      <div className="dashboard-tab-content">
+        <EmptyState
+          icon="history"
+          title="Sin actividad reciente"
+          description="Tu actividad en la plataforma aparecera aqui."
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="dashboard-tab-content">
+      <ul className="activity-list">
+        {items.map((activity) => (
+          <li key={activity.id} className="activity-item">
+            <span className="material-symbols-outlined activity-icon" aria-hidden="true">
+              {ACTIVITY_ICONS[activity.type] ?? "history"}
+            </span>
+            <div className="activity-body">
+              <span className="activity-description">{activity.description}</span>
+              {activity.resourceTitle && activity.resourceSlug && (
+                <a href={url(`recurso?slug=${activity.resourceSlug}`)} className="activity-resource">
+                  {activity.resourceTitle}
+                </a>
+              )}
+            </div>
+            <time className="activity-time" dateTime={activity.createdAt}>
+              {new Date(activity.createdAt).toLocaleDateString("es-ES", { day: "numeric", month: "short", year: "numeric" })}
+            </time>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 interface ProfileEditState {
   name: string;
   bio: string;
@@ -211,7 +284,7 @@ export function PublicDashboardIsland() {
           draftCount: dashData.draftCount ?? 0,
           publishedCount: dashData.publishedCount ?? 0,
           favoriteCount: dashData.favoriteCount ?? 0,
-          recentActivity: [],
+          recentActivity: [], // loaded lazily by ActivityTab
         });
         setRatingCount((dashData as Record<string, unknown>).ratingCount as number ?? 0);
       } catch {
@@ -388,33 +461,7 @@ export function PublicDashboardIsland() {
       id: "activity",
       label: "Actividad",
       icon: "history",
-      content: (
-        <div className="dashboard-tab-content">
-          {dashboard.recentActivity.length > 0 ? (
-            <ul className="activity-list">
-              {dashboard.recentActivity.map((activity) => (
-                <li key={activity.id} className="activity-item">
-                  <span className="activity-description">{activity.description}</span>
-                  {activity.resourceTitle && (
-                    <a href={url(`recurso?slug=${activity.resourceSlug}`)} className="activity-resource">
-                      {activity.resourceTitle}
-                    </a>
-                  )}
-                  <time className="activity-time" dateTime={activity.createdAt}>
-                    {new Date(activity.createdAt).toLocaleDateString("es-ES")}
-                  </time>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <EmptyState
-              icon="history"
-              title="Sin actividad reciente"
-              description="Tu actividad en la plataforma aparecerá aquí."
-            />
-          )}
-        </div>
-      ),
+      content: <ActivityTab />,
     },
   ];
 

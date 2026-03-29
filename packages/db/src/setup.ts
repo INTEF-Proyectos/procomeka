@@ -175,25 +175,6 @@ export const SCHEMA_STATEMENTS = [
 		created_at TIMESTAMP NOT NULL DEFAULT NOW(),
 		UNIQUE(resource_id, user_id)
 	)`,
-	`CREATE TABLE IF NOT EXISTS "comments" (
-		id TEXT PRIMARY KEY,
-		resource_id TEXT NOT NULL REFERENCES resources(id) ON DELETE CASCADE,
-		user_id TEXT NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
-		parent_id TEXT,
-		body TEXT NOT NULL,
-		status VARCHAR(50) NOT NULL DEFAULT 'visible',
-		created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-		updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
-		deleted_at TIMESTAMP
-	)`,
-	`CREATE TABLE IF NOT EXISTS "comment_votes" (
-		id TEXT PRIMARY KEY,
-		comment_id TEXT NOT NULL REFERENCES comments(id) ON DELETE CASCADE,
-		user_id TEXT NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
-		vote_type VARCHAR(20) NOT NULL DEFAULT 'useful',
-		created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-		UNIQUE(comment_id, user_id)
-	)`,
 	`CREATE TABLE IF NOT EXISTS "downloads" (
 		id TEXT PRIMARY KEY,
 		resource_id TEXT NOT NULL REFERENCES resources(id) ON DELETE CASCADE,
@@ -201,11 +182,22 @@ export const SCHEMA_STATEMENTS = [
 		created_at TIMESTAMP NOT NULL DEFAULT NOW()
 	)`,
 	// Indexes
+	`CREATE TABLE IF NOT EXISTS "activity_events" (
+		id TEXT PRIMARY KEY,
+		user_id TEXT NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
+		type VARCHAR(50) NOT NULL,
+		resource_id TEXT REFERENCES resources(id) ON DELETE SET NULL,
+		resource_title TEXT,
+		resource_slug VARCHAR(512),
+		description TEXT NOT NULL,
+		metadata TEXT,
+		created_at TIMESTAMP NOT NULL DEFAULT NOW()
+	)`,
 	`CREATE INDEX IF NOT EXISTS idx_ratings_resource_id ON ratings(resource_id)`,
 	`CREATE INDEX IF NOT EXISTS idx_favorites_resource_id ON favorites(resource_id)`,
 	`CREATE INDEX IF NOT EXISTS idx_favorites_user_id ON favorites(user_id)`,
-	`CREATE INDEX IF NOT EXISTS idx_comments_resource_id ON comments(resource_id)`,
 	`CREATE INDEX IF NOT EXISTS idx_downloads_resource_id ON downloads(resource_id)`,
+	`CREATE INDEX IF NOT EXISTS idx_activity_events_user_created ON activity_events(user_id, created_at DESC)`,
 	`CREATE INDEX IF NOT EXISTS idx_resources_slug ON resources(slug)`,
 	`CREATE INDEX IF NOT EXISTS idx_resources_status ON resources(editorial_status)`,
 	`CREATE INDEX IF NOT EXISTS idx_resources_type ON resources(resource_type)`,

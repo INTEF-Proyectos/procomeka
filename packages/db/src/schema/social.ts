@@ -44,39 +44,32 @@ export const favorites = pgTable(
 	(table) => [unique("favorites_user_resource").on(table.resourceId, table.userId)],
 );
 
-// Comments: threaded comments on resources with moderation support
-export const comments = pgTable("comments", {
+// Downloads: tracks resource download events
+export const downloads = pgTable("downloads", {
 	id: text("id").primaryKey(),
 	resourceId: text("resource_id")
 		.notNull()
 		.references(() => resources.id, { onDelete: "cascade" }),
 	userId: text("user_id")
-		.notNull()
-		.references(() => user.id, { onDelete: "cascade" }),
-	parentId: text("parent_id"),
-	body: text("body").notNull(),
-	status: varchar("status", { length: 50 }).notNull().default("visible"),
+		.references(() => user.id, { onDelete: "set null" }),
 	createdAt: timestamp("created_at").notNull().defaultNow(),
-	updatedAt: timestamp("updated_at").notNull().defaultNow(),
-	deletedAt: timestamp("deleted_at"),
 });
 
-// Comment votes: "useful" engagement signal
-export const commentVotes = pgTable(
-	"comment_votes",
-	{
-		id: text("id").primaryKey(),
-		commentId: text("comment_id")
-			.notNull()
-			.references(() => comments.id, { onDelete: "cascade" }),
-		userId: text("user_id")
-			.notNull()
-			.references(() => user.id, { onDelete: "cascade" }),
-		voteType: varchar("vote_type", { length: 20 }).notNull().default("useful"),
-		createdAt: timestamp("created_at").notNull().defaultNow(),
-	},
-	(table) => [unique("comment_votes_user_comment").on(table.commentId, table.userId)],
-);
+// Activity events: user action history for the dashboard feed
+export const activityEvents = pgTable("activity_events", {
+	id: text("id").primaryKey(),
+	userId: text("user_id")
+		.notNull()
+		.references(() => user.id, { onDelete: "cascade" }),
+	type: varchar("type", { length: 50 }).notNull(),
+	resourceId: text("resource_id")
+		.references(() => resources.id, { onDelete: "set null" }),
+	resourceTitle: text("resource_title"),
+	resourceSlug: varchar("resource_slug", { length: 512 }),
+	description: text("description").notNull(),
+	metadata: text("metadata"),
+	createdAt: timestamp("created_at").notNull().defaultNow(),
+});
 
 // Relations
 export const ratingsRelations = relations(ratings, ({ one }) => ({
@@ -101,46 +94,6 @@ export const favoritesRelations = relations(favorites, ({ one }) => ({
 	}),
 }));
 
-export const commentsRelations = relations(comments, ({ one, many }) => ({
-	resource: one(resources, {
-		fields: [comments.resourceId],
-		references: [resources.id],
-	}),
-	user: one(user, {
-		fields: [comments.userId],
-		references: [user.id],
-	}),
-	parent: one(comments, {
-		fields: [comments.parentId],
-		references: [comments.id],
-		relationName: "commentReplies",
-	}),
-	replies: many(comments, { relationName: "commentReplies" }),
-	votes: many(commentVotes),
-}));
-
-export const commentVotesRelations = relations(commentVotes, ({ one }) => ({
-	comment: one(comments, {
-		fields: [commentVotes.commentId],
-		references: [comments.id],
-	}),
-	user: one(user, {
-		fields: [commentVotes.userId],
-		references: [user.id],
-	}),
-}));
-
-// Downloads: tracks resource download events
-export const downloads = pgTable("downloads", {
-	id: text("id").primaryKey(),
-	resourceId: text("resource_id")
-		.notNull()
-		.references(() => resources.id, { onDelete: "cascade" }),
-	userId: text("user_id")
-		.references(() => user.id, { onDelete: "set null" }),
-	createdAt: timestamp("created_at").notNull().defaultNow(),
-});
-
 export const downloadsRelations = relations(downloads, ({ one }) => ({
 	resource: one(resources, {
 		fields: [downloads.resourceId],
@@ -149,5 +102,16 @@ export const downloadsRelations = relations(downloads, ({ one }) => ({
 	user: one(user, {
 		fields: [downloads.userId],
 		references: [user.id],
+	}),
+}));
+
+export const activityEventsRelations = relations(activityEvents, ({ one }) => ({
+	user: one(user, {
+		fields: [activityEvents.userId],
+		references: [user.id],
+	}),
+	resource: one(resources, {
+		fields: [activityEvents.resourceId],
+		references: [resources.id],
 	}),
 }));
