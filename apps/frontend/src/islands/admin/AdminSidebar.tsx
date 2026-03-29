@@ -13,7 +13,7 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
 	{ id: "dashboard", label: "Panel de gestion", icon: "dashboard", minRole: 1 },
 	{ id: "resources", label: "Recursos", icon: "library_books", minRole: 1 },
-	{ id: "collections", label: "Colecciones", icon: "collections_bookmark", minRole: 1 },
+	{ id: "collections", label: "Colecciones", icon: "collections_bookmark", minRole: 2 },
 	{ id: "categories", label: "Categorias", icon: "category", minRole: 2 },
 	{ id: "users", label: "Usuarios", icon: "group", minRole: 3 },
 ];

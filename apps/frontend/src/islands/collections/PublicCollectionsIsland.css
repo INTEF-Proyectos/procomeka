@@ -1,0 +1,212 @@
+.collections-shell {
+	max-width: 80rem;
+	margin: 0 auto;
+	padding: 0 var(--space-6) var(--space-12);
+}
+
+.collections-hero,
+.collection-list-section,
+.collection-detail-section {
+	border: 1px solid rgba(148, 163, 184, 0.2);
+	border-radius: 1.5rem;
+	background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(239, 246, 255, 0.82));
+	box-shadow: 0 20px 48px rgba(15, 23, 42, 0.08);
+}
+
+.collections-hero {
+	padding: 2.25rem;
+	margin-bottom: 1.5rem;
+}
+
+.collections-eyebrow,
+.collection-public-card-eyebrow,
+.collection-resource-type {
+	margin: 0 0 0.5rem;
+	font-size: 0.75rem;
+	font-weight: 700;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	color: #2563eb;
+}
+
+.collections-hero h1,
+.collection-detail-overlay h1,
+.collections-section-head h2 {
+	margin: 0;
+	font-family: var(--font-display);
+	color: #0f172a;
+}
+
+.collections-hero p,
+.collection-public-card p,
+.collection-detail-overlay p,
+.collection-resource-card p {
+	color: #334155;
+	line-height: 1.7;
+}
+
+.collections-search {
+	display: flex;
+	gap: 0.75rem;
+	margin-top: 1.5rem;
+}
+
+.collections-search input {
+	flex: 1;
+	min-height: 3rem;
+	padding: 0.75rem 1rem;
+	border-radius: 9999px;
+	border: 1px solid rgba(37, 99, 235, 0.18);
+	background: rgba(255, 255, 255, 0.95);
+}
+
+.collections-search button,
+.collections-pagination button,
+.collections-back-link {
+	border: none;
+	border-radius: 9999px;
+	background: #0f4ccf;
+	color: white;
+	padding: 0.8rem 1.2rem;
+	font-weight: 700;
+	cursor: pointer;
+	text-decoration: none;
+}
+
+.collections-search button:disabled,
+.collections-pagination button:disabled {
+	opacity: 0.45;
+	cursor: not-allowed;
+}
+
+.collection-list-section,
+.collection-detail-section {
+	padding: 1.5rem;
+}
+
+.collections-section-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: 1rem;
+}
+
+.collection-card-grid,
+.collection-resource-grid {
+	display: grid;
+	gap: 1rem;
+}
+
+.collection-card-grid {
+	grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+}
+
+.collection-resource-grid {
+	grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+}
+
+.collection-public-card,
+.collection-resource-card {
+	display: block;
+	border-radius: 1.25rem;
+	background: white;
+	text-decoration: none;
+	box-shadow: 0 16px 32px rgba(15, 23, 42, 0.08);
+	overflow: hidden;
+}
+
+.collection-public-card-cover {
+	height: 12rem;
+	background-size: cover;
+	background-position: center;
+}
+
+.collection-public-card-body,
+.collection-resource-card {
+	padding: 1.25rem;
+}
+
+.collection-public-card h3,
+.collection-resource-card h3 {
+	margin: 0;
+	font-family: var(--font-display);
+	color: #0f172a;
+}
+
+.collection-public-card-meta,
+.collection-resource-meta,
+.collection-detail-meta {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.75rem;
+	margin-top: 1rem;
+	color: #475569;
+	font-size: 0.875rem;
+}
+
+.collections-feedback {
+	margin: 1rem 0 0;
+	color: #475569;
+}
+
+.collections-feedback-error {
+	color: #b91c1c;
+}
+
+.collections-pagination {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 1rem;
+	margin-top: 1.5rem;
+}
+
+.collections-back-link {
+	display: inline-flex;
+	margin-bottom: 1rem;
+}
+
+.collection-detail-hero {
+	min-height: 20rem;
+	border-radius: 1.5rem;
+	background-size: cover;
+	background-position: center;
+	overflow: hidden;
+	margin-bottom: 1.5rem;
+}
+
+.collection-detail-overlay {
+	display: flex;
+	flex-direction: column;
+	justify-content: flex-end;
+	min-height: 20rem;
+	padding: 2rem;
+	background: linear-gradient(180deg, rgba(15, 23, 42, 0.08), rgba(15, 23, 42, 0.82));
+}
+
+.collection-detail-overlay h1,
+.collection-detail-overlay p,
+.collection-detail-meta {
+	color: white;
+}
+
+@media (max-width: 720px) {
+	.collections-shell {
+		padding-inline: var(--space-4);
+	}
+
+	.collections-search {
+		flex-direction: column;
+	}
+
+	.collections-search button,
+	.collections-pagination button,
+	.collections-back-link {
+		width: 100%;
+		justify-content: center;
+	}
+
+	.collections-pagination {
+		flex-direction: column;
+	}
+}

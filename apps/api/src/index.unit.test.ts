@@ -11,6 +11,7 @@ let draftSlug: string;
 let videoSlug: string;
 let englishSlug: string;
 let publishedUploadId: string;
+let publishedCollectionSlug: string;
 
 beforeAll(async () => {
 	process.env.UPLOAD_STORAGE_DIR = await mkdtemp(path.join(tmpdir(), "procomeka-public-uploads-"));
@@ -84,6 +85,17 @@ beforeAll(async () => {
 	});
 	englishSlug = english.slug;
 	await repo.updateEditorialStatus(getDb().db, english.id, "published", "system");
+
+	const collection = await repo.createCollection(getDb().db, {
+		title: "Colección pública test",
+		description: "Colección publicada para la API pública",
+		coverImageUrl: "https://example.com/cover-test.jpg",
+		curatorId: "system",
+		editorialStatus: "published",
+	});
+	publishedCollectionSlug = collection.slug;
+	await repo.addResourceToCollection(getDb().db, collection.id, pub.id, 0);
+	await repo.addResourceToCollection(getDb().db, collection.id, english.id, 1);
 });
 
 describe("Endpoints básicos", () => {
@@ -206,6 +218,30 @@ describe("Rutas públicas /api/v1", () => {
 		expect(res.status).toBe(200);
 		const body = await res.json();
 		expect(Array.isArray(body.data)).toBe(true);
+		expect(body.data[0]?.resourceCount).toBeGreaterThan(0);
+		expect(body.data.some((item: { slug: string }) => item.slug === publishedCollectionSlug)).toBe(true);
+	});
+
+	test("GET /api/v1/collections?q= filtra colecciones publicadas", async () => {
+		const res = await app.request("/api/v1/collections?q=publica");
+		expect(res.status).toBe(200);
+		const body = await res.json();
+		expect(body.data.every((item: { editorialStatus: string }) => item.editorialStatus === "published")).toBe(true);
+	});
+
+	test("GET /api/v1/collections/:slug devuelve detalle con recursos", async () => {
+		const res = await app.request(`/api/v1/collections/${publishedCollectionSlug}`);
+		expect(res.status).toBe(200);
+		const body = await res.json();
+		expect(body.slug).toBe(publishedCollectionSlug);
+		expect(body.coverImageUrl).toBe("https://example.com/cover-test.jpg");
+		expect(Array.isArray(body.resources)).toBe(true);
+		expect(body.resources.length).toBeGreaterThan(0);
+	});
+
+	test("GET /api/v1/collections/:slug devuelve 404 si no existe", async () => {
+		const res = await app.request("/api/v1/collections/no-existe");
+		expect(res.status).toBe(404);
 	});
 });
 

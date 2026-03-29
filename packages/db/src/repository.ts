@@ -3,7 +3,7 @@
  * Aceptan una instancia Drizzle como parámetro para funcionar
  * tanto en el servidor (API) como en el navegador (preview).
  */
-import { eq, like, sql, desc, isNull, and, or, asc } from "drizzle-orm";
+import { eq, sql, desc, isNull, and, or, asc } from "drizzle-orm";
 import {
 	resources,
 	resourceSubjects,
@@ -35,6 +35,18 @@ function normalizeSearch(col: any) {
 function normalizeMediaUrl(url: string, uploadId?: string | null) {
 	if (uploadId) return `/api/v1/uploads/${uploadId}/content`;
 	return url.replace(/^\/api\/admin\/uploads\/([^/]+)\/content$/, "/api/v1/uploads/$1/content");
+}
+
+function collectionResourceCountSql(resourceStatus?: string) {
+	return sql<number>`(
+		select count(*)
+		from ${collectionResources}
+		inner join ${resources}
+			on ${collectionResources.resourceId} = ${resources.id}
+		where ${collectionResources.collectionId} = ${collections.id}
+			and ${resources.deletedAt} is null
+			${resourceStatus ? sql`and ${resources.editorialStatus} = ${resourceStatus}` : sql``}
+	)`;
 }
 
 export async function listResources(
@@ -637,7 +649,7 @@ export async function updateUser(
 
 export async function listCollections(
 	db: DrizzleDB,
-	opts: { limit?: number; offset?: number; search?: string; curatorId?: string } = {},
+	opts: { limit?: number; offset?: number; search?: string; curatorId?: string; status?: string; resourceStatus?: string } = {},
 ) {
 	const limit = Math.min(opts.limit ?? 20, 100);
 	const offset = opts.offset ?? 0;
@@ -652,6 +664,9 @@ export async function listCollections(
 	if (opts.curatorId) {
 		conditions.push(eq(collections.curatorId, opts.curatorId));
 	}
+	if (opts.status) {
+		conditions.push(eq(collections.editorialStatus, opts.status));
+	}
 
 	const where = conditions.length ? conditions.reduce((a, b) => sql`${a} AND ${b}`) : undefined;
 
@@ -661,12 +676,17 @@ export async function listCollections(
 			slug: collections.slug,
 			title: collections.title,
 			description: collections.description,
+			coverImageUrl: collections.coverImageUrl,
 			editorialStatus: collections.editorialStatus,
 			curatorId: collections.curatorId,
+			curatorName: user.name,
+			resourceCount: collectionResourceCountSql(opts.resourceStatus),
+			isOrdered: collections.isOrdered,
 			createdAt: collections.createdAt,
 			updatedAt: collections.updatedAt,
 		})
 		.from(collections)
+		.leftJoin(user, eq(collections.curatorId, user.id))
 		.limit(limit)
 		.offset(offset)
 		.orderBy(desc(collections.updatedAt));
@@ -685,14 +705,52 @@ export async function getCollectionById(db: DrizzleDB, id: string) {
 			slug: collections.slug,
 			title: collections.title,
 			description: collections.description,
+			coverImageUrl: collections.coverImageUrl,
 			editorialStatus: collections.editorialStatus,
 			curatorId: collections.curatorId,
+			curatorName: user.name,
+			resourceCount: collectionResourceCountSql(),
 			isOrdered: collections.isOrdered,
 			createdAt: collections.createdAt,
 			updatedAt: collections.updatedAt,
 		})
 		.from(collections)
+		.leftJoin(user, eq(collections.curatorId, user.id))
 		.where(eq(collections.id, id))
+		.limit(1);
+
+	return rows[0] ?? null;
+}
+
+export async function getCollectionBySlug(
+	db: DrizzleDB,
+	slug: string,
+	opts: { status?: string; resourceStatus?: string } = {},
+) {
+	const conditions = [eq(collections.slug, slug)];
+	if (opts.status) {
+		conditions.push(eq(collections.editorialStatus, opts.status));
+	}
+	const where = conditions.reduce((a, b) => sql`${a} AND ${b}`);
+
+	const rows = await db
+		.select({
+			id: collections.id,
+			slug: collections.slug,
+			title: collections.title,
+			description: collections.description,
+			coverImageUrl: collections.coverImageUrl,
+			editorialStatus: collections.editorialStatus,
+			curatorId: collections.curatorId,
+			curatorName: user.name,
+			resourceCount: collectionResourceCountSql(opts.resourceStatus),
+			isOrdered: collections.isOrdered,
+			createdAt: collections.createdAt,
+			updatedAt: collections.updatedAt,
+		})
+		.from(collections)
+		.leftJoin(user, eq(collections.curatorId, user.id))
+		.where(where)
 		.limit(1);
 
 	return rows[0] ?? null;
@@ -703,6 +761,7 @@ export async function createCollection(
 	data: {
 		title: string;
 		description: string;
+		coverImageUrl?: string | null;
 		curatorId: string;
 		editorialStatus?: string;
 		isOrdered?: number;
@@ -723,6 +782,7 @@ export async function createCollection(
 		slug,
 		title: data.title,
 		description: data.description,
+		coverImageUrl: data.coverImageUrl ?? null,
 		curatorId: data.curatorId,
 		editorialStatus: data.editorialStatus ?? "draft",
 		isOrdered: data.isOrdered ?? 0,
@@ -736,7 +796,7 @@ export async function createCollection(
 export async function updateCollection(
 	db: DrizzleDB,
 	id: string,
-	data: Partial<{ title: string; description: string; editorialStatus: string; isOrdered: number }>,
+	data: Partial<{ title: string; description: string; coverImageUrl: string | null; editorialStatus: string; isOrdered: number }>,
 ) {
 	await db
 		.update(collections)
@@ -864,10 +924,19 @@ export async function addResourceToCollection(
 	resourceId: string,
 	position?: number,
 ) {
+	let nextPosition = position;
+	if (nextPosition === undefined) {
+		const rows = await db
+			.select({ maxPosition: sql<number>`coalesce(max(${collectionResources.position}), -1)` })
+			.from(collectionResources)
+			.where(eq(collectionResources.collectionId, collectionId));
+		nextPosition = (rows[0]?.maxPosition ?? -1) + 1;
+	}
+
 	await db.insert(collectionResources).values({
 		collectionId,
 		resourceId,
-		position: position ?? 0,
+		position: nextPosition,
 	}).onConflictDoNothing();
 }
 
@@ -889,10 +958,20 @@ export async function removeResourceFromCollection(
 export async function listCollectionResources(
 	db: DrizzleDB,
 	collectionId: string,
-	opts: { limit?: number; offset?: number } = {},
+	opts: { limit?: number; offset?: number; status?: string } = {},
 ) {
 	const limit = Math.min(opts.limit ?? 100, 100);
 	const offset = opts.offset ?? 0;
+	const conditions = [
+		eq(collectionResources.collectionId, collectionId),
+		isNull(resources.deletedAt),
+	];
+
+	if (opts.status) {
+		conditions.push(eq(resources.editorialStatus, opts.status));
+	}
+
+	const where = conditions.reduce((a, b) => sql`${a} AND ${b}`);
 
 	return db
 		.select({
@@ -900,14 +979,60 @@ export async function listCollectionResources(
 			position: collectionResources.position,
 			title: resources.title,
 			slug: resources.slug,
+			description: resources.description,
+			resourceType: resources.resourceType,
+			language: resources.language,
+			license: resources.license,
+			author: resources.author,
+			createdByName: user.name,
 			editorialStatus: resources.editorialStatus,
 		})
 		.from(collectionResources)
 		.innerJoin(resources, eq(collectionResources.resourceId, resources.id))
-		.where(eq(collectionResources.collectionId, collectionId))
+		.leftJoin(user, eq(resources.createdBy, user.id))
+		.where(where)
 		.orderBy(asc(collectionResources.position))
 		.limit(limit)
 		.offset(offset);
+}
+
+export async function reorderCollectionResource(
+	db: DrizzleDB,
+	collectionId: string,
+	resourceId: string,
+	direction: "up" | "down",
+) {
+	const items = await listCollectionResources(db, collectionId, { limit: 100 });
+	const currentIndex = items.findIndex((item) => item.resourceId === resourceId);
+	if (currentIndex === -1) return false;
+
+	const swapIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
+	if (swapIndex < 0 || swapIndex >= items.length) return false;
+
+	const current = items[currentIndex];
+	const swap = items[swapIndex];
+
+	await db
+		.update(collectionResources)
+		.set({ position: swap.position })
+		.where(
+			and(
+				eq(collectionResources.collectionId, collectionId),
+				eq(collectionResources.resourceId, current.resourceId),
+			),
+		);
+
+	await db
+		.update(collectionResources)
+		.set({ position: current.position })
+		.where(
+			and(
+				eq(collectionResources.collectionId, collectionId),
+				eq(collectionResources.resourceId, swap.resourceId),
+			),
+		);
+
+	return true;
 }
 
 // --- eXeLearning Projects ---

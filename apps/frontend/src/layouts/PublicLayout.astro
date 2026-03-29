@@ -10,7 +10,7 @@ interface Props {
   title: string;
   fullWidth?: boolean;
   showNavSearch?: boolean;
-  activePage?: "inicio" | "explorar" | "articulos" | "itinerarios" | "ayuda" | "";
+  activePage?: "inicio" | "explorar" | "colecciones" | "ayuda" | "";
 }
 
 const { title, fullWidth = false, showNavSearch = false, activePage = "" } = Astro.props;
@@ -43,8 +43,7 @@ const isPreview = import.meta.env.PUBLIC_PREVIEW_MODE === "true";
           <div class="public-nav-links">
             <a href={base} class={`public-nav-link${activePage === "inicio" ? " public-nav-link-active" : ""}`}>Inicio</a>
             <a href={`${base}explorar`} class={`public-nav-link${activePage === "explorar" ? " public-nav-link-active" : ""}`}>Explorar</a>
-            <a href="#" class={`public-nav-link${activePage === "articulos" ? " public-nav-link-active" : ""}`}>Artículos</a>
-            <a href="#" class={`public-nav-link${activePage === "itinerarios" ? " public-nav-link-active" : ""}`}>Itinerarios</a>
+            <a href={`${base}colecciones`} class={`public-nav-link${activePage === "colecciones" ? " public-nav-link-active" : ""}`}>Colecciones</a>
             <a href={`${base}${buildHelpHref()}`} class={`public-nav-link${activePage === "ayuda" ? " public-nav-link-active" : ""}`}>Ayuda</a>
           </div>
         </div>
@@ -88,7 +87,7 @@ const isPreview = import.meta.env.PUBLIC_PREVIEW_MODE === "true";
         <div class="public-footer-col">
           <h4>Explorar</h4>
           <a href={`${base}explorar`}>Recursos</a>
-          <a href="#">Colecciones</a>
+          <a href={`${base}colecciones`}>Colecciones</a>
           <a href="#">Comunidades</a>
           <a href="#">Usuarios</a>
         </div>

@@ -12,10 +12,14 @@ interface DashboardStats {
 
 interface AdminDashboardSectionProps {
 	onNavigate: (section: AdminSection) => void;
+	canManageCollections: boolean;
+	canManageCategories: boolean;
 }
 
 export function AdminDashboardSection({
 	onNavigate,
+	canManageCollections,
+	canManageCategories,
 }: AdminDashboardSectionProps) {
 	const [stats, setStats] = useState<DashboardStats>({
 		total: 0,
@@ -182,37 +186,40 @@ export function AdminDashboardSection({
 					</div>
 				</button>
 
-				<button
-					type="button"
-					className="admin-quick-action"
-					onClick={() => onNavigate("collections")}
-				>
-					<div className="admin-quick-action-icon">
-						<span className="material-symbols-outlined">
-							collections_bookmark
-						</span>
-					</div>
-					<div className="admin-quick-action-text">
-						<strong>Gestionar Colecciones</strong>
-						<span>Organizar contenidos en colecciones</span>
-					</div>
-				</button>
-
-				<button
-					type="button"
-					className="admin-quick-action"
-					onClick={() => onNavigate("categories")}
-				>
-					<div className="admin-quick-action-icon">
-						<span className="material-symbols-outlined">
-							category
-						</span>
-					</div>
-					<div className="admin-quick-action-text">
-						<strong>Gestionar Categorias</strong>
-						<span>Taxonomias y clasificacion</span>
-					</div>
-				</button>
+				{canManageCollections ? (
+					<button
+						type="button"
+						className="admin-quick-action"
+						onClick={() => onNavigate("collections")}
+					>
+						<div className="admin-quick-action-icon">
+							<span className="material-symbols-outlined">
+								collections_bookmark
+							</span>
+						</div>
+						<div className="admin-quick-action-text">
+							<strong>Gestionar Colecciones</strong>
+							<span>Organizar contenidos en colecciones</span>
+						</div>
+					</button>
+				) : null}
+				{canManageCategories ? (
+					<button
+						type="button"
+						className="admin-quick-action"
+						onClick={() => onNavigate("categories")}
+					>
+						<div className="admin-quick-action-icon">
+							<span className="material-symbols-outlined">
+								category
+							</span>
+						</div>
+						<div className="admin-quick-action-text">
+							<strong>Gestionar Categorias</strong>
+							<span>Taxonomias y clasificacion</span>
+						</div>
+					</button>
+				) : null}
 				<a
 					href={url("nuevo")}
 					className="admin-quick-action"

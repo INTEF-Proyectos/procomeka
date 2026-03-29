@@ -108,12 +108,34 @@ publicRoutes.get("/taxonomies/:type", async (c) => {
 });
 
 publicRoutes.get("/collections", (c) =>
-	c.json({ data: [], total: 0 }),
+	{
+		const { limit, offset, search } = parsePagination(c);
+		return repo.listCollections(getDb().db, {
+			limit,
+			offset,
+			search,
+			status: "published",
+			resourceStatus: "published",
+		}).then((result) => c.json(result));
+	},
 );
 
-publicRoutes.get("/collections/:slug", (c) => {
+publicRoutes.get("/collections/:slug", async (c) => {
 	const { slug } = c.req.param();
-	return c.json({ slug, message: "Detalle de colección (pendiente)" });
+	const collection = await repo.getCollectionBySlug(getDb().db, slug, {
+		status: "published",
+		resourceStatus: "published",
+	});
+	if (!collection) {
+		return c.json({ error: "Colección no encontrada" }, 404);
+	}
+
+	const resources = await repo.listCollectionResources(getDb().db, collection.id, {
+		limit: 100,
+		status: "published",
+	});
+
+	return c.json({ ...collection, resources });
 });
 
 export { publicRoutes };

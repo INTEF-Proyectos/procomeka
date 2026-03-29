@@ -20,7 +20,7 @@ const ROLE_LEVELS: Record<BackofficeRole, number> = {
 export const BACKOFFICE_SECTIONS: BackofficeSection[] = [
 	{ id: "dashboard", label: "Panel", href: "dashboard", minRole: "author", icon: "P" },
 	{ id: "resources", label: "Recursos", href: "admin/recursos", minRole: "author", icon: "R" },
-	{ id: "collections", label: "Colecciones", href: "admin/colecciones", minRole: "author", icon: "C" },
+	{ id: "collections", label: "Colecciones", href: "admin/colecciones", minRole: "curator", icon: "C" },
 	{ id: "taxonomies", label: "Categorias", href: "admin/categorias", minRole: "curator", icon: "T" },
 	{ id: "users", label: "Usuarios", href: "admin/usuarios", minRole: "admin", icon: "U" },
 	{ id: "help", label: "Ayuda", href: buildHelpHref("publicar-recurso"), minRole: "author", icon: "?" },

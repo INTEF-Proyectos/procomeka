@@ -16,7 +16,6 @@ describe("App shell islands", () => {
 		const html = renderToStaticMarkup(<DashboardIsland />);
 
 		expect(html).toContain("Recursos");
-		expect(html).toContain("Colecciones");
 		expect(html).toContain("Cargando…");
 	});
 });

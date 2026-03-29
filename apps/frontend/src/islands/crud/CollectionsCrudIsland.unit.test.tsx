@@ -11,5 +11,7 @@ describe("CollectionsCrudIsland", () => {
 		expect(html).toContain("Titulo o descripcion");
 		expect(html).toContain("Crear coleccion");
 		expect(html).toContain("No hay colecciones para los filtros actuales.");
+		expect(html).toContain("admin-inline-form");
+		expect(html).toContain("admin-table");
 	});
 });
