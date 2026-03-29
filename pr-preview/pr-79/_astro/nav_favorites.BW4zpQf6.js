@@ -1,0 +1,1 @@
+import{g as e}from"./paraglide-client.CiVBRQnz.js";const o=()=>"Mis favoritos",n=()=>"My favorites",s=()=>"Els meus favorits",a=()=>"Os meus favoritos",i=()=>"Nire gogokoak",u=((v={},t={})=>{const r=t.locale??e();return r==="es"?o():r==="en"?n():r==="ca"?s():r==="gl"?a():i()});export{u as n};
