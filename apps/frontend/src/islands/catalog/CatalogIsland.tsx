@@ -1,7 +1,7 @@
 import { startTransition, useCallback, useEffect, useRef, useState } from "react";
 import type { Resource, BadgeConfig } from "../../lib/api-client.ts";
 import { useIframeScale } from "../../hooks/use-iframe-scale.ts";
-import { computeResourceBadges } from "../../lib/shared-utils.ts";
+import { computeResourceBadges, DEFAULT_BADGE_CONFIG } from "../../lib/shared-utils.ts";
 import {
 	CATALOG_QUERY_CHANGE_EVENT,
 	dispatchCatalogQuerySync,
@@ -202,7 +202,7 @@ export function CatalogIsland() {
 	const [sidebarOpen, setSidebarOpen] = useState(false);
 	const [favoritedSlugs, setFavoritedSlugs] = useState<Set<string>>(new Set());
 	const [isLoggedIn, setIsLoggedIn] = useState(false);
-	const [badgeConfig, setBadgeConfig] = useState<BadgeConfig>({ novedadDays: 30, destacadoMinRatings: 3, destacadoMinAvg: 4.0, destacadoMinFavorites: 3 });
+	const [badgeConfig, setBadgeConfig] = useState<BadgeConfig>(DEFAULT_BADGE_CONFIG);
 	const requestIdRef = useRef(0);
 	const listingStateRef = useRef<ListingState>(DEFAULT_LISTING_STATE);
 

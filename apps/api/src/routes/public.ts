@@ -1,8 +1,10 @@
 import { Hono } from "hono";
+import { sql } from "drizzle-orm";
 import { readUploadContent } from "./uploads.ts";
-import { buildElpxPreview, parsePagination } from "../helpers.ts";
+import { buildElpxMap, buildElpxPreview, parsePagination } from "../helpers.ts";
 import { getDb } from "../db.ts";
 import * as repo from "@procomeka/db/repository";
+import { user } from "@procomeka/db/schema";
 const publicRoutes = new Hono();
 
 publicRoutes.get("/resources", async (c) => {
@@ -24,7 +26,7 @@ publicRoutes.get("/resources", async (c) => {
 	// Enrich with elpx preview URLs
 	const resourceIds = result.data.map((r: { id: string }) => r.id);
 	const elpxProjects = await repo.listElpxProjectsByResourceIds(getDb().db, resourceIds);
-	const elpxMap = new Map(elpxProjects.map((e: { resourceId: string; hash: string; hasPreview: number }) => [e.resourceId, e]));
+	const elpxMap = buildElpxMap(elpxProjects);
 
 	const data = result.data.map((r: Record<string, unknown>) => {
 		const elpxPreview = buildElpxPreview(elpxMap.get(r.id as string));
@@ -134,13 +136,9 @@ publicRoutes.get("/collections", async (c) => {
 
 	// Phase 2: single batch elpx lookup for all first resources
 	const allFirstResourceIds = [...new Set(firstResourceByCollection.values())];
-	const elpxMap = new Map<string, { hash: string; hasPreview: number }>();
-	if (allFirstResourceIds.length > 0) {
-		const elpxList = await repo.listElpxProjectsByResourceIds(db, allFirstResourceIds);
-		for (const e of elpxList as { resourceId: string; hash: string; hasPreview: number }[]) {
-			elpxMap.set(e.resourceId, e);
-		}
-	}
+	const elpxMap = allFirstResourceIds.length > 0
+		? buildElpxMap(await repo.listElpxProjectsByResourceIds(db, allFirstResourceIds))
+		: new Map();
 
 	const enriched = result.data.map((col: { id: string }) => {
 		const resourceId = firstResourceByCollection.get(col.id);
@@ -171,7 +169,7 @@ publicRoutes.get("/collections/:slug", async (c) => {
 	let enrichedResources = resources;
 	if (resourceIds.length > 0) {
 		const elpxProjects = await repo.listElpxProjectsByResourceIds(getDb().db, resourceIds);
-		const elpxMap = new Map(elpxProjects.map((e: { resourceId: string; hash: string; hasPreview: number }) => [e.resourceId, e]));
+		const elpxMap = buildElpxMap(elpxProjects);
 		enrichedResources = resources.map((r: { resourceId: string }) => {
 			return { ...r, elpxPreview: buildElpxPreview(elpxMap.get(r.resourceId)) };
 		});
@@ -192,9 +190,7 @@ publicRoutes.get("/config/badges", async (c) => {
 
 publicRoutes.get("/stats", async (c) => {
 	const db = getDb().db;
-	const { sql: sqlTag } = await import("drizzle-orm");
-	const { user } = await import("@procomeka/db/schema");
-	const [userCount] = await db.select({ count: sqlTag<number>`count(*)` }).from(user);
+	const [userCount] = await db.select({ count: sql<number>`count(*)` }).from(user);
 	return c.json({
 		users: Number(userCount?.count ?? 0),
 	});

@@ -9,7 +9,7 @@ import { EmptyState } from "../../ui/EmptyState.tsx";
 import { Skeleton } from "../../ui/Skeleton.tsx";
 import { getApiClient } from "../../lib/get-api-client.ts";
 import { url } from "../../lib/paths.ts";
-import { computeResourceBadges, gravatarUrl } from "../../lib/shared-utils.ts";
+import { computeResourceBadges, DEFAULT_BADGE_CONFIG, gravatarUrl } from "../../lib/shared-utils.ts";
 import "./PublicDashboardIsland.css";
 import "../../lib/paraglide-client.ts";
 import * as m from "../../paraglide/messages.js";
@@ -260,7 +260,7 @@ export function PublicDashboardIsland() {
   const [editForm, setEditForm] = useState<ProfileEditState>({ name: "", bio: "" });
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState("");
-  const [badgeConfig, setBadgeConfig] = useState<import("../../lib/api-client.ts").BadgeConfig>({ novedadDays: 30, destacadoMinRatings: 3, destacadoMinAvg: 4.0, destacadoMinFavorites: 3 });
+  const [badgeConfig, setBadgeConfig] = useState<import("../../lib/api-client.ts").BadgeConfig>(DEFAULT_BADGE_CONFIG);
 
   useEffect(() => {
     void (async () => {

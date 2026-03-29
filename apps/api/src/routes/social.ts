@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { type AuthEnv, sessionMiddleware, requireAuth } from "../auth/middleware.ts";
-import { buildElpxPreview, parsePagination, logActivity } from "../helpers.ts";
+import { buildElpxMap, buildElpxPreview, parsePagination, logActivity } from "../helpers.ts";
 import { getDb } from "../db.ts";
 import { eq, and, sql, desc, isNull, inArray } from "drizzle-orm";
 import {
@@ -27,12 +27,9 @@ async function enrichResources<T extends { id: string }>(rows: T[]) {
 	const db = getDb().db;
 	const resourceIds = rows.map((r) => r.id);
 
-	// Elpx preview
-	const elpxList = await repo.listElpxProjectsByResourceIds(db, resourceIds);
-	const elpxMap = new Map(elpxList.map((e: { resourceId: string; hash: string; hasPreview: number }) => [e.resourceId, e]));
-
-	// Social aggregates — two batch queries instead of 2N individual queries
-	const [favRows, ratRows] = await Promise.all([
+	// Elpx preview + social aggregates — all three queries are independent
+	const [elpxList, favRows, ratRows] = await Promise.all([
+		repo.listElpxProjectsByResourceIds(db, resourceIds),
 		db.select({ resourceId: favorites.resourceId, count: sql<number>`count(*)` })
 			.from(favorites)
 			.where(inArray(favorites.resourceId, resourceIds))
@@ -42,6 +39,7 @@ async function enrichResources<T extends { id: string }>(rows: T[]) {
 			.where(inArray(ratings.resourceId, resourceIds))
 			.groupBy(ratings.resourceId),
 	]);
+	const elpxMap = buildElpxMap(elpxList);
 
 	const favMap = new Map(favRows.map((r) => [r.resourceId, Number(r.count)]));
 	const ratMap = new Map(ratRows.map((r) => [r.resourceId, { avg: Number(r.avg), count: Number(r.count) }]));

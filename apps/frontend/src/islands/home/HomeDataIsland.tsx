@@ -3,25 +3,12 @@ import { getApiClient } from "../../lib/get-api-client.ts";
 import { url } from "../../lib/paths.ts";
 import type { Resource, CollectionRecord, BadgeConfig } from "../../lib/api-client.ts";
 import { useIframeScale } from "../../hooks/use-iframe-scale.ts";
+import { DEFAULT_BADGE_CONFIG, timeAgo } from "../../lib/shared-utils.ts";
 import "./HomeDataIsland.css";
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-function timeAgo(dateStr: string | number | Date | null): string {
-	if (!dateStr) return "";
-	const d = new Date(dateStr);
-	const now = Date.now();
-	const diffMs = now - d.getTime();
-	const hours = Math.floor(diffMs / 3600000);
-	if (hours < 1) return "Hace unos minutos";
-	if (hours < 24) return `Hace ${hours}h`;
-	const days = Math.floor(hours / 24);
-	if (days === 1) return "Ayer";
-	if (days < 7) return `Hace ${days} dias`;
-	return d.toLocaleDateString("es-ES", { day: "numeric", month: "short" });
-}
 
 function shuffleAndPick<T>(arr: T[], n: number): T[] {
 	const copy = [...arr];
@@ -238,7 +225,7 @@ export function HomeDataIsland() {
 	const [collections, setCollections] = useState<CollectionRecord[]>([]);
 	const [latest, setLatest] = useState<Resource[]>([]);
 	const [stats, setStats] = useState({ resources: 0, users: 0, collections: 0 });
-	const [badgeConfig, setBadgeConfig] = useState<BadgeConfig>({ novedadDays: 30, destacadoMinRatings: 3, destacadoMinAvg: 4.0, destacadoMinFavorites: 3 });
+	const [badgeConfig, setBadgeConfig] = useState<BadgeConfig>(DEFAULT_BADGE_CONFIG);
 	const [loaded, setLoaded] = useState(false);
 
 	useEffect(() => {

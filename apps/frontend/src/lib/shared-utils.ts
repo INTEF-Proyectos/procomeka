@@ -80,6 +80,34 @@ export function computeResourceBadges(
 	return badges;
 }
 
+/** Default badge configuration — single source of truth for client-side defaults. */
+export const DEFAULT_BADGE_CONFIG: {
+	novedadDays: number;
+	destacadoMinRatings: number;
+	destacadoMinAvg: number;
+	destacadoMinFavorites: number;
+} = {
+	novedadDays: 30,
+	destacadoMinRatings: 3,
+	destacadoMinAvg: 4.0,
+	destacadoMinFavorites: 3,
+};
+
+/** Human-readable relative timestamp (Spanish). */
+export function timeAgo(dateStr: string | number | Date | null): string {
+	if (!dateStr) return "";
+	const d = new Date(dateStr);
+	const now = Date.now();
+	const diffMs = now - d.getTime();
+	const hours = Math.floor(diffMs / 3600000);
+	if (hours < 1) return "Hace unos minutos";
+	if (hours < 24) return `Hace ${hours}h`;
+	const days = Math.floor(hours / 24);
+	if (days === 1) return "Ayer";
+	if (days < 7) return `Hace ${days} dias`;
+	return d.toLocaleDateString("es-ES", { day: "numeric", month: "short" });
+}
+
 /** Role hierarchy levels. Canonical source — import from here. */
 export const ROLE_LEVELS: Record<string, number> = {
 	reader: 0,

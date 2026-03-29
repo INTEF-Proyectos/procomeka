@@ -247,8 +247,8 @@ export class PreviewApiClient implements ApiClient {
 		}
 
 		// Activity events
-		if ((seed as Record<string, unknown>).activityEvents) {
-			for (const evt of (seed as Record<string, unknown>).activityEvents as { userId: string; type: string; resourceId: string; resourceTitle: string; resourceSlug: string; description: string; daysAgo: number }[]) {
+		if (seed.activityEvents) {
+			for (const evt of seed.activityEvents) {
 				const eventDate = new Date(Date.now() - evt.daysAgo * 86400000).toISOString();
 				await this.pglite.query(
 					`INSERT INTO "activity_events" (id, user_id, type, resource_id, resource_title, resource_slug, description, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
