@@ -1,5 +1,5 @@
 import { describe, test, expect } from "bun:test";
-import { parseElpxMetadata, generateElpxId, extractPreviewHtml, extractAllFiles, createPreviewBlobUrl } from "./elpx-browser.ts";
+import { parseElpxMetadata, generateElpxId, extractPreviewHtml, extractAllFiles, createPreviewBlobUrl, parseAndPreview, revokePreview } from "./elpx-browser.ts";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
@@ -161,6 +161,43 @@ describe("createPreviewBlobUrl", () => {
 /**
  * Creates a minimal valid ZIP file with a single stored (uncompressed) entry.
  */
+describe("parseAndPreview", () => {
+	test("returns metadata and preview URL in a single pass", async () => {
+		const file = fixtureFile("really-simple-test-project.elpx");
+		const result = await parseAndPreview(file);
+
+		expect(result.metadata).toBeDefined();
+		expect(typeof result.metadata.title).toBe("string");
+		expect(result.previewUrl).not.toBeNull();
+		expect(result.previewUrl!).toMatch(/^blob:/);
+
+		revokePreview(result.previewUrl!);
+	});
+
+	test("returns null previewUrl when no index.html", async () => {
+		const zip = createMinimalZip("content.xml", new TextEncoder().encode(
+			'<ode><odeProperty><key>pp_title</key><value>Test</value></odeProperty></ode>'
+		));
+		const file = new File([zip], "no-index.elpx", { type: "application/zip" });
+		const result = await parseAndPreview(file);
+
+		expect(result.metadata.title).toBe("Test");
+		expect(result.previewUrl).toBeNull();
+	});
+});
+
+describe("revokePreview", () => {
+	test("revokes blob URL without error", async () => {
+		const file = fixtureFile("really-simple-test-project.elpx");
+		const url = await createPreviewBlobUrl(file);
+		expect(url).not.toBeNull();
+		// Should not throw
+		revokePreview(url!);
+		// Calling again on already-revoked URL should not throw
+		revokePreview(url!);
+	});
+});
+
 function createMinimalZip(filename: string, data: Uint8Array): Uint8Array {
 	const enc = new TextEncoder();
 	const nameBytes = enc.encode(filename);
