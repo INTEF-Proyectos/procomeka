@@ -502,51 +502,257 @@ export class PreviewApiClient implements ApiClient {
 		await deleteTaxonomy(this.db, id);
 	}
 
-	// --- Social stubs (preview mode) ---
+	// --- Social (real PGlite queries) ---
 
-	async getResourceRatings(_slug: string) {
-		return { resourceId: "", averageScore: 0, totalRatings: 0, distribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }, userScore: null };
+	private async resolveResourceBySlug(slug: string): Promise<{ id: string; title: string; slug: string } | null> {
+		const result = await this.pglite.query(
+			`SELECT id, title, slug FROM resources WHERE slug = $1 AND deleted_at IS NULL LIMIT 1`,
+			[slug],
+		);
+		return result.rows[0] ?? null;
 	}
 
-	async submitRating(_slug: string, score: number) {
-		return { resourceId: "", userId: this.currentUser.id, score, createdAt: new Date().toISOString() };
+	private async logPreviewActivity(type: string, resourceId?: string | null, resourceTitle?: string | null, resourceSlug?: string | null, description?: string, metadata?: Record<string, unknown>) {
+		try {
+			await this.pglite.query(
+				`INSERT INTO activity_events (id, user_id, type, resource_id, resource_title, resource_slug, description, metadata, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())`,
+				[crypto.randomUUID(), this.currentUser.id, type, resourceId ?? null, resourceTitle ?? null, resourceSlug ?? null, description ?? "", metadata ? JSON.stringify(metadata) : null],
+			);
+		} catch { /* fire-and-forget */ }
 	}
 
-	async toggleFavorite(_slug: string) {
-		return { favorited: true, count: 1 };
+	async getResourceRatings(slug: string) {
+		const resource = await this.resolveResourceBySlug(slug);
+		if (!resource) return { resourceId: "", averageScore: 0, totalRatings: 0, distribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } as Record<number, number>, userScore: null as number | null };
+
+		const rows = await this.pglite.query(
+			`SELECT score, count(*)::int as count FROM ratings WHERE resource_id = $1 GROUP BY score`,
+			[resource.id],
+		);
+
+		let totalRatings = 0;
+		let totalScore = 0;
+		const distribution: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+		for (const row of rows.rows as { score: number; count: number }[]) {
+			distribution[row.score] = row.count;
+			totalRatings += row.count;
+			totalScore += row.score * row.count;
+		}
+
+		let userScore: number | null = null;
+		if (this.loggedIn) {
+			const userRow = await this.pglite.query(
+				`SELECT score FROM ratings WHERE resource_id = $1 AND user_id = $2 LIMIT 1`,
+				[resource.id, this.currentUser.id],
+			);
+			if (userRow.rows[0]) userScore = (userRow.rows[0] as { score: number }).score;
+		}
+
+		return {
+			resourceId: resource.id,
+			averageScore: totalRatings > 0 ? Math.round((totalScore / totalRatings) * 100) / 100 : 0,
+			totalRatings,
+			distribution,
+			userScore,
+		};
 	}
 
-	async getUserFavorites(_opts?: { limit?: number; offset?: number }) {
-		return { data: [] as Resource[], total: 0, limit: 50, offset: 0 };
+	async submitRating(slug: string, score: number) {
+		const resource = await this.resolveResourceBySlug(slug);
+		if (!resource) throw { error: "Recurso no encontrado" };
+
+		const existing = await this.pglite.query(
+			`SELECT id FROM ratings WHERE resource_id = $1 AND user_id = $2 LIMIT 1`,
+			[resource.id, this.currentUser.id],
+		);
+
+		const now = new Date().toISOString();
+		if (existing.rows[0]) {
+			await this.pglite.query(
+				`UPDATE ratings SET score = $1, updated_at = $2 WHERE id = $3`,
+				[score, now, (existing.rows[0] as { id: string }).id],
+			);
+		} else {
+			await this.pglite.query(
+				`INSERT INTO ratings (id, resource_id, user_id, score, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6)`,
+				[crypto.randomUUID(), resource.id, this.currentUser.id, score, now, now],
+			);
+		}
+
+		await this.logPreviewActivity("rating_given", resource.id, resource.title, resource.slug, `Valoraste «${resource.title}» con ${score} estrellas`, { score });
+
+		return { resourceId: resource.id, userId: this.currentUser.id, score, createdAt: now };
 	}
 
-	async getUserRatings(_opts?: { limit?: number; offset?: number }) {
-		return { data: [] as Resource[], total: 0, limit: 50, offset: 0 };
+	async toggleFavorite(slug: string) {
+		const resource = await this.resolveResourceBySlug(slug);
+		if (!resource) throw { error: "Recurso no encontrado" };
+
+		const existing = await this.pglite.query(
+			`SELECT id FROM favorites WHERE resource_id = $1 AND user_id = $2 LIMIT 1`,
+			[resource.id, this.currentUser.id],
+		);
+
+		let favorited: boolean;
+		if (existing.rows[0]) {
+			await this.pglite.query(`DELETE FROM favorites WHERE id = $1`, [(existing.rows[0] as { id: string }).id]);
+			favorited = false;
+		} else {
+			await this.pglite.query(
+				`INSERT INTO favorites (id, resource_id, user_id, created_at) VALUES ($1, $2, $3, NOW())`,
+				[crypto.randomUUID(), resource.id, this.currentUser.id],
+			);
+			favorited = true;
+		}
+
+		await this.logPreviewActivity(
+			favorited ? "favorite_added" : "favorite_removed",
+			resource.id, resource.title, resource.slug,
+			favorited ? `Marcaste como favorito «${resource.title}»` : `Quitaste de favoritos «${resource.title}»`,
+		);
+
+		const countResult = await this.pglite.query(
+			`SELECT count(*)::int as c FROM favorites WHERE resource_id = $1`,
+			[resource.id],
+		);
+
+		return { favorited, count: Number((countResult.rows[0] as { c: number })?.c ?? 0) };
+	}
+
+	async getUserFavorites(opts?: { limit?: number; offset?: number }) {
+		const limit = opts?.limit ?? 50;
+		const offset = opts?.offset ?? 0;
+
+		const rows = await this.pglite.query(
+			`SELECT r.id, r.slug, r.title, r.description, r.language, r.license, r.resource_type as "resourceType",
+				r.keywords, r.author, r.publisher, r.editorial_status as "editorialStatus",
+				r.created_by as "createdBy", r.created_at as "createdAt", r.updated_at as "updatedAt"
+			FROM favorites f
+			INNER JOIN resources r ON f.resource_id = r.id
+			WHERE f.user_id = $1 AND r.deleted_at IS NULL
+			ORDER BY f.created_at DESC
+			LIMIT $2 OFFSET $3`,
+			[this.currentUser.id, limit, offset],
+		);
+
+		const countResult = await this.pglite.query(
+			`SELECT count(*)::int as c FROM favorites f INNER JOIN resources r ON f.resource_id = r.id WHERE f.user_id = $1 AND r.deleted_at IS NULL`,
+			[this.currentUser.id],
+		);
+
+		return { data: rows.rows as Resource[], total: Number((countResult.rows[0] as { c: number })?.c ?? 0), limit, offset };
+	}
+
+	async getUserRatings(opts?: { limit?: number; offset?: number }) {
+		const limit = opts?.limit ?? 50;
+		const offset = opts?.offset ?? 0;
+
+		const rows = await this.pglite.query(
+			`SELECT r.id, r.slug, r.title, r.description, r.language, r.license, r.resource_type as "resourceType",
+				r.author, r.editorial_status as "editorialStatus", r.created_at as "createdAt",
+				rat.score as "userScore", rat.created_at as "ratedAt"
+			FROM ratings rat
+			INNER JOIN resources r ON rat.resource_id = r.id
+			WHERE rat.user_id = $1 AND r.deleted_at IS NULL
+			ORDER BY rat.created_at DESC
+			LIMIT $2 OFFSET $3`,
+			[this.currentUser.id, limit, offset],
+		);
+
+		const countResult = await this.pglite.query(
+			`SELECT count(*)::int as c FROM ratings rat INNER JOIN resources r ON rat.resource_id = r.id WHERE rat.user_id = $1 AND r.deleted_at IS NULL`,
+			[this.currentUser.id],
+		);
+
+		return { data: rows.rows as Resource[], total: Number((countResult.rows[0] as { c: number })?.c ?? 0), limit, offset };
 	}
 
 	async getUserDashboard() {
 		const resources = await this.listAdminResources({ limit: 5 });
 		const drafts = await this.listAdminResources({ limit: 1, status: "draft" });
 		const published = await this.listAdminResources({ limit: 1, status: "published" });
+
+		const favResult = await this.pglite.query(
+			`SELECT count(*)::int as c FROM favorites WHERE user_id = $1`,
+			[this.currentUser.id],
+		);
+		const ratingResult = await this.pglite.query(
+			`SELECT count(*)::int as c FROM ratings WHERE user_id = $1`,
+			[this.currentUser.id],
+		);
+
 		return {
 			draftCount: drafts.total,
 			publishedCount: published.total,
-			favoriteCount: 0,
-			ratingCount: 0,
+			favoriteCount: Number((favResult.rows[0] as { c: number })?.c ?? 0),
+			ratingCount: Number((ratingResult.rows[0] as { c: number })?.c ?? 0),
 			recentResources: resources.data,
 		};
 	}
 
-	async getUserActivity(_opts?: { limit?: number; offset?: number }) {
-		return { data: [] as import("./types/user-extended.ts").ActivityItem[], total: 0, limit: 30, offset: 0 };
+	async getUserActivity(opts?: { limit?: number; offset?: number }) {
+		const limit = opts?.limit ?? 30;
+		const offset = opts?.offset ?? 0;
+
+		const rows = await this.pglite.query(
+			`SELECT id, type, resource_id as "resourceId", resource_title as "resourceTitle",
+				resource_slug as "resourceSlug", description, metadata, created_at as "createdAt"
+			FROM activity_events
+			WHERE user_id = $1
+			ORDER BY created_at DESC
+			LIMIT $2 OFFSET $3`,
+			[this.currentUser.id, limit, offset],
+		);
+
+		const countResult = await this.pglite.query(
+			`SELECT count(*)::int as c FROM activity_events WHERE user_id = $1`,
+			[this.currentUser.id],
+		);
+
+		const data = (rows.rows as { id: string; type: string; resourceId: string | null; resourceTitle: string | null; resourceSlug: string | null; description: string; metadata: string | null; createdAt: string }[]).map(r => ({
+			...r,
+			metadata: r.metadata ? JSON.parse(r.metadata) : null,
+		}));
+
+		return { data, total: Number((countResult.rows[0] as { c: number })?.c ?? 0), limit, offset };
 	}
 
-	async trackDownload(_slug: string) {
-		return { count: 0 };
+	async trackDownload(slug: string) {
+		const resource = await this.resolveResourceBySlug(slug);
+		if (!resource) return { count: 0 };
+
+		await this.pglite.query(
+			`INSERT INTO downloads (id, resource_id, user_id, created_at) VALUES ($1, $2, $3, NOW())`,
+			[crypto.randomUUID(), resource.id, this.loggedIn ? this.currentUser.id : null],
+		);
+
+		if (this.loggedIn) {
+			await this.logPreviewActivity("resource_downloaded", resource.id, resource.title, resource.slug, `Descargaste «${resource.title}»`);
+		}
+
+		const countResult = await this.pglite.query(
+			`SELECT count(*)::int as c FROM downloads WHERE resource_id = $1`,
+			[resource.id],
+		);
+		return { count: Number((countResult.rows[0] as { c: number })?.c ?? 0) };
 	}
 
-	async getResourceStats(_slug: string) {
-		return { downloadCount: 0, favoriteCount: 0, ratingAvg: 0, ratingCount: 0 };
+	async getResourceStats(slug: string) {
+		const resource = await this.resolveResourceBySlug(slug);
+		if (!resource) return { downloadCount: 0, favoriteCount: 0, ratingAvg: 0, ratingCount: 0 };
+
+		const [dlResult, favResult, ratingResult] = await Promise.all([
+			this.pglite.query(`SELECT count(*)::int as c FROM downloads WHERE resource_id = $1`, [resource.id]),
+			this.pglite.query(`SELECT count(*)::int as c FROM favorites WHERE resource_id = $1`, [resource.id]),
+			this.pglite.query(`SELECT coalesce(avg(score), 0) as avg, count(*)::int as c FROM ratings WHERE resource_id = $1`, [resource.id]),
+		]);
+
+		return {
+			downloadCount: Number((dlResult.rows[0] as { c: number })?.c ?? 0),
+			favoriteCount: Number((favResult.rows[0] as { c: number })?.c ?? 0),
+			ratingAvg: Math.round(Number((ratingResult.rows[0] as { avg: number })?.avg ?? 0) * 100) / 100,
+			ratingCount: Number((ratingResult.rows[0] as { c: number })?.c ?? 0),
+		};
 	}
 
 	async seedResources(count: number, clean?: boolean): Promise<{ count: number; durationMs: number }> {
@@ -577,6 +783,10 @@ export class PreviewApiClient implements ApiClient {
 	async resetDatabase() {
 		// Borrar todas las tablas y recargar seed
 		await this.pglite.exec(`
+			DELETE FROM "activity_events";
+			DELETE FROM "downloads";
+			DELETE FROM "favorites";
+			DELETE FROM "ratings";
 			DELETE FROM "resource_levels";
 			DELETE FROM "resource_subjects";
 			DELETE FROM "media_items";
