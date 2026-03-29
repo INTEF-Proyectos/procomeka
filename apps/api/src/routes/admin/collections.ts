@@ -1,7 +1,7 @@
 import { buildCrudRoutes } from "../crud-builder.ts";
 import { validateCollection } from "@procomeka/db/validation";
 import { canManageCollection, getCurrentUser, hasMinRole } from "../../auth/roles.ts";
-import { ensureCurrentUser } from "../../helpers.ts";
+import { ensureCurrentUser, logActivity } from "../../helpers.ts";
 import { getDb } from "../../db.ts";
 import * as repo from "@procomeka/db/repository";
 
@@ -42,6 +42,33 @@ const collectionRoutes = buildCrudRoutes({
 			editorialStatus: typeof body.editorialStatus === "string" ? body.editorialStatus : undefined,
 			isOrdered: body.isOrdered ? 1 : 0,
 		};
+	},
+	afterCreate: async (user, result, data) => {
+		const c = result as { id: string; title: string };
+		await logActivity({
+			userId: user.id,
+			type: "collection_created",
+			description: `Creaste la colección «${data.title}»`,
+			metadata: { collectionId: c.id },
+		});
+	},
+	afterUpdate: async (user, id, entity, data) => {
+		const c = entity as { title: string };
+		await logActivity({
+			userId: user.id,
+			type: "collection_updated",
+			description: `Actualizaste la colección «${c.title}»`,
+			metadata: { collectionId: id, updates: data },
+		});
+	},
+	afterDelete: async (user, id, entity) => {
+		const c = entity as { title: string };
+		await logActivity({
+			userId: user.id,
+			type: "collection_deleted",
+			description: `Eliminaste la colección «${c.title}»`,
+			metadata: { collectionId: id },
+		});
 	},
 	notFoundMessage: "Colección no encontrada",
 });

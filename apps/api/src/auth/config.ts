@@ -12,6 +12,7 @@ import {
 import * as pgSchema from "@procomeka/db/schema";
 import { getDb } from "../db.ts";
 import { getAuthBaseUrl, getFrontendUrl } from "./urls.ts";
+import { logActivity } from "../helpers.ts";
 
 const frontendUrl = getFrontendUrl();
 const oidcEnabled = process.env.OIDC_ENABLED === "true";
@@ -21,6 +22,36 @@ export const auth = betterAuth({
 	trustedOrigins: [frontendUrl],
 	database: drizzleAdapter(getDb().db, { provider: "pg", schema: pgSchema }),
 	basePath: "/api/auth",
+	databaseHooks: {
+		session: {
+			create: {
+				after: async (session) => {
+					await logActivity({
+						userId: session.userId,
+						type: "auth_login",
+						description: "Inicio de sesión exitoso",
+						metadata: { sessionId: session.id },
+					});
+				},
+			},
+		},
+	},
+	hooks: {
+		after: async (ctx) => {
+			if (ctx.path === "/sign-out") {
+				const session = ctx.context.session;
+				if (session) {
+					await logActivity({
+						userId: session.userId,
+						type: "auth_logout",
+						description: "Cierre de sesión",
+						metadata: { sessionId: session.id },
+					});
+				}
+			}
+			return ctx;
+		},
+	},
 	emailAndPassword: {
 		enabled: true,
 		minPasswordLength: 8,

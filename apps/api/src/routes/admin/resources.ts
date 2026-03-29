@@ -102,6 +102,17 @@ const resourceRoutes = buildCrudRoutes({
 			description: `Actualizaste el recurso «${r.title}»`,
 		});
 	},
+	afterDelete: async (user, id, entity) => {
+		const r = entity as { title?: string; slug?: string };
+		await logActivity({
+			userId: user.id,
+			type: "resource_deleted",
+			resourceId: id,
+			resourceTitle: r.title ?? null,
+			resourceSlug: r.slug ?? null,
+			description: `Eliminaste el recurso «${r.title}»`,
+		});
+	},
 	notFoundMessage: "Recurso no encontrado",
 });
 
