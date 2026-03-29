@@ -10,7 +10,6 @@ import {
 	buildUploadStorageKey,
 	canManageResourceUpload,
 	computeFileSha256,
-	createS3Store,
 	ensureUploadStorageDir,
 	extractFileExtension,
 	getUploadConfig,
@@ -57,18 +56,11 @@ async function getTusServer() {
 
 	tusServerPromise = (async () => {
 		const config = getUploadConfig();
-		if (!config.s3.enabled) {
-			await ensureUploadStorageDir(config);
-		}
-
-		const datastore = createS3Store(config) ?? new FileStore({
-			directory: config.storageDir,
-			expirationPeriodInMilliseconds: config.sessionTtlMs,
-		});
+		await ensureUploadStorageDir(config);
 
 		const server = new Server({
 			path: "/api/uploads",
-			datastore,
+			datastore: new FileStore({ directory: config.storageDir, expirationPeriodInMilliseconds: config.sessionTtlMs }),
 			maxSize: config.maxFileSizeBytes,
 			relativeLocation: true,
 			allowedCredentials: true,

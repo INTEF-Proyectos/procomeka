@@ -12,7 +12,7 @@ El panel está disponible en `/admin` tras autenticarse con el rol `admin` o `cu
 
 ## Gestión editorial: flujo de publicación
 
-1. **Creación**: El autor sube un recurso (draft).
+1. **Creación**: El autor sube un recurso (borrador).
 2. **Revisión**: El curador recibe una notificación de nuevo contenido.
 3. **Curación**: El curador revisa metadatos, licencias y calidad del objeto.
 4. **Publicación**: El curador aprueba el recurso y lo hace público.
@@ -23,11 +23,11 @@ El panel está disponible en `/admin` tras autenticarse con el rol `admin` o `cu
 ### Importación masiva desde CSV
 Utilice la herramienta CLI para importar múltiples recursos:
 ```bash
-docker compose run --rm cli import-csv --file /app/import/recursos.csv
+bun run --filter '@procomeka/cli' cli -- import-csv --file /app/import/recursos.csv
 ```
 
 ### Cosecha OAI-PMH
-Configuración del servidor para ser cosechado por terceros o actuar como cliente de otros repositorios. El endpoint se expone en `/api/v1/oai`.
+Configuración del servidor para ser cosechado por terceros o actuar como cliente de otros repositorios. El endpoint se expone en `/api/v1/oai` (Pendiente de implementación en Fase 3).
 
 ## Gestión de taxonomías y vocabularios controlados
 

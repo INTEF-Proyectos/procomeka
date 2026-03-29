@@ -10,9 +10,9 @@ docker exec -t procomeka-db-1 pg_dumpall -c -U procomeka > dump_`date +%d-%m-%Y"
 ```
 
 ### Copia de seguridad de archivos (Uploads)
-Si no usa S3, haga un backup del volumen `uploads`:
+Haga un backup del directorio configurado mediante `UPLOAD_STORAGE_DIR`:
 ```bash
-tar -cvf uploads_backup.tar /var/lib/docker/volumes/procomeka_uploads/_data
+tar -cvf uploads_backup.tar ./local-data/uploads
 ```
 
 ### Restauración
@@ -24,14 +24,14 @@ cat dump_XX.sql | docker exec -i procomeka-db-1 psql -U procomeka
 
 ### Endpoints de Salud
 - **API Health Check**: `GET /health` (Retorna 200 si el servidor está vivo).
-- **Docker Health Checks**: Configurados internamente en el `docker-compose.prod.yml`.
+- **Docker Health Checks**: Configurados para el servicio `db` en `docker-compose.yml`.
 
 ### Métricas de Sistema
-Se recomienda el uso de Prometheus y Grafana para monitorizar el consumo de CPU, RAM y latencia de base de datos.
+Se recomienda monitorizar el consumo de CPU y RAM de los contenedores mediante `docker stats` o herramientas de terceros.
 
 ## Rotación de Logs
 
-Docker gestiona la rotación de logs de forma nativa mediante el driver `json-file`. Configúrelo en `/etc/docker/daemon.json`:
+Docker gestiona la rotación de logs de forma nativa mediante el driver `json-file`. Configúrelo en `/etc/docker/daemon.json` para evitar que ocupen todo el espacio en disco:
 ```json
 {
   "log-driver": "json-file",
@@ -48,32 +48,27 @@ Docker gestiona la rotación de logs de forma nativa mediante el driver `json-fi
    ```bash
    git pull origin main
    ```
-2. **Descargar nuevas imágenes**:
+2. **Construir nuevas imágenes**:
    ```bash
-   docker compose -f docker-compose.prod.yml pull
+   docker compose build
    ```
 3. **Reiniciar servicios**:
    ```bash
-   docker compose -f docker-compose.prod.yml up -d
-   ```
-4. **Ejecutar migraciones (si aplica)**:
-   ```bash
-   docker compose run --rm cli migrate
+   docker compose up -d
    ```
 
 ## Troubleshooting: problemas comunes y soluciones
 
 - **Error de Conexión a DB**: Verifique que el contenedor `db` esté `healthy` con `docker ps`.
-- **Fallos en Subida de Archivos**: Compruebe permisos del volumen `uploads` y el espacio en disco.
-- **Sesiones caducadas prematuramente**: Verifique que la variable `BETTER_AUTH_SECRET` sea idéntica en todos los nodos si usa balanceo de carga.
+- **Fallos en Subida de Archivos**: Compruebe permisos de escritura en `UPLOAD_STORAGE_DIR` y espacio en disco.
 
 ## Gestión de usuarios y roles desde CLI
 
-Utilice el contenedor `cli` para tareas administrativas:
+Utilice la herramienta CLI de administración:
 ```bash
 # Listar usuarios
-docker compose run --rm cli user-list
+bun run --filter '@procomeka/cli' cli -- user-list
 
 # Crear administrador
-docker compose run --rm cli user-create --email admin@midominio.com --name "Admin Local" --role admin --password "mi-pass-seguro"
+bun run --filter '@procomeka/cli' cli -- user-create --email admin@midominio.com --name "Admin Local" --role admin --password "mi-pass-seguro"
 ```

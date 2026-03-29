@@ -2,8 +2,6 @@ import { createHash } from "node:crypto";
 import { createReadStream } from "node:fs";
 import { mkdir } from "node:fs/promises";
 import path from "node:path";
-import { S3Client } from "@aws-sdk/client-s3";
-import { S3Store } from "@tus/s3-store";
 
 export type UploadUser = {
 	id: string;
@@ -80,28 +78,7 @@ export function getUploadConfig(env: Record<string, string | undefined> = proces
 		allowedMimeTypes: parseCsvEnv(env.UPLOAD_ALLOWED_MIME_TYPES, DEFAULT_ALLOWED_MIME_TYPES),
 		allowedExtensions: parseCsvEnv(env.UPLOAD_ALLOWED_EXTENSIONS, DEFAULT_ALLOWED_EXTENSIONS),
 		storageDir: env.UPLOAD_STORAGE_DIR ?? path.join(process.cwd(), "local-data", "uploads"),
-		s3: {
-			enabled: env.UPLOAD_S3_ENABLED === "true",
-			bucket: env.UPLOAD_S3_BUCKET,
-			region: env.UPLOAD_S3_REGION,
-			credentials: {
-				accessKeyId: env.UPLOAD_S3_ACCESS_KEY_ID ?? "",
-				secretAccessKey: env.UPLOAD_S3_SECRET_ACCESS_KEY ?? "",
-			},
-		},
 	};
-}
-
-export function createS3Store(config: ReturnType<typeof getUploadConfig>) {
-	if (!config.s3.enabled || !config.s3.bucket) return null;
-	const s3Client = new S3Client({
-		region: config.s3.region,
-		credentials: config.s3.credentials,
-	});
-	return new S3Store({
-		bucket: config.s3.bucket,
-		s3Client,
-	});
 }
 
 export function sanitizeFilename(filename: string) {

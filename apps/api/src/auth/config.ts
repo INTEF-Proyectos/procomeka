@@ -1,7 +1,6 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { admin as adminPlugin } from "better-auth/plugins";
-import nodemailer from "nodemailer";
 import { genericOAuth } from "better-auth/plugins";
 import {
 	ac,
@@ -29,28 +28,6 @@ export const auth = betterAuth({
 	session: {
 		expiresIn: 60 * 60 * 24 * 7,
 		updateAge: 60 * 60 * 24,
-	},
-	emailVerification: {
-		async sendVerificationEmail({ user, url }) {
-			const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS } = process.env;
-			if (!SMTP_HOST || !SMTP_PORT || !SMTP_USER || !SMTP_PASS) {
-				console.log(`[SMTP SIMULATED] Sending verification to ${user.email} with URL: ${url}`);
-				return;
-			}
-			const transporter = nodemailer.createTransport({
-				host: SMTP_HOST,
-				port: Number(SMTP_PORT),
-				secure: Number(SMTP_PORT) === 465,
-				auth: { user: SMTP_USER, pass: SMTP_PASS },
-			});
-			await transporter.sendMail({
-				from: '"Procomeka" <noreply@procomeka.es>',
-				to: user.email,
-				subject: "Verifica tu cuenta en Procomeka",
-				text: `Haz clic en el siguiente enlace para verificar tu cuenta: ${url}`,
-				html: `<p>Haz clic <a href="${url}">aquí</a> para verificar tu cuenta en Procomeka.</p>`,
-			});
-		},
 	},
 	plugins: [
 		adminPlugin({

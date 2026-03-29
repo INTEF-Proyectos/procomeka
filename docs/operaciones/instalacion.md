@@ -1,6 +1,6 @@
 # Guía de Instalación y Despliegue
 
-Esta guía detalla los pasos necesarios para desplegar Procomeka desde cero utilizando Docker.
+Esta guía detalla los pasos necesarios para desplegar Procomeka utilizando Docker.
 
 ## Requisitos del sistema
 
@@ -35,12 +35,12 @@ Esta guía detalla los pasos necesarios para desplegar Procomeka desde cero util
 
 3. **Desplegar con Docker Compose**
    ```bash
-   docker compose -f docker-compose.prod.yml up -d
+   docker compose up -d
    ```
 
 4. **Inicializar base de datos y semilla (opcional)**
    ```bash
-   docker compose run --rm cli seed
+   docker compose run --rm seed
    ```
 
 ## Catálogo de Variables de Entorno
@@ -49,27 +49,19 @@ Esta guía detalla los pasos necesarios para desplegar Procomeka desde cero util
 |----------|-------------|-------------------|
 | `DATABASE_URL` | URL de conexión a PostgreSQL | `postgres://user:pass@db:5432/procomeka` |
 | `BETTER_AUTH_SECRET` | Secreto para firma de sesiones (32+ chars) | Obligatorio |
-| `PUBLIC_URL` | URL pública de la aplicación (HTTPS) | Obligatorio |
-| `FRONTEND_URL` | URL del frontend para CORS | Misma que `PUBLIC_URL` |
-| `UPLOAD_STORAGE_DIR` | Directorio local para almacenamiento de archivos | `/app/uploads` |
+| `FRONTEND_URL` | URL del frontend para CORS | `http://localhost:4321` |
+| `BETTER_AUTH_URL` | URL pública de la API para redirecciones de Auth | `http://localhost:3000` |
+| `UPLOAD_STORAGE_DIR` | Directorio local para almacenamiento de archivos | `./local-data/uploads` |
 | `OIDC_ENABLED` | Activar autenticación OIDC | `false` |
-| `SMTP_HOST` | Host del servidor SMTP | - |
-| `SMTP_PORT` | Puerto del servidor SMTP | - |
-| `UPLOAD_S3_ENABLED` | Activar almacenamiento en S3 | `false` |
-| `UPLOAD_S3_BUCKET` | Nombre del bucket S3 | - |
 
 ## Configuración de PostgreSQL
 
-En producción, el contenedor de base de datos utiliza volúmenes Docker para persistencia. Se recomienda configurar backups periódicos del volumen `pgdata`.
+La base de datos se despliega como un servicio `db` en Docker Compose utilizando la imagen `postgres:17-alpine`. Los datos se persisten en un volumen llamado `pgdata`.
 
 ## Configuración de Almacenamiento
 
-Por defecto, los archivos subidos se guardan en el volumen `uploads` dentro de `/app/uploads`. Para producción a escala, se recomienda activar S3 configurando las variables `UPLOAD_S3_*`.
-
-## Configuración de SMTP
-
-Para que el sistema envíe emails de verificación de cuenta y recuperación de contraseña, configure los parámetros `SMTP_*` en su archivo `.env`.
+Los archivos subidos se guardan localmente en el directorio configurado mediante `UPLOAD_STORAGE_DIR`. Se recomienda montar un volumen dedicado para esta ruta en el servicio `api`.
 
 ## Configuración de Proveedores OIDC
 
-Procomeka soporta OpenID Connect para login institucional. Requiere configurar `OIDC_ISSUER`, `OIDC_CLIENT_ID` y `OIDC_CLIENT_SECRET`.
+Procomeka soporta OpenID Connect para login institucional. Requiere configurar `OIDC_ISSUER`, `OIDC_CLIENT_ID` y `OIDC_CLIENT_SECRET` en el archivo `.env`.
