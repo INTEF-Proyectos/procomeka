@@ -1,0 +1,69 @@
+services:
+  db:
+    image: postgres:17-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER:-procomeka}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME:-procomeka}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-procomeka}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    image: ${GHCR_IMAGE_BASE:-procomeka}/api:latest
+    restart: always
+    environment:
+      DATABASE_URL: postgres://${DB_USER:-procomeka}:${DB_PASSWORD}@db:5432/${DB_NAME:-procomeka}
+      BETTER_AUTH_URL: ${PUBLIC_URL}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
+      FRONTEND_URL: ${PUBLIC_URL}
+      PORT: 3000
+      UPLOAD_STORAGE_DIR: /app/uploads
+      OIDC_ENABLED: ${OIDC_ENABLED:-false}
+      OIDC_ISSUER: ${OIDC_ISSUER}
+      OIDC_CLIENT_ID: ${OIDC_CLIENT_ID}
+      OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET}
+      OIDC_SCOPE: ${OIDC_SCOPE:-openid email profile}
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASS: ${SMTP_PASS}
+      UPLOAD_S3_ENABLED: ${UPLOAD_S3_ENABLED:-false}
+      UPLOAD_S3_BUCKET: ${UPLOAD_S3_BUCKET}
+      UPLOAD_S3_REGION: ${UPLOAD_S3_REGION}
+      UPLOAD_S3_ACCESS_KEY_ID: ${UPLOAD_S3_ACCESS_KEY_ID}
+      UPLOAD_S3_SECRET_ACCESS_KEY: ${UPLOAD_S3_SECRET_ACCESS_KEY}
+    volumes:
+      - uploads:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    image: ${GHCR_IMAGE_BASE:-procomeka}/frontend:latest
+    restart: always
+    depends_on:
+      - api
+
+  proxy:
+    image: nginx:alpine
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.prod.conf:/etc/nginx/nginx.conf:ro
+      # Uncomment for TLS/SSL
+      # - ./certs:/etc/nginx/certs:ro
+    depends_on:
+      - frontend
+      - api
+
+volumes:
+  pgdata:
+  uploads:

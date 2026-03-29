@@ -29,6 +29,14 @@ app.use("/api/dev/*", sessionMiddleware);
 app.use("/api/uploads/*", sessionMiddleware);
 
 app.get("/health", (c) => c.json({ status: "ok" }));
+app.get("/ready", async (c) => {
+	try {
+		await getDb().db.execute("SELECT 1");
+		return c.json({ status: "ready" });
+	} catch (err) {
+		return c.json({ status: "not ready", error: (err as Error).message }, 503);
+	}
+});
 
 app.get("/", (c) =>
 	c.json({
