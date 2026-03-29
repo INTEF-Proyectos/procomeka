@@ -29,7 +29,6 @@ export function buildElpxPreview(
 }
 
 /** Fire-and-forget activity logging. Never throws. */
-
 export async function logActivity(opts: {
 	userId: string;
 	type: string;

@@ -1,4 +1,4 @@
-import { startTransition, useEffect, useRef, useState, type FormEvent } from "react";
+import { startTransition, useEffect, useState, type FormEvent } from "react";
 import type { CollectionDetailRecord, CollectionRecord } from "../../lib/api-client.ts";
 import { getApiClient } from "../../lib/get-api-client.ts";
 import { url } from "../../lib/paths.ts";
@@ -191,11 +191,9 @@ export function PublicCollectionsIsland() {
 					</div>
 					<div className="collection-resource-grid">
 						{detail.resources.map((resource) => {
-							const rec = resource as Record<string, unknown>;
-							const elpxPreview = rec.elpxPreview as { hash: string; previewUrl: string } | null;
 							return (
 								<a key={resource.resourceId} href={url(`recurso?slug=${resource.slug}`)} className="collection-resource-card">
-									{elpxPreview && <CollectionIframePreview src={elpxPreview.previewUrl} />}
+									{resource.elpxPreview && <CollectionIframePreview src={resource.elpxPreview.previewUrl} />}
 									<p className="collection-resource-type">{resource.resourceType}</p>
 									<h3>{resource.title}</h3>
 									<p>{truncate(resource.description ?? "", 180)}</p>

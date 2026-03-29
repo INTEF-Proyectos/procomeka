@@ -9,7 +9,7 @@ import { EmptyState } from "../../ui/EmptyState.tsx";
 import { Skeleton } from "../../ui/Skeleton.tsx";
 import { getApiClient } from "../../lib/get-api-client.ts";
 import { url } from "../../lib/paths.ts";
-import { gravatarUrl } from "../../lib/shared-utils.ts";
+import { computeResourceBadges, gravatarUrl } from "../../lib/shared-utils.ts";
 import "./PublicDashboardIsland.css";
 import "../../lib/paraglide-client.ts";
 import * as m from "../../paraglide/messages.js";
@@ -77,7 +77,7 @@ function FavoritesTab({
                 editorialStatus: resource.editorialStatus,
                 createdAt: typeof resource.createdAt === "string" ? resource.createdAt : "",
               }}
-              badges={computeBadges(resource, badgeConfig)}
+              badges={computeResourceBadges(resource, badgeConfig)}
               href={url(`recurso?slug=${resource.slug}`)}
               isFavorited={true}
               onToggleFavorite={() => { onUnfavorite(resource.slug); return Promise.resolve({ favorited: false }); }}
@@ -245,25 +245,6 @@ function ActivityTab() {
   );
 }
 
-interface BadgeableResource {
-  createdAt: string | number | Date | null;
-  rating?: { average: number; count: number };
-  favoriteCount?: number;
-}
-
-function computeBadges(resource: BadgeableResource, config: import("../../lib/api-client.ts").BadgeConfig): { text: string; variant: "primary" | "tertiary" }[] {
-  const badges: { text: string; variant: "primary" | "tertiary" }[] = [];
-  const createdAt = resource.createdAt ? new Date(resource.createdAt as string) : null;
-  if (createdAt && Math.floor((Date.now() - createdAt.getTime()) / 86400000) <= config.novedadDays) {
-    badges.push({ text: "Novedad", variant: "primary" });
-  }
-  const favCount = Number(resource.favoriteCount ?? 0);
-  if (resource.rating && resource.rating.count >= config.destacadoMinRatings && resource.rating.average >= config.destacadoMinAvg && favCount >= config.destacadoMinFavorites) {
-    badges.push({ text: "Destacado", variant: "tertiary" });
-  }
-  return badges;
-}
-
 interface ProfileEditState {
   name: string;
   bio: string;
@@ -301,7 +282,8 @@ export function PublicDashboardIsland() {
             draftCount: 0,
             publishedCount: 0,
             favoriteCount: 0,
-            recentResources: [],
+            ratingCount: 0,
+            recentResources: [] as Resource[],
           })),
           api.getBadgeConfig().catch(() => null),
         ]);
@@ -328,7 +310,7 @@ export function PublicDashboardIsland() {
           favoriteCount: dashData.favoriteCount ?? 0,
           recentActivity: [], // loaded lazily by ActivityTab
         });
-        setRatingCount(Number((dashData as { ratingCount?: number }).ratingCount ?? 0));
+        setRatingCount(Number(dashData.ratingCount ?? 0));
       } catch {
         // Unexpected error — redirect to login as fallback
         window.location.href = url("login");
@@ -457,7 +439,7 @@ export function PublicDashboardIsland() {
                   <ResourceCard
                     resource={resource}
                     href={url(`recurso?slug=${resource.slug}`)}
-                    badges={computeBadges(resource, badgeConfig)}
+                    badges={computeResourceBadges(resource, badgeConfig)}
                   />
                   <a href={url(`editar?id=${resource.id}`)} className="dashboard-edit-icon" aria-label={m.profile_edit_resource({ title: resource.title })}>
                     <span className="material-symbols-outlined">edit</span>
