@@ -78,6 +78,11 @@ collectionRoutes.post("/:id/resources", async (c) => {
 		return c.json({ error: "Recurso no encontrado" }, 404);
 	}
 
+	const linkedResources = await repo.listCollectionResources(getDb().db, id, { limit: 100 });
+	if (linkedResources.some((item) => item.resourceId === body.resourceId)) {
+		return c.json({ error: "El recurso ya está asociado a la colección" }, 409);
+	}
+
 	await repo.addResourceToCollection(getDb().db, id, body.resourceId);
 	return c.json({ ok: true }, 201);
 });

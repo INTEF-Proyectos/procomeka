@@ -517,6 +517,13 @@ describe("Rutas admin — colecciones", () => {
 		});
 		expect(addResourceRes.status).toBe(201);
 
+		const duplicateAddResourceRes = await app.request(`/api/admin/collections/${id}/resources`, {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ resourceId: resource.id }),
+		});
+		expect(duplicateAddResourceRes.status).toBe(409);
+
 		const listResourcesRes = await app.request(`/api/admin/collections/${id}/resources`);
 		expect(listResourcesRes.status).toBe(200);
 		const collectionResources = await listResourcesRes.json();

@@ -7,6 +7,12 @@ import "./PublicCollectionsIsland.css";
 
 const PAGE_SIZE = 9;
 
+interface CollectionLocationState {
+	query: string;
+	page: number;
+	slug: string | null;
+}
+
 function truncate(text: string, maxLength: number) {
 	if (text.length <= maxLength) return text;
 	return `${text.slice(0, maxLength)}...`;
@@ -17,6 +23,15 @@ function coverStyle(coverImageUrl?: string | null) {
 		return { backgroundImage: "linear-gradient(135deg, #0f4ccf, #60a5fa)" };
 	}
 	return { backgroundImage: `linear-gradient(rgba(15, 76, 207, 0.12), rgba(15, 76, 207, 0.42)), url("${coverImageUrl}")` };
+}
+
+function readCollectionLocation(search: string): CollectionLocationState {
+	const params = new URLSearchParams(search);
+	return {
+		query: params.get("q") ?? "",
+		page: Math.max(1, Number(params.get("page") ?? "1") || 1),
+		slug: params.get("slug"),
+	};
 }
 
 export function PublicCollectionsIsland() {
@@ -100,16 +115,26 @@ export function PublicCollectionsIsland() {
 	}
 
 	useEffect(() => {
-		const params = new URLSearchParams(window.location.search);
-		const nextQuery = params.get("q") ?? "";
-		const nextPage = Math.max(1, Number(params.get("page") ?? "1") || 1);
-		const nextSlug = params.get("slug");
-		setQuery(nextQuery);
-		if (nextSlug) {
-			void loadDetail(nextSlug);
-		} else {
-			void loadList(nextPage, nextQuery);
+		function syncFromLocation(search: string) {
+			const nextState = readCollectionLocation(search);
+			setQuery(nextState.query);
+			if (nextState.slug) {
+				void loadDetail(nextState.slug);
+				return;
+			}
+			void loadList(nextState.page, nextState.query);
 		}
+
+		syncFromLocation(window.location.search);
+
+		function handlePopState() {
+			syncFromLocation(window.location.search);
+		}
+
+		window.addEventListener("popstate", handlePopState);
+		return () => {
+			window.removeEventListener("popstate", handlePopState);
+		};
 	}, []);
 
 	async function handleSearch(event: FormEvent<HTMLFormElement>) {
@@ -262,3 +287,5 @@ export function PublicCollectionsIsland() {
 		</section>
 	);
 }
+
+export { readCollectionLocation };
