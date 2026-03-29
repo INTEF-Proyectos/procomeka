@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { auth } from "./auth/config.ts";
 import { type AuthEnv, sessionMiddleware } from "./auth/middleware.ts";
+import { auditMiddleware } from "./auth/audit.ts";
 import { publicRoutes } from "./routes/public.ts";
 import { adminRoutes } from "./routes/admin/index.ts";
 import { devRoutes } from "./routes/dev.ts";
@@ -19,6 +20,9 @@ app.use(
 		credentials: true,
 	}),
 );
+
+// ENS Compliance: Audit all API accesses
+app.use("/api/*", auditMiddleware);
 
 // Better Auth handler
 app.on(["POST", "GET"], "/api/auth/*", (c) => auth.handler(c.req.raw));

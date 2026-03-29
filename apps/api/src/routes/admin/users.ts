@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import type { AuthEnv } from "../../auth/middleware.ts";
 import { getCurrentUser, hasMinRole } from "../../auth/roles.ts";
-import { parsePagination } from "../../helpers.ts";
+import { parsePagination, logActivity } from "../../helpers.ts";
 import { ROLE_LEVELS } from "@procomeka/db/validation";
 import { getDb } from "../../db.ts";
 import * as repo from "@procomeka/db/repository";
@@ -74,6 +74,21 @@ userRoutes.patch("/:id", async (c) => {
 	}
 
 	await repo.updateUser(getDb().db, id, updates);
+
+	if (updates.role || updates.isActive !== undefined) {
+		await logActivity({
+			userId: currentUser.id,
+			type: "admin_user_updated",
+			description: `Actualizado usuario ${existing.email} (${id})`,
+			metadata: {
+				targetUserId: id,
+				updates,
+				previousRole: existing.role,
+				previousActive: existing.isActive,
+			},
+		});
+	}
+
 	return c.json({ id, updated: true });
 });
 

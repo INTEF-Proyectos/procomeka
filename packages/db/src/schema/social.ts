@@ -71,6 +71,20 @@ export const activityEvents = pgTable("activity_events", {
 	createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+// API access logs for ENS audit compliance
+export const apiAccessLogs = pgTable("api_access_logs", {
+	id: text("id").primaryKey(),
+	userId: text("user_id")
+		.references(() => user.id, { onDelete: "set null" }),
+	method: varchar("method", { length: 10 }).notNull(),
+	path: text("path").notNull(),
+	status: integer("status").notNull(),
+	ipAddress: text("ip_address"),
+	userAgent: text("user_agent"),
+	latencyMs: integer("latency_ms"),
+	createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 // Relations
 export const ratingsRelations = relations(ratings, ({ one }) => ({
 	resource: one(resources, {
