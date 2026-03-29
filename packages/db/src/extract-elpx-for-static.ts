@@ -7,7 +7,7 @@
  * Uso: bun run packages/db/src/extract-elpx-for-static.ts
  */
 import { execSync } from "node:child_process";
-import { readFileSync, mkdirSync, existsSync, copyFileSync } from "node:fs";
+import { readFileSync, mkdirSync, existsSync, copyFileSync, cpSync } from "node:fs";
 import path from "node:path";
 
 const repoRoot = path.resolve(import.meta.dir, "../../..");
@@ -58,3 +58,13 @@ for (const proj of elpxProjects) {
 }
 
 console.log(`Extraidos ${extracted} .elpx a ${outputBase}`);
+
+// Copy eXeLearning static editor to public/ if available
+const editorSource = path.join(repoRoot, "apps/api/static/exelearning-editor/static");
+const editorDest = path.join(repoRoot, "apps/frontend/public/exelearning-editor");
+if (existsSync(editorSource)) {
+	cpSync(editorSource, editorDest, { recursive: true });
+	console.log(`Editor eXeLearning copiado a ${editorDest}`);
+} else {
+	console.log("Editor eXeLearning no disponible. Ejecuta: make download-exelearning-editor");
+}
