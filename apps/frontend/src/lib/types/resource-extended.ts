@@ -20,6 +20,7 @@ export interface ResourceSummary {
   license: string;
   author?: string | null;
   thumbnailUrl?: string | null;
+  elpxPreview?: { hash: string; previewUrl: string } | null;
   rating?: { average: number; count: number };
   favoriteCount?: number;
   editorialStatus: string;

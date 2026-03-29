@@ -25,6 +25,10 @@ export interface Resource {
 	levels?: string[];
 	mediaItems?: MediaItemRecord[];
 	elpxPreview?: { hash: string; previewUrl: string } | null;
+	rating?: { average: number; count: number };
+	favoriteCount?: number;
+	featuredAt?: string | null;
+	userScore?: number;
 }
 
 export interface ResourceListResult {
@@ -71,6 +75,7 @@ export interface CollectionResourceRecord {
 	author: string | null;
 	createdByName?: string | null;
 	editorialStatus: string;
+	elpxPreview?: { hash: string; previewUrl: string } | null;
 }
 
 export interface CollectionDetailRecord extends CollectionRecord {
@@ -174,6 +179,13 @@ export interface AppConfig {
 	oidcEndSessionUrl: string | null;
 }
 
+export interface BadgeConfig {
+	novedadDays: number;
+	destacadoMinRatings: number;
+	destacadoMinAvg: number;
+	destacadoMinFavorites: number;
+}
+
 export interface SignInResult {
 	ok: boolean;
 	error?: string;
@@ -209,6 +221,7 @@ export interface ApiClient {
 	listPublicCollections(opts?: { q?: string; limit?: number; offset?: number }): Promise<PaginatedResult<CollectionRecord>>;
 	getPublicCollectionBySlug(slug: string): Promise<CollectionDetailRecord | null>;
 	getConfig(): Promise<AppConfig>;
+	getPlatformStats(): Promise<{ users: number }>;
 
 	// Auth
 	getSession(): Promise<SessionData | null>;
@@ -255,10 +268,15 @@ export interface ApiClient {
 	toggleFavorite(slug: string): Promise<{ favorited: boolean; count: number }>;
 	getUserFavorites(opts?: { limit?: number; offset?: number }): Promise<PaginatedResult<Resource>>;
 	getUserRatings(opts?: { limit?: number; offset?: number }): Promise<PaginatedResult<Resource>>;
-	getUserDashboard(): Promise<{ draftCount: number; publishedCount: number; favoriteCount: number; recentResources: Resource[] }>;
+	getUserDashboard(): Promise<{ draftCount: number; publishedCount: number; favoriteCount: number; ratingCount?: number; recentResources: Resource[] }>;
 	getUserActivity(opts?: { limit?: number; offset?: number }): Promise<PaginatedResult<import("./types/user-extended.ts").ActivityItem>>;
 	trackDownload(slug: string): Promise<{ count: number }>;
 	getResourceStats(slug: string): Promise<{ downloadCount: number; favoriteCount: number; ratingAvg: number; ratingCount: number }>;
+
+	// Badges / Settings
+	getBadgeConfig(): Promise<BadgeConfig>;
+	getSettings(): Promise<Record<string, string>>;
+	updateSettings(settings: Record<string, string>): Promise<Record<string, string>>;
 
 	// Dev
 	seedResources(count: number, clean?: boolean): Promise<{ count: number; durationMs: number }>;

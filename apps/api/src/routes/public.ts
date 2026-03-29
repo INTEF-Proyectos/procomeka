@@ -1,8 +1,10 @@
 import { Hono } from "hono";
+import { sql } from "drizzle-orm";
 import { readUploadContent } from "./uploads.ts";
-import { parsePagination } from "../helpers.ts";
+import { buildElpxMap, buildElpxPreview, parsePagination } from "../helpers.ts";
 import { getDb } from "../db.ts";
 import * as repo from "@procomeka/db/repository";
+import { user } from "@procomeka/db/schema";
 const publicRoutes = new Hono();
 
 publicRoutes.get("/resources", async (c) => {
@@ -24,14 +26,19 @@ publicRoutes.get("/resources", async (c) => {
 	// Enrich with elpx preview URLs
 	const resourceIds = result.data.map((r: { id: string }) => r.id);
 	const elpxProjects = await repo.listElpxProjectsByResourceIds(getDb().db, resourceIds);
-	const elpxMap = new Map(elpxProjects.map((e: { resourceId: string; hash: string; hasPreview: number }) => [e.resourceId, e]));
+	const elpxMap = buildElpxMap(elpxProjects);
 
-	const data = result.data.map((r: { id: string }) => {
-		const elpx = elpxMap.get(r.id);
-		const elpxPreview = elpx?.hasPreview === 1
-			? { hash: elpx.hash, previewUrl: `/api/v1/elpx/${elpx.hash}/` }
-			: null;
-		return { ...r, elpxPreview };
+	const data = result.data.map((r: Record<string, unknown>) => {
+		const elpxPreview = buildElpxPreview(elpxMap.get(r.id as string));
+		return {
+			...r,
+			elpxPreview,
+			favoriteCount: Number(r.favoriteCount ?? 0),
+			rating: {
+				average: Math.round(Number(r.ratingAvg ?? 0) * 100) / 100,
+				count: Number(r.ratingCount ?? 0),
+			},
+		};
 	});
 
 	return c.json({ ...result, data });
@@ -68,11 +75,7 @@ publicRoutes.get("/resources/:slug", async (c) => {
 
 	// Include elpx preview URL if the resource has an associated eXeLearning project
 	const elpx = await repo.getElpxProjectByResourceId(getDb().db, resource.id);
-	const elpxPreview = elpx?.hasPreview === 1
-		? { hash: elpx.hash, previewUrl: `/api/v1/elpx/${elpx.hash}/` }
-		: null;
-
-	return c.json({ ...resource, elpxPreview });
+	return c.json({ ...resource, elpxPreview: buildElpxPreview(elpx) });
 });
 
 publicRoutes.get("/uploads/:id/content", async (c) => {
@@ -107,18 +110,44 @@ publicRoutes.get("/taxonomies/:type", async (c) => {
 	return c.json(result.data);
 });
 
-publicRoutes.get("/collections", (c) =>
-	{
-		const { limit, offset, search } = parsePagination(c);
-		return repo.listCollections(getDb().db, {
-			limit,
-			offset,
-			search,
-			status: "published",
-			resourceStatus: "published",
-		}).then((result) => c.json(result));
-	},
-);
+publicRoutes.get("/collections", async (c) => {
+	const { limit, offset, search } = parsePagination(c);
+	const result = await repo.listCollections(getDb().db, {
+		limit,
+		offset,
+		search,
+		status: "published",
+		resourceStatus: "published",
+	});
+
+	// Enrich each collection with elpx preview of its first resource
+	// Phase 1: fetch first resource per collection in parallel
+	const db = getDb().db;
+	const firstResourceByCollection = new Map<string, string>();
+	await Promise.all(result.data.map(async (col: { id: string }) => {
+		try {
+			const colResources = await repo.listCollectionResources(db, col.id, { limit: 1, status: "published" });
+			if (colResources.length > 0) {
+				const firstRes = colResources[0] as { resourceId: string };
+				firstResourceByCollection.set(col.id, firstRes.resourceId);
+			}
+		} catch { /* ignore enrichment errors */ }
+	}));
+
+	// Phase 2: single batch elpx lookup for all first resources
+	const allFirstResourceIds = [...new Set(firstResourceByCollection.values())];
+	const elpxMap = allFirstResourceIds.length > 0
+		? buildElpxMap(await repo.listElpxProjectsByResourceIds(db, allFirstResourceIds))
+		: new Map();
+
+	const enriched = result.data.map((col: { id: string }) => {
+		const resourceId = firstResourceByCollection.get(col.id);
+		const elpx = resourceId ? elpxMap.get(resourceId) : undefined;
+		return { ...col, elpxPreview: buildElpxPreview(elpx ?? null) };
+	});
+
+	return c.json({ ...result, data: enriched });
+});
 
 publicRoutes.get("/collections/:slug", async (c) => {
 	const { slug } = c.req.param();
@@ -135,7 +164,36 @@ publicRoutes.get("/collections/:slug", async (c) => {
 		status: "published",
 	});
 
-	return c.json({ ...collection, resources });
+	// Enrich resources with elpx preview
+	const resourceIds = resources.map((r: { resourceId: string }) => r.resourceId).filter(Boolean);
+	let enrichedResources = resources;
+	if (resourceIds.length > 0) {
+		const elpxProjects = await repo.listElpxProjectsByResourceIds(getDb().db, resourceIds);
+		const elpxMap = buildElpxMap(elpxProjects);
+		enrichedResources = resources.map((r: { resourceId: string }) => {
+			return { ...r, elpxPreview: buildElpxPreview(elpxMap.get(r.resourceId)) };
+		});
+	}
+
+	return c.json({ ...collection, resources: enrichedResources });
+});
+
+publicRoutes.get("/config/badges", async (c) => {
+	const settings = await repo.getAllSettings(getDb().db);
+	return c.json({
+		novedadDays: Number(settings.badge_novedad_days ?? "30"),
+		destacadoMinRatings: Number(settings.badge_destacado_min_ratings ?? "3"),
+		destacadoMinAvg: Number(settings.badge_destacado_min_avg ?? "4.0"),
+		destacadoMinFavorites: Number(settings.badge_destacado_min_favorites ?? "3"),
+	});
+});
+
+publicRoutes.get("/stats", async (c) => {
+	const db = getDb().db;
+	const [userCount] = await db.select({ count: sql<number>`count(*)` }).from(user);
+	return c.json({
+		users: Number(userCount?.count ?? 0),
+	});
 });
 
 export { publicRoutes };

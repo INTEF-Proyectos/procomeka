@@ -19,6 +19,21 @@ export async function ensureCurrentUser(user: { id: string; role?: string; name?
 	});
 }
 
+/** Build a normalised elpxPreview object from a raw elpx project row. */
+export function buildElpxPreview(
+	elpx: { hash?: string; hasPreview?: number } | null | undefined,
+): { hash: string; previewUrl: string } | null {
+	if (!elpx || elpx.hasPreview !== 1 || !elpx.hash) return null;
+	return { hash: elpx.hash, previewUrl: `/api/v1/elpx/${elpx.hash}/` };
+}
+
+export type ElpxRow = { resourceId: string; hash: string; hasPreview: number };
+
+/** Build a resourceId→elpx lookup map from a list of elpx project rows. */
+export function buildElpxMap(rows: ElpxRow[]): Map<string, ElpxRow> {
+	return new Map(rows.map((e) => [e.resourceId, e]));
+}
+
 /** Fire-and-forget activity logging. Never throws. */
 export async function logActivity(opts: {
 	userId: string;

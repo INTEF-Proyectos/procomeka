@@ -5,3 +5,4 @@ export * from "./taxonomies.ts";
 export * from "./uploads.ts";
 export * from "./elpx.ts";
 export * from "./social.ts";
+export * from "./settings.ts";

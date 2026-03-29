@@ -9,7 +9,7 @@ import { EmptyState } from "../../ui/EmptyState.tsx";
 import { Skeleton } from "../../ui/Skeleton.tsx";
 import { getApiClient } from "../../lib/get-api-client.ts";
 import { url } from "../../lib/paths.ts";
-import { gravatarUrl } from "../../lib/shared-utils.ts";
+import { computeResourceBadges, DEFAULT_BADGE_CONFIG, gravatarUrl } from "../../lib/shared-utils.ts";
 import "./PublicDashboardIsland.css";
 import "../../lib/paraglide-client.ts";
 import * as m from "../../paraglide/messages.js";
@@ -20,12 +20,14 @@ function FavoritesTab({
   favoriteCount,
   onLoad,
   onUnfavorite,
+  badgeConfig,
 }: {
   favorites: Resource[];
   favoritesLoaded: boolean;
   favoriteCount: number;
   onLoad: () => void;
   onUnfavorite: (slug: string) => void;
+  badgeConfig: import("../../lib/api-client.ts").BadgeConfig;
 }) {
   useEffect(() => {
     if (!favoritesLoaded) onLoad();
@@ -69,9 +71,13 @@ function FavoritesTab({
                 license: resource.license,
                 author: resource.author ?? null,
                 thumbnailUrl: null,
+                elpxPreview: resource.elpxPreview ?? null,
+                rating: resource.rating,
+                favoriteCount: Number(resource.favoriteCount ?? 0),
                 editorialStatus: resource.editorialStatus,
                 createdAt: typeof resource.createdAt === "string" ? resource.createdAt : "",
               }}
+              badges={computeResourceBadges(resource, badgeConfig)}
               href={url(`recurso?slug=${resource.slug}`)}
               isFavorited={true}
               onToggleFavorite={() => { onUnfavorite(resource.slug); return Promise.resolve({ favorited: false }); }}
@@ -135,8 +141,8 @@ function RatingsTab() {
                   className="material-symbols-outlined"
                   style={{
                     fontSize: "18px",
-                    color: star <= ((r as Record<string, unknown>).userScore as number ?? 0) ? "var(--color-tertiary)" : "var(--color-outline-variant)",
-                    fontVariationSettings: star <= ((r as Record<string, unknown>).userScore as number ?? 0) ? "'FILL' 1" : "'FILL' 0",
+                    color: star <= (r.userScore ?? 0) ? "var(--color-tertiary)" : "var(--color-outline-variant)",
+                    fontVariationSettings: star <= (r.userScore ?? 0) ? "'FILL' 1" : "'FILL' 0",
                   }}
                 >star</span>
               ))}
@@ -150,7 +156,7 @@ function RatingsTab() {
 
 function getActivityDescription(activity: ActivityItem): string {
   const title = activity.resourceTitle || "?";
-  const score = String((activity.metadata as Record<string, unknown>)?.score ?? "");
+  const score = String(activity.metadata?.score ?? "");
   switch (activity.type) {
     case "resource_created": return m.activity_resource_created({ title });
     case "resource_updated": return m.activity_resource_updated({ title });
@@ -254,6 +260,7 @@ export function PublicDashboardIsland() {
   const [editForm, setEditForm] = useState<ProfileEditState>({ name: "", bio: "" });
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState("");
+  const [badgeConfig, setBadgeConfig] = useState<import("../../lib/api-client.ts").BadgeConfig>(DEFAULT_BADGE_CONFIG);
 
   useEffect(() => {
     void (async () => {
@@ -269,13 +276,18 @@ export function PublicDashboardIsland() {
 
         const { user } = session;
 
-        // Fetch dashboard data — may fail if endpoint not ready, that's ok
-        const dashData = await api.getUserDashboard().catch(() => ({
-          draftCount: 0,
-          publishedCount: 0,
-          favoriteCount: 0,
-          recentResources: [],
-        }));
+        // Fetch dashboard data + badge config
+        const [dashData, config] = await Promise.all([
+          api.getUserDashboard().catch(() => ({
+            draftCount: 0,
+            publishedCount: 0,
+            favoriteCount: 0,
+            ratingCount: 0,
+            recentResources: [] as Resource[],
+          })),
+          api.getBadgeConfig().catch(() => null),
+        ]);
+        if (config) setBadgeConfig(config);
 
         setDashboard({
           user: {
@@ -288,25 +300,17 @@ export function PublicDashboardIsland() {
             favoriteCount: dashData.favoriteCount ?? 0,
             joinedAt: "",
           },
-          recentResources: (dashData.recentResources ?? []).map((r: Record<string, unknown>) => ({
-            id: (r.id as string) || "",
-            slug: (r.slug as string) || "",
-            title: (r.title as string) || "",
-            description: (r.description as string) || "",
-            resourceType: (r.resourceType as string) || "",
-            language: (r.language as string) || "",
-            license: (r.license as string) || "",
-            author: (r.createdByName as string) || (r.author as string) || null,
-            thumbnailUrl: null,
-            editorialStatus: (r.editorialStatus as string) || "draft",
-            createdAt: (r.createdAt as string) || "",
+          recentResources: ((dashData.recentResources ?? []) as Resource[]).map((r) => ({
+            ...r,
+            author: r.createdByName || r.author || null,
+            createdAt: typeof r.createdAt === "string" ? r.createdAt : "",
           })),
           draftCount: dashData.draftCount ?? 0,
           publishedCount: dashData.publishedCount ?? 0,
           favoriteCount: dashData.favoriteCount ?? 0,
           recentActivity: [], // loaded lazily by ActivityTab
         });
-        setRatingCount((dashData as Record<string, unknown>).ratingCount as number ?? 0);
+        setRatingCount(Number(dashData.ratingCount ?? 0));
       } catch {
         // Unexpected error — redirect to login as fallback
         window.location.href = url("login");
@@ -435,6 +439,7 @@ export function PublicDashboardIsland() {
                   <ResourceCard
                     resource={resource}
                     href={url(`recurso?slug=${resource.slug}`)}
+                    badges={computeResourceBadges(resource, badgeConfig)}
                   />
                   <a href={url(`editar?id=${resource.id}`)} className="dashboard-edit-icon" aria-label={m.profile_edit_resource({ title: resource.title })}>
                     <span className="material-symbols-outlined">edit</span>
@@ -468,6 +473,7 @@ export function PublicDashboardIsland() {
         favoriteCount={dashboard.favoriteCount}
         onLoad={loadFavorites}
         onUnfavorite={handleUnfavorite}
+        badgeConfig={badgeConfig}
       />,
     },
     {

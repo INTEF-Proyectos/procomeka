@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import type { ResourceSummary } from "../lib/types/resource-extended.ts";
+import { useIframeScale } from "../hooks/use-iframe-scale.ts";
 import "./ResourceCard.css";
 
 export interface ResourceCardProps {
@@ -7,6 +8,7 @@ export interface ResourceCardProps {
   href: string;
   overlayBadge?: string;
   overlayBadgeVariant?: "primary" | "tertiary";
+  badges?: { text: string; variant: "primary" | "tertiary" }[];
   onToggleFavorite?: (resourceId: string) => Promise<{ favorited: boolean }> | void;
   isFavorited?: boolean;
   className?: string;
@@ -17,13 +19,17 @@ export function ResourceCard({
   href,
   overlayBadge,
   overlayBadgeVariant = "primary",
+  badges,
   onToggleFavorite,
   isFavorited = false,
   className = "",
 }: ResourceCardProps) {
   const description = resource.description || "";
   const clipped = description.length > 140 ? `${description.slice(0, 140)}...` : description;
+  const hasPreview = !!resource.elpxPreview?.previewUrl;
+  const previewRef = useIframeScale<HTMLDivElement>({ iframeWidth: 1200, iframeHeight: 675 });
   const [favorited, setFavorited] = useState(isFavorited);
+  const [favCount, setFavCount] = useState(resource.favoriteCount ?? 0);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => { setFavorited(isFavorited); }, [isFavorited]);
@@ -31,13 +37,25 @@ export function ResourceCard({
   async function handleFavorite(e: React.MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
-    if (!onToggleFavorite) return;
     const next = !favorited;
     setFavorited(next); // optimistic
+    setFavCount((prev) => prev + (next ? 1 : -1)); // optimistic
     try {
-      await onToggleFavorite(resource.id);
+      if (onToggleFavorite) {
+        const result = await onToggleFavorite(resource.id);
+        if (result && typeof result.favorited === "boolean") {
+          setFavorited(result.favorited);
+        }
+      } else {
+        const { getApiClient } = await import("../lib/get-api-client.ts");
+        const api = await getApiClient();
+        const result = await api.toggleFavorite(resource.slug);
+        setFavorited(result.favorited);
+        setFavCount(result.count);
+      }
     } catch {
       setFavorited(!next); // rollback
+      setFavCount((prev) => prev + (next ? -1 : 1)); // rollback
     }
   }
 
@@ -54,16 +72,27 @@ export function ResourceCard({
   return (
     <a href={href} className={`rc-card ${className}`.trim()}>
       <div className="rc-image">
-        {resource.thumbnailUrl ? (
+        {hasPreview ? (
+          <div className="rc-preview-wrapper" ref={previewRef}>
+            <iframe
+              src={resource.elpxPreview!.previewUrl}
+              loading="lazy"
+              tabIndex={-1}
+              sandbox="allow-scripts allow-same-origin"
+              title="Vista previa"
+            />
+          </div>
+        ) : resource.thumbnailUrl ? (
           <img src={resource.thumbnailUrl} alt="" className="rc-image-img" loading="lazy" />
         ) : (
           <div className="rc-image-placeholder">
             <span className="material-symbols-outlined">description</span>
           </div>
         )}
-        {overlayBadge && (
+        {(overlayBadge || (badges && badges.length > 0)) && (
           <div className="rc-image-badges">
-            <span className={`rc-overlay-badge rc-overlay-badge-${overlayBadgeVariant}`}>{overlayBadge}</span>
+            {overlayBadge && <span className={`rc-overlay-badge rc-overlay-badge-${overlayBadgeVariant}`}>{overlayBadge}</span>}
+            {badges?.map((b) => <span key={b.text} className={`rc-overlay-badge rc-overlay-badge-${b.variant}`}>{b.text}</span>)}
           </div>
         )}
       </div>
@@ -76,7 +105,7 @@ export function ResourceCard({
         <p className="rc-desc">{clipped}</p>
 
         {/* Social stats row */}
-        {(resource.rating || resource.favoriteCount) ? (
+        {(resource.rating || favCount > 0) ? (
           <div className="rc-stats">
             {resource.rating && resource.rating.count > 0 && (
               <span className="rc-stat">
@@ -85,10 +114,10 @@ export function ResourceCard({
                 <span className="rc-stat-count">({resource.rating.count})</span>
               </span>
             )}
-            {resource.favoriteCount !== undefined && resource.favoriteCount > 0 && (
+            {favCount > 0 && (
               <span className="rc-stat">
                 <span className="material-symbols-outlined" aria-hidden="true">bookmark</span>
-                {resource.favoriteCount}
+                {favCount}
               </span>
             )}
           </div>

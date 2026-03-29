@@ -42,6 +42,72 @@ export function formatDateLong(value: string | number | Date | null | undefined)
 	});
 }
 
+/** Compute display badges (Novedad / Destacado) for a resource. */
+export function computeResourceBadges(
+	resource: {
+		createdAt?: string | number | Date | null;
+		rating?: { average: number; count: number };
+		favoriteCount?: number;
+	},
+	config: {
+		novedadDays: number;
+		destacadoMinRatings: number;
+		destacadoMinAvg: number;
+		destacadoMinFavorites: number;
+	},
+): { text: string; variant: "primary" | "tertiary" }[] {
+	const badges: { text: string; variant: "primary" | "tertiary" }[] = [];
+
+	const createdAt = resource.createdAt ? new Date(resource.createdAt) : null;
+	if (createdAt) {
+		const daysSinceCreation = Math.floor((Date.now() - createdAt.getTime()) / 86400000);
+		if (daysSinceCreation <= config.novedadDays) {
+			badges.push({ text: "Novedad", variant: "primary" });
+		}
+	}
+
+	const rating = resource.rating;
+	const favCount = Number(resource.favoriteCount ?? 0);
+	if (
+		rating &&
+		rating.count >= config.destacadoMinRatings &&
+		rating.average >= config.destacadoMinAvg &&
+		favCount >= config.destacadoMinFavorites
+	) {
+		badges.push({ text: "Destacado", variant: "tertiary" });
+	}
+
+	return badges;
+}
+
+/** Default badge configuration — single source of truth for client-side defaults. */
+export const DEFAULT_BADGE_CONFIG: {
+	novedadDays: number;
+	destacadoMinRatings: number;
+	destacadoMinAvg: number;
+	destacadoMinFavorites: number;
+} = {
+	novedadDays: 30,
+	destacadoMinRatings: 3,
+	destacadoMinAvg: 4.0,
+	destacadoMinFavorites: 3,
+};
+
+/** Human-readable relative timestamp (Spanish). */
+export function timeAgo(dateStr: string | number | Date | null): string {
+	if (!dateStr) return "";
+	const d = new Date(dateStr);
+	const now = Date.now();
+	const diffMs = now - d.getTime();
+	const hours = Math.floor(diffMs / 3600000);
+	if (hours < 1) return "Hace unos minutos";
+	if (hours < 24) return `Hace ${hours}h`;
+	const days = Math.floor(hours / 24);
+	if (days === 1) return "Ayer";
+	if (days < 7) return `Hace ${days} dias`;
+	return d.toLocaleDateString("es-ES", { day: "numeric", month: "short" });
+}
+
 /** Role hierarchy levels. Canonical source — import from here. */
 export const ROLE_LEVELS: Record<string, number> = {
 	reader: 0,
