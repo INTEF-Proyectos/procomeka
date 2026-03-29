@@ -19,11 +19,24 @@ jobs:
       - name: Deploy to PRE
         run: |
           echo "Simulating deployment to PRE environment..."
-          echo "1. Connect to PRE server via SSH"
-          echo "2. Copy docker-compose.prod.yml and .env.pre"
-          echo "3. Run: docker compose -f docker-compose.prod.yml pull"
-          echo "4. Run: docker compose -f docker-compose.prod.yml up -d --remove-orphans"
-          echo "5. Run: docker compose run --rm cli migrate"
+          # In a real scenario, use an action like appleboy/ssh-action
+          # or multiple 'run' steps to scp and ssh.
+
+          # 1. Prepare environment
+          # cat <<EOF > .env.pre
+          # DB_PASSWORD=${{ secrets.PRE_DB_PASSWORD }}
+          # BETTER_AUTH_SECRET=${{ secrets.PRE_BETTER_AUTH_SECRET }}
+          # PUBLIC_URL=https://pre.procomeka.es
+          # GHCR_IMAGE_BASE=ghcr.io/${{ github.repository_owner }}
+          # EOF
+
+          # 2. Deploy (mocked with echo)
+          echo "ssh pre-server 'mkdir -p /app'"
+          echo "scp docker-compose.prod.yml nginx.prod.conf .env.pre pre-server:/app/"
+          echo "ssh pre-server 'cd /app && docker compose -f docker-compose.prod.yml pull'"
+          echo "ssh pre-server 'cd /app && docker compose -f docker-compose.prod.yml up -d --remove-orphans'"
+          echo "ssh pre-server 'cd /app && docker compose run --rm cli migrate'"
+
           echo "PRE deployment complete."
 
   deploy-pro:
@@ -38,8 +51,14 @@ jobs:
         uses: actions/checkout@v4
       - name: Deploy to PRO
         run: |
-          echo "Simulating production deployment (after approval)..."
-          echo "1. Pull latest images from GHCR"
-          echo "2. Apply blue-green or rolling update"
-          echo "3. Run database migrations"
+          echo "Simulating production deployment (after manual approval)..."
+
+          # 1. Prepare environment (example using secrets)
+          # echo "DB_PASSWORD=${{ secrets.PRO_DB_PASSWORD }}" > .env.pro
+
+          # 2. Deploy (mocked with echo)
+          echo "ssh pro-server 'cd /app && docker compose -f docker-compose.prod.yml pull'"
+          echo "ssh pro-server 'cd /app && docker compose -f docker-compose.prod.yml up -d'"
+          echo "ssh pro-server 'cd /app && docker compose run --rm cli migrate'"
+
           echo "PRO deployment complete."

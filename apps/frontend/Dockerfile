@@ -1,5 +1,5 @@
 # --- Base stage ---
-FROM oven/bun:latest AS base
+FROM oven/bun:1.2.14 AS base
 WORKDIR /app
 
 # --- Build stage ---
@@ -18,7 +18,7 @@ COPY packages/db/ packages/db/
 RUN cd apps/frontend && bun run build
 
 # --- Production stage ---
-FROM nginx:alpine AS release
+FROM nginx:1.27.4-alpine AS release
 
 # Copy built files from build stage to Nginx web root
 COPY --from=build /app/apps/frontend/dist /usr/share/nginx/html

@@ -1,5 +1,5 @@
 # --- Base stage ---
-FROM oven/bun:latest AS base
+FROM oven/bun:1.2.14 AS base
 WORKDIR /app
 
 # --- Dependencies stage ---
