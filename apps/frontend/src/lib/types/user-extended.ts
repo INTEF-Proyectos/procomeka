@@ -15,11 +15,22 @@ export interface PublicUserProfile {
 /** Activity item for the dashboard feed */
 export interface ActivityItem {
   id: string;
-  type: "resource_published" | "resource_drafted" | "comment_posted" | "rating_given" | "favorite_added";
+  type:
+    | "resource_created"
+    | "resource_updated"
+    | "resource_published"
+    | "resource_drafted"
+    | "resource_status_changed"
+    | "rating_given"
+    | "favorite_added"
+    | "favorite_removed"
+    | "file_uploaded"
+    | "resource_downloaded";
   resourceId?: string;
   resourceTitle?: string;
   resourceSlug?: string;
   description: string;
+  metadata?: Record<string, unknown> | null;
   createdAt: string;
 }
 

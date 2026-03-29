@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { type AuthEnv, requireRole } from "../../auth/middleware.ts";
 import { getCurrentUser, hasMinRole, canManageResource } from "../../auth/roles.ts";
-import { ensureCurrentUser } from "../../helpers.ts";
+import { ensureCurrentUser, logActivity } from "../../helpers.ts";
 import { buildCrudRoutes } from "../crud-builder.ts";
 import {
 	validateCreateResource,
@@ -80,6 +80,28 @@ const resourceRoutes = buildCrudRoutes({
 		await ensureCurrentUser(user);
 		return { ...body, createdBy: user.id };
 	},
+	afterCreate: async (user, result, data) => {
+		const r = result as { id: string; slug: string };
+		await logActivity({
+			userId: user.id,
+			type: "resource_created",
+			resourceId: r.id,
+			resourceTitle: (data as { title?: string }).title ?? null,
+			resourceSlug: r.slug,
+			description: `Creaste el recurso «${(data as { title?: string }).title}»`,
+		});
+	},
+	afterUpdate: async (user, id, entity, _data) => {
+		const r = entity as { title?: string; slug?: string };
+		await logActivity({
+			userId: user.id,
+			type: "resource_updated",
+			resourceId: id,
+			resourceTitle: r.title ?? null,
+			resourceSlug: r.slug ?? null,
+			description: `Actualizaste el recurso «${r.title}»`,
+		});
+	},
 	notFoundMessage: "Recurso no encontrado",
 });
 
@@ -156,6 +178,23 @@ resourceRoutes.patch("/:id/status", async (c) => {
 	if (!transitionCheck.valid) return c.json({ error: "Transición no permitida", details: transitionCheck.errors }, 403);
 
 	await repo.updateEditorialStatus(db(), id, body.status, user.id);
+
+	const statusLabels: Record<string, string> = {
+		draft: "borrador", review: "revisión", published: "publicado", archived: "archivado",
+	};
+	const activityType = body.status === "published" ? "resource_published"
+		: body.status === "draft" ? "resource_drafted"
+		: "resource_status_changed";
+	await logActivity({
+		userId: user.id,
+		type: activityType,
+		resourceId: id,
+		resourceTitle: existing.title,
+		resourceSlug: existing.slug,
+		description: `Cambiaste el estado de «${existing.title}» a ${statusLabels[body.status] ?? body.status}`,
+		metadata: { oldStatus: existing.editorialStatus, newStatus: body.status },
+	});
+
 	return c.json({ id, status: body.status });
 });
 

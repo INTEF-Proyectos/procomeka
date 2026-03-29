@@ -225,17 +225,13 @@ export interface ApiClient {
 	// Social
 	getResourceRatings(slug: string): Promise<{ resourceId: string; averageScore: number; totalRatings: number; distribution: Record<number, number> }>;
 	submitRating(slug: string, score: number): Promise<{ resourceId: string; userId: string; score: number; createdAt: string }>;
-	getResourceComments(slug: string, opts?: { limit?: number; offset?: number }): Promise<PaginatedResult<{ comment: any; replies: any[] }>>;
-	createComment(slug: string, body: string, parentId?: string): Promise<any>;
-	editComment(id: string, body: string): Promise<any>;
-	deleteComment(id: string): Promise<void>;
-	voteComment(id: string): Promise<{ voted: boolean }>;
 	toggleFavorite(slug: string): Promise<{ favorited: boolean; count: number }>;
 	getUserFavorites(opts?: { limit?: number; offset?: number }): Promise<PaginatedResult<Resource>>;
 	getUserRatings(opts?: { limit?: number; offset?: number }): Promise<PaginatedResult<Resource>>;
 	getUserDashboard(): Promise<{ draftCount: number; publishedCount: number; favoriteCount: number; recentResources: Resource[] }>;
+	getUserActivity(opts?: { limit?: number; offset?: number }): Promise<PaginatedResult<import("./types/user-extended.ts").ActivityItem>>;
 	trackDownload(slug: string): Promise<{ count: number }>;
-	getResourceStats(slug: string): Promise<{ downloadCount: number; favoriteCount: number; ratingAvg: number; ratingCount: number; commentCount: number }>;
+	getResourceStats(slug: string): Promise<{ downloadCount: number; favoriteCount: number; ratingAvg: number; ratingCount: number }>;
 
 	// Dev
 	seedResources(count: number, clean?: boolean): Promise<{ count: number; durationMs: number }>;

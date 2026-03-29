@@ -1,6 +1,5 @@
 import {
   MOCK_RESOURCES,
-  MOCK_COMMENTS,
   MOCK_RATING,
   MOCK_DASHBOARD,
   MOCK_COLLECTIONS,
@@ -8,10 +7,8 @@ import {
 } from "./mock-data.ts";
 import type { ResourceSummary } from "../types/resource-extended.ts";
 import type {
-  CommentThread,
   RatingSummary,
   UserRating,
-  Comment,
 } from "../types/social.ts";
 import type { DashboardSummary } from "../types/user-extended.ts";
 import type { SearchResult } from "../types/search.ts";
@@ -31,7 +28,6 @@ function delay(ms?: number): Promise<void> {
 const favoritedSlugs = new Set<string>();
 const downloadCounts = new Map<string, number>();
 const userRatings = new Map<string, number>();
-let commentCounter = 100;
 
 // ---------------------------------------------------------------------------
 // Search resources
@@ -222,79 +218,6 @@ export async function getResourceRatings(
 }
 
 // ---------------------------------------------------------------------------
-// List comments
-// ---------------------------------------------------------------------------
-
-export async function listComments(
-  _slug: string,
-): Promise<CommentThread[]> {
-  await delay();
-  return MOCK_COMMENTS;
-}
-
-// ---------------------------------------------------------------------------
-// Create comment
-// ---------------------------------------------------------------------------
-
-export async function createComment(
-  slug: string,
-  body: string,
-  parentId?: string,
-): Promise<Comment> {
-  await delay();
-
-  commentCounter += 1;
-  const resource = MOCK_RESOURCES.find((r) => r.slug === slug);
-  const now = new Date().toISOString();
-
-  const comment: Comment = {
-    id: `com-${commentCounter}`,
-    resourceId: resource?.id ?? slug,
-    userId: "user-001",
-    parentId: parentId ?? null,
-    body,
-    status: "visible",
-    author: { id: "user-001", name: "Elena Martinez" },
-    usefulCount: 0,
-    userVotedUseful: false,
-    createdAt: now,
-    updatedAt: now,
-  };
-
-  return comment;
-}
-
-// ---------------------------------------------------------------------------
-// Reply to comment
-// ---------------------------------------------------------------------------
-
-export async function replyToComment(
-  parentId: string,
-  body: string,
-): Promise<Comment> {
-  await delay();
-
-  commentCounter += 1;
-  const now = new Date().toISOString();
-
-  const reply: Comment = {
-    id: `com-${commentCounter}`,
-    resourceId: "res-001",
-    userId: "user-001",
-    parentId,
-    body,
-    status: "visible",
-    author: { id: "user-001", name: "Elena Martinez" },
-    usefulCount: 0,
-    userVotedUseful: false,
-    createdAt: now,
-    updatedAt: now,
-  };
-
-  return reply;
-}
-
-// ---------------------------------------------------------------------------
 // Get dashboard summary
 // ---------------------------------------------------------------------------
 
@@ -384,7 +307,7 @@ export async function trackDownload(slug: string): Promise<{ count: number }> {
 // Get resource stats (aggregated)
 // ---------------------------------------------------------------------------
 
-export async function getResourceStats(slug: string): Promise<{ downloadCount: number; favoriteCount: number; ratingAvg: number; ratingCount: number; commentCount: number }> {
+export async function getResourceStats(slug: string): Promise<{ downloadCount: number; favoriteCount: number; ratingAvg: number; ratingCount: number }> {
   await delay();
   const resource = MOCK_RESOURCES.find(r => r.slug === slug);
   return {
@@ -392,6 +315,5 @@ export async function getResourceStats(slug: string): Promise<{ downloadCount: n
     favoriteCount: resource?.favoriteCount ?? 0,
     ratingAvg: resource?.rating?.average ?? 0,
     ratingCount: resource?.rating?.count ?? 0,
-    commentCount: MOCK_COMMENTS.length,
   };
 }

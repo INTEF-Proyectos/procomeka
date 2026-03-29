@@ -265,7 +265,7 @@ function ResourceDetailContent({ resource, session, stats, isFavorited }: { reso
           ) : null}
 
           {/* Ratings */}
-          <section className="detail-comments-section">
+          <section className="detail-ratings-section">
             <RatingIsland resourceSlug={resource.slug} currentUserId={currentUserId} />
           </section>
         </div>
@@ -375,7 +375,6 @@ interface ResourceStats {
   favoriteCount: number;
   ratingAvg: number;
   ratingCount: number;
-  commentCount: number;
 }
 
 export function ResourceDetailIsland() {

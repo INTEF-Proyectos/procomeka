@@ -58,7 +58,3 @@ export { RatingSummary } from "./RatingSummary.tsx";
 export type { RatingSummaryProps } from "./RatingSummary.tsx";
 export { FavoriteButton } from "./FavoriteButton.tsx";
 export type { FavoriteButtonProps } from "./FavoriteButton.tsx";
-export { CommentItem } from "./CommentItem.tsx";
-export type { CommentItemProps } from "./CommentItem.tsx";
-export { CommentList } from "./CommentList.tsx";
-export type { CommentListProps } from "./CommentList.tsx";

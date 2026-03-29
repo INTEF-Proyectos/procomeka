@@ -369,11 +369,27 @@
 
 .activity-item {
   display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 0.75rem;
   padding: 0.75rem 1rem;
   background: var(--color-surface-container-lowest);
   border-radius: 0.75rem;
+}
+
+.activity-icon {
+  font-size: 1.25rem;
+  color: var(--color-on-surface-variant);
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+}
+
+.activity-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  flex: 1;
+  min-width: 0;
 }
 
 .activity-description {
@@ -395,6 +411,8 @@
 .activity-time {
   font-size: 0.75rem;
   color: var(--color-on-surface-variant);
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 /* ===== Ratings list ===== */
