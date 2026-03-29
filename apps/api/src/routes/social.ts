@@ -1,8 +1,8 @@
 import { Hono } from "hono";
 import { type AuthEnv, sessionMiddleware, requireAuth } from "../auth/middleware.ts";
-import { parsePagination, logActivity } from "../helpers.ts";
+import { buildElpxPreview, parsePagination, logActivity } from "../helpers.ts";
 import { getDb } from "../db.ts";
-import { eq, and, sql, desc, isNull } from "drizzle-orm";
+import { eq, and, sql, desc, isNull, inArray } from "drizzle-orm";
 import {
 	ratings,
 	favorites,
@@ -31,25 +31,33 @@ async function enrichResources<T extends { id: string }>(rows: T[]) {
 	const elpxList = await repo.listElpxProjectsByResourceIds(db, resourceIds);
 	const elpxMap = new Map(elpxList.map((e: { resourceId: string; hash: string; hasPreview: number }) => [e.resourceId, e]));
 
-	// Social aggregates — one query per resource (simple, works everywhere)
+	// Social aggregates — two batch queries instead of 2N individual queries
+	const [favRows, ratRows] = await Promise.all([
+		db.select({ resourceId: favorites.resourceId, count: sql<number>`count(*)` })
+			.from(favorites)
+			.where(inArray(favorites.resourceId, resourceIds))
+			.groupBy(favorites.resourceId),
+		db.select({ resourceId: ratings.resourceId, avg: sql<number>`coalesce(avg(${ratings.score}), 0)`, count: sql<number>`count(*)` })
+			.from(ratings)
+			.where(inArray(ratings.resourceId, resourceIds))
+			.groupBy(ratings.resourceId),
+	]);
+
+	const favMap = new Map(favRows.map((r) => [r.resourceId, Number(r.count)]));
+	const ratMap = new Map(ratRows.map((r) => [r.resourceId, { avg: Number(r.avg), count: Number(r.count) }]));
+
 	const socialMap = new Map<string, { favCount: number; ratingAvg: number; ratingCount: number }>();
 	for (const rid of resourceIds) {
-		const [favResult, ratResult] = await Promise.all([
-			db.select({ count: sql<number>`count(*)` }).from(favorites).where(eq(favorites.resourceId, rid)),
-			db.select({ avg: sql<number>`coalesce(avg(${ratings.score}), 0)`, count: sql<number>`count(*)` }).from(ratings).where(eq(ratings.resourceId, rid)),
-		]);
 		socialMap.set(rid, {
-			favCount: Number(favResult[0]?.count ?? 0),
-			ratingAvg: Number(ratResult[0]?.avg ?? 0),
-			ratingCount: Number(ratResult[0]?.count ?? 0),
+			favCount: favMap.get(rid) ?? 0,
+			ratingAvg: ratMap.get(rid)?.avg ?? 0,
+			ratingCount: ratMap.get(rid)?.count ?? 0,
 		});
 	}
 
 	return rows.map((r) => {
 		const elpx = elpxMap.get(r.id);
-		const elpxPreview = elpx?.hasPreview === 1
-			? { hash: elpx.hash, previewUrl: `/api/v1/elpx/${elpx.hash}/` }
-			: null;
+		const elpxPreview = buildElpxPreview(elpx);
 		const social = socialMap.get(r.id);
 		return {
 			...r,

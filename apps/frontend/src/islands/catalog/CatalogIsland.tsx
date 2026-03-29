@@ -1,5 +1,7 @@
 import { startTransition, useCallback, useEffect, useRef, useState } from "react";
-import type { Resource } from "../../lib/api-client.ts";
+import type { Resource, BadgeConfig } from "../../lib/api-client.ts";
+import { useIframeScale } from "../../hooks/use-iframe-scale.ts";
+import { computeResourceBadges } from "../../lib/shared-utils.ts";
 import {
 	CATALOG_QUERY_CHANGE_EVENT,
 	dispatchCatalogQuerySync,
@@ -62,7 +64,7 @@ function ResourceCard({ resource, initialFavorited = false, isLoggedIn = false, 
 	const description = resource.description || "";
 	const clipped = description.length > 140 ? `${description.slice(0, 140)}...` : description;
 	const hasPreview = !!resource.elpxPreview?.previewUrl;
-	const previewRef = useRef<HTMLDivElement>(null);
+	const previewRef = useIframeScale<HTMLDivElement>({ iframeWidth: 1200, iframeHeight: 675 });
 	const authorInitial = (resource.createdByName || resource.author || "?").charAt(0).toUpperCase();
 	const [bookmarked, setBookmarked] = useState(initialFavorited);
 	const [copied, setCopied] = useState(false);
@@ -102,25 +104,8 @@ function ResourceCard({ resource, initialFavorited = false, isLoggedIn = false, 
 		});
 	}, [resource.slug]);
 
-	useEffect(() => {
-		if (!previewRef.current) return;
-		const wrapper = previewRef.current;
-		const iframe = wrapper.querySelector("iframe");
-		if (!iframe) return;
-		const IFRAME_W = 1200, IFRAME_H = 675;
-		function rescale() {
-			const w = wrapper.clientWidth || 280;
-			const h = wrapper.clientHeight || 158;
-			const scale = Math.min(w / IFRAME_W, h / IFRAME_H);
-			iframe!.style.transform = `scale(${scale})`;
-		}
-		rescale();
-		window.addEventListener("resize", rescale);
-		return () => window.removeEventListener("resize", rescale);
-	}, [hasPreview]);
-
-	const [favCount, setFavCount] = useState(Number((resource as Record<string, unknown>).favoriteCount ?? 0));
-	const rating = (resource as Record<string, unknown>).rating as { average: number; count: number } | undefined;
+	const [favCount, setFavCount] = useState(Number(resource.favoriteCount ?? 0));
+	const rating = resource.rating;
 
 	const badgeOverlay = badges && badges.length > 0 ? (
 		<div className="card-badges">
@@ -217,7 +202,7 @@ export function CatalogIsland() {
 	const [sidebarOpen, setSidebarOpen] = useState(false);
 	const [favoritedSlugs, setFavoritedSlugs] = useState<Set<string>>(new Set());
 	const [isLoggedIn, setIsLoggedIn] = useState(false);
-	const [badgeConfig, setBadgeConfig] = useState<import("../../lib/api-client.ts").BadgeConfig>({ novedadDays: 30, destacadoMinRatings: 3, destacadoMinAvg: 4.0, destacadoMinFavorites: 3 });
+	const [badgeConfig, setBadgeConfig] = useState<BadgeConfig>({ novedadDays: 30, destacadoMinRatings: 3, destacadoMinAvg: 4.0, destacadoMinFavorites: 3 });
 	const requestIdRef = useRef(0);
 	const listingStateRef = useRef<ListingState>(DEFAULT_LISTING_STATE);
 
@@ -517,17 +502,7 @@ export function CatalogIsland() {
 						<p className="empty">{m.catalog_empty()}</p>
 					) : null}
 					{!loading && !error && resources.map((resource) => {
-						const r = resource as Record<string, unknown>;
-						const cardBadges: { text: string; variant: "primary" | "tertiary" }[] = [];
-						const createdAt = resource.createdAt ? new Date(resource.createdAt as string) : null;
-						if (createdAt && Math.floor((Date.now() - createdAt.getTime()) / 86400000) <= badgeConfig.novedadDays) {
-							cardBadges.push({ text: "Novedad", variant: "primary" });
-						}
-						const rating = r.rating as { average: number; count: number } | undefined;
-						const favCount = Number(r.favoriteCount ?? 0);
-						if (rating && rating.count >= badgeConfig.destacadoMinRatings && rating.average >= badgeConfig.destacadoMinAvg && favCount >= badgeConfig.destacadoMinFavorites) {
-							cardBadges.push({ text: "Destacado", variant: "tertiary" });
-						}
+						const cardBadges = computeResourceBadges(resource, badgeConfig);
 						return <ResourceCard key={resource.id} resource={resource} initialFavorited={favoritedSlugs.has(resource.slug)} isLoggedIn={isLoggedIn} badges={cardBadges} />;
 					})}
 				</div>

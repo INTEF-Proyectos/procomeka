@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import type { ResourceSummary } from "../lib/types/resource-extended.ts";
+import { useIframeScale } from "../hooks/use-iframe-scale.ts";
 import "./ResourceCard.css";
 
 export interface ResourceCardProps {
@@ -26,30 +27,12 @@ export function ResourceCard({
   const description = resource.description || "";
   const clipped = description.length > 140 ? `${description.slice(0, 140)}...` : description;
   const hasPreview = !!resource.elpxPreview?.previewUrl;
-  const previewRef = useRef<HTMLDivElement>(null);
+  const previewRef = useIframeScale<HTMLDivElement>({ iframeWidth: 1200, iframeHeight: 675 });
   const [favorited, setFavorited] = useState(isFavorited);
   const [favCount, setFavCount] = useState(resource.favoriteCount ?? 0);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => { setFavorited(isFavorited); }, [isFavorited]);
-
-  // Scale iframe to fit card thumbnail area
-  useEffect(() => {
-    if (!hasPreview || !previewRef.current) return;
-    const wrapper = previewRef.current;
-    const iframe = wrapper.querySelector("iframe");
-    if (!iframe) return;
-    const IFRAME_W = 1200, IFRAME_H = 675;
-    function rescale() {
-      const w = wrapper.clientWidth || 280;
-      const h = wrapper.clientHeight || 158;
-      const scale = Math.min(w / IFRAME_W, h / IFRAME_H);
-      iframe!.style.transform = `scale(${scale})`;
-    }
-    rescale();
-    window.addEventListener("resize", rescale);
-    return () => window.removeEventListener("resize", rescale);
-  }, [hasPreview]);
 
   async function handleFavorite(e: React.MouseEvent) {
     e.preventDefault();

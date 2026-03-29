@@ -42,6 +42,44 @@ export function formatDateLong(value: string | number | Date | null | undefined)
 	});
 }
 
+/** Compute display badges (Novedad / Destacado) for a resource. */
+export function computeResourceBadges(
+	resource: {
+		createdAt?: string | number | Date | null;
+		rating?: { average: number; count: number };
+		favoriteCount?: number;
+	},
+	config: {
+		novedadDays: number;
+		destacadoMinRatings: number;
+		destacadoMinAvg: number;
+		destacadoMinFavorites: number;
+	},
+): { text: string; variant: "primary" | "tertiary" }[] {
+	const badges: { text: string; variant: "primary" | "tertiary" }[] = [];
+
+	const createdAt = resource.createdAt ? new Date(resource.createdAt) : null;
+	if (createdAt) {
+		const daysSinceCreation = Math.floor((Date.now() - createdAt.getTime()) / 86400000);
+		if (daysSinceCreation <= config.novedadDays) {
+			badges.push({ text: "Novedad", variant: "primary" });
+		}
+	}
+
+	const rating = resource.rating;
+	const favCount = Number(resource.favoriteCount ?? 0);
+	if (
+		rating &&
+		rating.count >= config.destacadoMinRatings &&
+		rating.average >= config.destacadoMinAvg &&
+		favCount >= config.destacadoMinFavorites
+	) {
+		badges.push({ text: "Destacado", variant: "tertiary" });
+	}
+
+	return badges;
+}
+
 /** Role hierarchy levels. Canonical source — import from here. */
 export const ROLE_LEVELS: Record<string, number> = {
 	reader: 0,

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { getApiClient } from "../../lib/get-api-client.ts";
 import { url } from "../../lib/paths.ts";
 import type { Resource, CollectionRecord, BadgeConfig } from "../../lib/api-client.ts";
+import { useIframeScale } from "../../hooks/use-iframe-scale.ts";
 import "./HomeDataIsland.css";
 
 // ---------------------------------------------------------------------------
@@ -32,31 +33,11 @@ function shuffleAndPick<T>(arr: T[], n: number): T[] {
 }
 
 // ---------------------------------------------------------------------------
-// Scaled iframe preview component
+// Scaled iframe preview component (uses shared hook)
 // ---------------------------------------------------------------------------
 
 function IframePreview({ src, className, iframeWidth = 1024, iframeHeight = 768, fillWidth = false }: { src: string; className?: string; iframeWidth?: number; iframeHeight?: number; fillWidth?: boolean }) {
-	const ref = useRef<HTMLDivElement>(null);
-
-	useEffect(() => {
-		if (!ref.current) return;
-		const wrapper = ref.current;
-		const iframe = wrapper.querySelector("iframe");
-		if (!iframe) return;
-		// +20px extra para empujar la scrollbar fuera del overflow:hidden del contenedor
-		iframe.style.width = `${iframeWidth + 20}px`;
-		iframe.style.height = `${iframeHeight}px`;
-		function rescale() {
-			const w = wrapper.clientWidth || 280;
-			const h = wrapper.clientHeight || 200;
-			// fillWidth: scale to fill width (content may overflow vertically, hidden by overflow:hidden)
-			const scale = fillWidth ? (w / iframeWidth) : Math.min(w / iframeWidth, h / iframeHeight);
-			iframe!.style.transform = `scale(${scale})`;
-		}
-		rescale();
-		window.addEventListener("resize", rescale);
-		return () => window.removeEventListener("resize", rescale);
-	}, [src, iframeWidth, iframeHeight, fillWidth]);
+	const ref = useIframeScale<HTMLDivElement>({ iframeWidth, iframeHeight, fillWidth });
 
 	return (
 		<div className={`home-iframe-wrap ${className ?? ""}`} ref={ref}>
@@ -72,13 +53,11 @@ function IframePreview({ src, className, iframeWidth = 1024, iframeHeight = 768,
 function FeaturedSection({ resources, badgeConfig }: { resources: Resource[]; badgeConfig: BadgeConfig }) {
 	// Pick resources that meet "Destacado" criteria or have featuredAt
 	const eligible = resources.filter((r) => {
-		const rec = r as Record<string, unknown>;
-		const rating = rec.rating as { average: number; count: number } | undefined;
-		const favCount = Number(rec.favoriteCount ?? 0);
-		const hasFeatured = !!(rec.featuredAt);
-		const meetsThreshold = rating &&
-			rating.count >= badgeConfig.destacadoMinRatings &&
-			rating.average >= badgeConfig.destacadoMinAvg &&
+		const favCount = Number(r.favoriteCount ?? 0);
+		const hasFeatured = !!r.featuredAt;
+		const meetsThreshold = r.rating &&
+			r.rating.count >= badgeConfig.destacadoMinRatings &&
+			r.rating.average >= badgeConfig.destacadoMinAvg &&
 			favCount >= badgeConfig.destacadoMinFavorites;
 		return hasFeatured || meetsThreshold;
 	});
@@ -89,12 +68,10 @@ function FeaturedSection({ resources, badgeConfig }: { resources: Resource[]; ba
 
 	if (!hero) return null;
 
-	const heroRec = hero as Record<string, unknown>;
-	const heroRating = heroRec.rating as { average: number; count: number } | undefined;
+	const heroRating = hero.rating;
 	const heroPreview = hero.elpxPreview?.previewUrl;
 
-	const secRec = secondary as Record<string, unknown> | undefined;
-	const secRating = secRec?.rating as { average: number; count: number } | undefined;
+	const secRating = secondary?.rating;
 	const secPreview = secondary?.elpxPreview?.previewUrl;
 
 	return (
@@ -267,27 +244,24 @@ export function HomeDataIsland() {
 	useEffect(() => {
 		void (async () => {
 			try {
-				console.log("[HomeDataIsland] loading...");
 				const api = await getApiClient();
-				console.log("[HomeDataIsland] api client ready");
-				const [resResult, colResult, latestResult, config, platformStats] = await Promise.all([
+				const [resResult, colResult, config, platformStats] = await Promise.all([
 					api.listResources({ limit: 20 }),
 					api.listPublicCollections({ limit: 8 }),
-					api.listResources({ limit: 4 }),
 					api.getBadgeConfig().catch(() => null),
 					api.getPlatformStats().catch(() => ({ users: 0 })),
 				]);
 				setFeatured(resResult.data);
 				setCollections(colResult.data);
-				setLatest(latestResult.data);
+				setLatest(resResult.data.slice(0, 4));
 				setStats({
 					resources: resResult.total,
 					users: Number(platformStats.users ?? 0),
 					collections: colResult.total,
 				});
 				if (config) setBadgeConfig(config);
-			} catch (err) {
-				console.error("[HomeDataIsland] error:", err);
+			} catch {
+				// silently ignore — UI already shows fallback
 			} finally {
 				setLoaded(true);
 			}

@@ -3,6 +3,7 @@ import type { CollectionDetailRecord, CollectionRecord } from "../../lib/api-cli
 import { getApiClient } from "../../lib/get-api-client.ts";
 import { url } from "../../lib/paths.ts";
 import { formatDateLong } from "../../lib/shared-utils.ts";
+import { useIframeScale } from "../../hooks/use-iframe-scale.ts";
 import "./PublicCollectionsIsland.css";
 
 const PAGE_SIZE = 9;
@@ -19,21 +20,7 @@ function truncate(text: string, maxLength: number) {
 }
 
 function CollectionIframePreview({ src }: { src: string }) {
-	const ref = useRef<HTMLDivElement>(null);
-	useEffect(() => {
-		if (!ref.current) return;
-		const wrapper = ref.current;
-		const iframe = wrapper.querySelector("iframe");
-		if (!iframe) return;
-		function rescale() {
-			const w = wrapper.clientWidth || 280;
-			const scale = w / 1024;
-			iframe!.style.transform = `scale(${scale})`;
-		}
-		rescale();
-		window.addEventListener("resize", rescale);
-		return () => window.removeEventListener("resize", rescale);
-	}, [src]);
+	const ref = useIframeScale<HTMLDivElement>({ iframeWidth: 1024, fillWidth: true });
 	return (
 		<div className="col-res-preview" ref={ref}>
 			<iframe src={src} loading="lazy" tabIndex={-1} sandbox="allow-scripts allow-same-origin" title="Vista previa" />

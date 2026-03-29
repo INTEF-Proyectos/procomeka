@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { readUploadContent } from "./uploads.ts";
-import { parsePagination } from "../helpers.ts";
+import { buildElpxPreview, parsePagination } from "../helpers.ts";
 import { getDb } from "../db.ts";
 import * as repo from "@procomeka/db/repository";
 const publicRoutes = new Hono();
@@ -27,10 +27,7 @@ publicRoutes.get("/resources", async (c) => {
 	const elpxMap = new Map(elpxProjects.map((e: { resourceId: string; hash: string; hasPreview: number }) => [e.resourceId, e]));
 
 	const data = result.data.map((r: Record<string, unknown>) => {
-		const elpx = elpxMap.get(r.id as string);
-		const elpxPreview = elpx?.hasPreview === 1
-			? { hash: elpx.hash, previewUrl: `/api/v1/elpx/${elpx.hash}/` }
-			: null;
+		const elpxPreview = buildElpxPreview(elpxMap.get(r.id as string));
 		return {
 			...r,
 			elpxPreview,
@@ -76,11 +73,7 @@ publicRoutes.get("/resources/:slug", async (c) => {
 
 	// Include elpx preview URL if the resource has an associated eXeLearning project
 	const elpx = await repo.getElpxProjectByResourceId(getDb().db, resource.id);
-	const elpxPreview = elpx?.hasPreview === 1
-		? { hash: elpx.hash, previewUrl: `/api/v1/elpx/${elpx.hash}/` }
-		: null;
-
-	return c.json({ ...resource, elpxPreview });
+	return c.json({ ...resource, elpxPreview: buildElpxPreview(elpx) });
 });
 
 publicRoutes.get("/uploads/:id/content", async (c) => {
@@ -126,21 +119,34 @@ publicRoutes.get("/collections", async (c) => {
 	});
 
 	// Enrich each collection with elpx preview of its first resource
+	// Phase 1: fetch first resource per collection in parallel
 	const db = getDb().db;
-	const enriched = await Promise.all(result.data.map(async (col: { id: string }) => {
+	const firstResourceByCollection = new Map<string, string>();
+	await Promise.all(result.data.map(async (col: { id: string }) => {
 		try {
 			const colResources = await repo.listCollectionResources(db, col.id, { limit: 1, status: "published" });
 			if (colResources.length > 0) {
 				const firstRes = colResources[0] as { resourceId: string };
-				const elpxList = await repo.listElpxProjectsByResourceIds(db, [firstRes.resourceId]);
-				const elpx = elpxList[0];
-				if (elpx?.hasPreview === 1) {
-					return { ...col, elpxPreview: { hash: elpx.hash, previewUrl: `/api/v1/elpx/${elpx.hash}/` } };
-				}
+				firstResourceByCollection.set(col.id, firstRes.resourceId);
 			}
 		} catch { /* ignore enrichment errors */ }
-		return { ...col, elpxPreview: null };
 	}));
+
+	// Phase 2: single batch elpx lookup for all first resources
+	const allFirstResourceIds = [...new Set(firstResourceByCollection.values())];
+	const elpxMap = new Map<string, { hash: string; hasPreview: number }>();
+	if (allFirstResourceIds.length > 0) {
+		const elpxList = await repo.listElpxProjectsByResourceIds(db, allFirstResourceIds);
+		for (const e of elpxList as { resourceId: string; hash: string; hasPreview: number }[]) {
+			elpxMap.set(e.resourceId, e);
+		}
+	}
+
+	const enriched = result.data.map((col: { id: string }) => {
+		const resourceId = firstResourceByCollection.get(col.id);
+		const elpx = resourceId ? elpxMap.get(resourceId) : undefined;
+		return { ...col, elpxPreview: buildElpxPreview(elpx ?? null) };
+	});
 
 	return c.json({ ...result, data: enriched });
 });
@@ -167,11 +173,7 @@ publicRoutes.get("/collections/:slug", async (c) => {
 		const elpxProjects = await repo.listElpxProjectsByResourceIds(getDb().db, resourceIds);
 		const elpxMap = new Map(elpxProjects.map((e: { resourceId: string; hash: string; hasPreview: number }) => [e.resourceId, e]));
 		enrichedResources = resources.map((r: { resourceId: string }) => {
-			const elpx = elpxMap.get(r.resourceId);
-			const elpxPreview = elpx?.hasPreview === 1
-				? { hash: elpx.hash, previewUrl: `/api/v1/elpx/${elpx.hash}/` }
-				: null;
-			return { ...r, elpxPreview };
+			return { ...r, elpxPreview: buildElpxPreview(elpxMap.get(r.resourceId)) };
 		});
 	}
 
