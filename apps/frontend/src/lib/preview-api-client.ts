@@ -242,7 +242,7 @@ export class PreviewApiClient implements ApiClient {
 	}
 
 	async getConfig(): Promise<AppConfig> {
-		return { oidcEnabled: false, oidcProviders: [], oidcEndSessionUrl: null };
+		return { oidcEnabled: false, oidcEndSessionUrl: null };
 	}
 
 	// --- Auth ---
@@ -266,7 +266,7 @@ export class PreviewApiClient implements ApiClient {
 		return { ok: false, error: "Usuario de demostración no encontrado" };
 	}
 
-	async signInOidc(_providerId?: string, _callbackURL?: string): Promise<SignInResult> {
+	async signInOidc(): Promise<SignInResult> {
 		return { ok: false, error: "OIDC no disponible en modo preview" };
 	}
 

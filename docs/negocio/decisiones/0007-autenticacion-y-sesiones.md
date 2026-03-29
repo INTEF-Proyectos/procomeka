@@ -28,7 +28,7 @@ El mapa de capacidades define autenticación como prioridad alta: "Login con ema
 - Solución todo-en-uno: password, OIDC, sesiones, verificación de email, reset de contraseña.
 - Adaptador Drizzle nativo (`better-auth/adapters/drizzle`) con soporte PostgreSQL.
 - Compatible con Hono vía Web Standards (Request/Response).
-* Plugin SSO genérico para OIDC, configurable dinámicamente para múltiples proveedores.
+* Plugin SSO genérico para OIDC, configurable por variables de entorno para soportar proveedores institucionales (EducaMadrid, XTEC, Google Workspace, Microsoft Entra ID, etc.).
 - Plugin admin con RBAC integrado (`createAccessControl`).
 - Hasheo de contraseñas con Argon2id por defecto.
 - MIT, activamente mantenido, comunidad creciente.
@@ -79,10 +79,9 @@ Justificación principal:
 
 ### Positivas
 * Se habilita login por password y OIDC con una sola integración.
-* Soporte para múltiples proveedores OIDC simultáneos mediante configuración dinámica.
-* Federated Logout: cierre de sesión propagado al IdP institucional.
-* Account Linking: vinculación automática de cuentas por email.
-* OIDC se activa/desactiva por configuración (`OIDC_ENABLED`, `OIDC_PROVIDERS`), cumpliendo requisito de configurabilidad.
+* Soporte para proveedores SSO educativos mediante el estándar OIDC.
+* Provisioning automático de usuarios con rol `reader` por defecto.
+* OIDC se activa/desactiva por configuración (`OIDC_ENABLED`, `OIDC_ISSUER`, etc.), cumpliendo requisito de configurabilidad.
 * Sesiones server-side con cookies seguras, sin JWT en cliente.
 * Verificación de email y reset de contraseña disponibles sin desarrollo adicional.
 * El esquema de auth se genera como tablas Drizzle, integrado en el flujo de migraciones existente.
@@ -95,24 +94,19 @@ Justificación principal:
 ## Notas de Implementación
 
 1. **Configuración OIDC por entorno**
-   Se soporta configuración individual (legacy) o múltiple vía JSON:
    ```env
-   # Opción A: Múltiples proveedores (Recomendado)
-   OIDC_PROVIDERS='[{"id":"educamadrid","name":"EducaMadrid","clientId":"...","clientSecret":"...","issuer":"https://auth.educa.madrid.org","endSessionUrl":"..."}]'
-
-   # Opción B: Legacy (Sola un proveedor)
    OIDC_ENABLED=true
    OIDC_ISSUER=https://idp.educacion.gob.es
    OIDC_CLIENT_ID=procomeka
    OIDC_CLIENT_SECRET=secret
    ```
-   Cuando no hay proveedores configurados, el plugin SSO no se carga.
+   Cuando `OIDC_ENABLED` no está definido, el plugin SSO no se carga.
 
 2. **Montaje en Hono**
    Better Auth se monta como handler catch-all en `/api/auth/*`. El resto de rutas usan middleware de sesión.
 
 3. **Esquema de base de datos**
-   - Tabla `user`: alinear con tabla `users` existente, añadiendo campos requeridos por Better Auth (`emailVerified`, `image`) y campos extendidos (`lastProviderId` para logout federado).
+   - Tabla `user`: alinear con tabla `users` existente, añadiendo campos requeridos por Better Auth (`emailVerified`, `image`).
    - Tablas nuevas: `session`, `account`, `verification`.
    - Actualizar FKs en `resources` y `collections` para referenciar nueva tabla `user`.
 

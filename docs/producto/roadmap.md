@@ -12,7 +12,6 @@ Catalogo MVP operativo con busqueda facetada, CRUD unificado, flujo editorial co
 
 | Hito | Estado |
 |------|--------|
-| SSO educativo (OIDC Multi-provider) | Completado — ADR-0007 ampliada |
 | AGENTS.md y sistema de skills definido | Completado |
 | Visión y mapa de capacidades | Completado |
 | ADR stack base (TypeScript + Bun) | Completado — ADR-0001 |
@@ -82,7 +81,7 @@ Catalogo MVP operativo con busqueda facetada, CRUD unificado, flujo editorial co
 | Épica | Estado |
 |-------|--------|
 | Integración LTI (Moodle) | No iniciada |
-| SSO educativo | **Completado** — Soporte multi-proveedor y logout federado |
+| SSO educativo | Completado |
 | Observabilidad y alertas | No iniciada |
 | Documentación para operadores | No iniciada |
 

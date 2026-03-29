@@ -144,20 +144,8 @@ export function PublicNavIsland() {
     setMenuOpen(false);
     try {
       const api = await getApiClient();
-      const [config] = await Promise.all([
-        api.getConfig().catch(() => null),
-        api.signOut(),
-      ]);
-
-      const lastProviderId = user?.lastProviderId;
-      const provider = config?.oidcProviders?.find((p) => p.id === lastProviderId);
-      const endSessionUrl = provider?.endSessionUrl;
-
-      if (endSessionUrl) {
-        window.location.href = endSessionUrl;
-      } else {
-        window.location.href = url("");
-      }
+      await api.signOut();
+      window.location.href = url("");
     } catch {
       window.location.href = url("");
     }

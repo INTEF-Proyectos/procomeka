@@ -115,12 +115,11 @@ describe("Endpoints básicos", () => {
 });
 
 describe("Config /api/v1/config", () => {
-	test("GET /api/v1/config devuelve oidcEnabled, oidcProviders y oidcEndSessionUrl", async () => {
+	test("GET /api/v1/config devuelve oidcEnabled y oidcEndSessionUrl", async () => {
 		const res = await app.request("/api/v1/config");
 		expect(res.status).toBe(200);
 		const body = await res.json();
 		expect(typeof body.oidcEnabled).toBe("boolean");
-		expect(Array.isArray(body.oidcProviders)).toBe(true);
 		expect("oidcEndSessionUrl" in body).toBe(true);
 	});
 });
