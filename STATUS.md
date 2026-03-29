@@ -6,7 +6,7 @@ Debéis leer este archivo antes de comenzar cualquier tarea para entender el con
 ## Fase Actual: Fase 1 — MVP de catálogo
 
 - **Épica activa:** Catalogo MVP operativo; flujo editorial completo; busqueda facetada implementada; backoffice con CRUD unificado; entidades (tipos, idiomas, licencias) gestionables desde admin; uploads con IndexedDB en preview mode
-- **Agente en turno:** @.agents/skills/documentacion-y-roadmap/SKILL.md
+- **Agente en turno:** @.agents/skills/frontend-ux-accesibilidad/SKILL.md + @.agents/skills/documentacion-y-roadmap/SKILL.md
 
 ## ADRs Bloqueantes (Prioridad Alta)
 
@@ -213,6 +213,27 @@ Antes de escribir código de negocio, se deben resolver las siguientes decisione
 | Fecha | Agente | Acción / Entregable | Estado |
 |-------|--------|---------------------|--------|
 | 2026-03-27 | `@.agents/skills/frontend-ux-accesibilidad` + `@.agents/skills/backend-api-servicios` | Hotfix del endpoint dev de seed: detección robusta de entorno con Bun + tests unitarios específicos | Completado |
+
+## Actualización 2026-03-29 (Feature: ayuda y manual de usuario)
+
+- **Agente en turno:** `@.agents/skills/frontend-ux-accesibilidad/SKILL.md` + `@.agents/skills/documentacion-y-roadmap/SKILL.md`
+- **Acción realizada:** Se implementa la página pública `/ayuda` y se conecta desde la cabecera pública, el footer y el sidebar editorial.
+- **Cambios aplicados:**
+  - Se centraliza el contenido y los enlaces de ayuda en `apps/frontend/src/lib/help-content.ts`.
+  - Se añade la ruta `apps/frontend/src/pages/ayuda.astro` con secciones ancladas para primeros pasos, exploración, publicación, colecciones, FAQ, roles, contacto y mapa web.
+  - La navegación pública añade acceso visible a ayuda incluso durante la carga del estado de sesión.
+  - El footer enlaza `Contacto`, `Mapa Web` y `Preguntas Frecuentes` a secciones reales.
+  - El backoffice añade acceso contextual a ayuda para perfiles editoriales y se sincroniza `backoffice-nav.ts`.
+  - Se documenta la feature en `docs/epics/epic-003/features/feature-ayuda-manual-usuario/`.
+- **Validación:**
+  - `cd apps/frontend && bun test`: verde.
+  - `cd apps/frontend && bun run build`: verde.
+- **Riesgos abiertos:**
+  - El canal operativo de soporte sigue siendo descriptivo; todavía no existe una configuración o integración específica para ticketing/contacto.
+
+| Fecha | Agente | Acción / Entregable | Estado |
+|-------|--------|---------------------|--------|
+| 2026-03-29 | `@.agents/skills/frontend-ux-accesibilidad` + `@.agents/skills/documentacion-y-roadmap` | Página `/ayuda`, enlaces reales en header/footer/backoffice, tests y trazabilidad documental de la feature | Completado |
 
 ## Actualización 2026-03-27 (Backoffice: navegación y CRUD mínimos)
 

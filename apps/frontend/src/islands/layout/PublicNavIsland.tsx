@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { getApiClient } from "../../lib/get-api-client.ts";
+import { buildHelpHref } from "../../lib/help-content.ts";
 import { url } from "../../lib/paths.ts";
 import { gravatarUrl, ROLE_LEVELS } from "../../lib/shared-utils.ts";
 import "./PublicNavIsland.css";
@@ -63,15 +64,29 @@ export function PublicNavIsland() {
     }
   }
 
-  // While loading, show nothing to avoid flash
+  const helpHref = url(buildHelpHref());
+
+  // While loading, keep the help link visible and reserve space for auth actions
   if (loading) {
-    return <div className="pnav-placeholder" />;
+    return (
+      <div className="pnav-actions">
+        <a href={helpHref} className="pnav-help-link">
+          <span className="material-symbols-outlined pnav-help-icon" aria-hidden="true">help</span>
+          Ayuda
+        </a>
+        <div className="pnav-placeholder" aria-hidden="true" />
+      </div>
+    );
   }
 
   // Not logged in → show Acceder + Publicar
   if (!user) {
     return (
       <div className="pnav-actions">
+        <a href={helpHref} className="pnav-help-link">
+          <span className="material-symbols-outlined pnav-help-icon" aria-hidden="true">help</span>
+          Ayuda
+        </a>
         <a href={url("login")} className="pnav-btn-acceder">Acceder</a>
         <a href={url("login")} className="pnav-btn-publicar">Publicar</a>
       </div>
@@ -86,6 +101,10 @@ export function PublicNavIsland() {
 
   return (
     <div className="pnav-actions">
+      <a href={helpHref} className="pnav-help-link">
+        <span className="material-symbols-outlined pnav-help-icon" aria-hidden="true">help</span>
+        Ayuda
+      </a>
       {/* Extra nav links visible only when authenticated */}
       <a href={url("perfil?tab=resources")} className="pnav-nav-link">Mis recursos</a>
       {isHighRole && (
@@ -146,6 +165,11 @@ export function PublicNavIsland() {
             <a href={url("perfil?tab=favorites")} className="pnav-dropdown-item" role="menuitem">
               <span className="material-symbols-outlined" aria-hidden="true">bookmark</span>
               Mis favoritos
+            </a>
+
+            <a href={helpHref} className="pnav-dropdown-item" role="menuitem">
+              <span className="material-symbols-outlined" aria-hidden="true">help</span>
+              Ayuda
             </a>
 
             {isHighRole && (

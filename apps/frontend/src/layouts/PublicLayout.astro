@@ -4,12 +4,13 @@ import "../styles/reset.css";
 import "../styles/utilities.css";
 import PreviewBanner from "../components/PreviewBanner.astro";
 import { PublicNavIsland } from "../islands/layout/PublicNavIsland.tsx";
+import { HELP_FOOTER_LINKS, buildHelpHref } from "../lib/help-content.ts";
 
 interface Props {
   title: string;
   fullWidth?: boolean;
   showNavSearch?: boolean;
-  activePage?: "inicio" | "explorar" | "articulos" | "itinerarios" | "";
+  activePage?: "inicio" | "explorar" | "articulos" | "itinerarios" | "ayuda" | "";
 }
 
 const { title, fullWidth = false, showNavSearch = false, activePage = "" } = Astro.props;
@@ -44,6 +45,7 @@ const isPreview = import.meta.env.PUBLIC_PREVIEW_MODE === "true";
             <a href={`${base}explorar`} class={`public-nav-link${activePage === "explorar" ? " public-nav-link-active" : ""}`}>Explorar</a>
             <a href="#" class={`public-nav-link${activePage === "articulos" ? " public-nav-link-active" : ""}`}>Artículos</a>
             <a href="#" class={`public-nav-link${activePage === "itinerarios" ? " public-nav-link-active" : ""}`}>Itinerarios</a>
+            <a href={`${base}${buildHelpHref()}`} class={`public-nav-link${activePage === "ayuda" ? " public-nav-link-active" : ""}`}>Ayuda</a>
           </div>
         </div>
         <!-- Compact nav search — visible when hero search scrolls out of view -->
@@ -98,9 +100,9 @@ const isPreview = import.meta.env.PUBLIC_PREVIEW_MODE === "true";
         </div>
         <div class="public-footer-col">
           <h4>Ayuda</h4>
-          <a href="#">Contacto</a>
-          <a href="#">Mapa Web</a>
-          <a href="#">Preguntas Frecuentes</a>
+          {HELP_FOOTER_LINKS.map((link) => (
+            <a href={`${base}${buildHelpHref(link.sectionId)}`}>{link.label}</a>
+          ))}
         </div>
       </div>
       <div class="public-footer-bottom">

@@ -215,3 +215,9 @@ La Fase 1 del MVP está prácticamente completa. La migración a React islands a
 1. Implementar endpoints API social: ratings, comments, favorites (conectar componentes de UI existentes).
 2. Importación piloto desde CSV.
 3. Medir rendimiento: Core Web Vitals, bundle sizes, load testing básico.
+
+## Actualización 2026-03-29 — Ayuda y manual de usuario
+
+- Se añade una ruta pública `/ayuda` con manual de uso estructurado para descubrimiento, publicación, colecciones, FAQ, roles y soporte.
+- La navegación pública y el footer ya enlazan a ayuda; el backoffice editorial añade acceso contextual para perfiles `author+`.
+- El cambio mejora onboarding, reduce fricción en búsqueda/publicación y deja una base reutilizable de contenido en `apps/frontend/src/lib/help-content.ts`.
