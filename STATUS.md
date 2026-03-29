@@ -48,6 +48,23 @@ Antes de escribir código de negocio, se deben resolver las siguientes decisione
 | Fecha | Agente | Acción / Entregable | Estado |
 |-------|--------|---------------------|--------|
 | 2026-03-29 | `@.agents/skills/frontend-ux-accesibilidad` + `@.agents/skills/backend-api-servicios` + `@.agents/skills/documentacion-y-roadmap` | Colecciones públicas reales, gestión editorial de recursos asociados, RBAC elevado a `curator`, tests y trazabilidad documental de issue #66 | Completado con desviación controlada |
+| 2026-03-29 | `@.agents/skills/backend-api-servicios` + `@.agents/skills/frontend-ux-accesibilidad` | SSO educativo multi-proveedor (OIDC), Account Linking y Federated Logout | Completado |
+
+## Actualización 2026-03-29 (Feature: SSO educativo multi-proveedor)
+
+- **Agente en turno:** `@.agents/skills/backend-api-servicios/SKILL.md` + `@.agents/skills/frontend-ux-accesibilidad/SKILL.md`
+- **Acción realizada:** Implementación de soporte para múltiples proveedores OIDC institucionales, vinculación automática de cuentas y cierre de sesión federado.
+- **Cambios aplicados:**
+  - `apps/api` permite configurar múltiples IdPs mediante la variable de entorno `OIDC_PROVIDERS` (JSON).
+  - `Better Auth` configurado con `accountLinking` habilitado.
+  - Implementado Federated Logout: el sistema rastrea el último proveedor usado y redirige al IdP institucional al cerrar sesión si el proveedor tiene `endSessionUrl` configurado.
+  - La página de Login renderiza dinámicamente botones para cada proveedor configurado.
+  - `ADR-0007` y `Roadmap` actualizados para reflejar estas capacidades.
+- **Validación:**
+  - Tests unitarios de parsing de proveedores en `apps/api/src/auth/config.unit.test.ts`.
+  - Verificación visual de botones de login dinámicos.
+  - Redirección de logout verificada mediante mocks.
+- **Traspaso recomendado:** `@.agents/skills/seguridad-privacidad-legal/SKILL.md` para auditoría de flujos SSO en entornos reales.
 
 ## Actualización 2026-03-29 (Feature: colecciones públicas y gestión editorial)
 
