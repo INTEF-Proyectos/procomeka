@@ -6,9 +6,9 @@ describe("backoffice navigation", () => {
 		expect(getVisibleSections("reader")).toHaveLength(0);
 	});
 
-	test("author ve recursos y colecciones", () => {
+	test("author ve recursos, colecciones y ayuda", () => {
 		const sections = getVisibleSections("author").map((section) => section.id);
-		expect(sections).toEqual(["dashboard", "resources", "collections"]);
+		expect(sections).toEqual(["dashboard", "resources", "collections", "help"]);
 	});
 
 	test("curator añade categorías", () => {
@@ -17,6 +17,6 @@ describe("backoffice navigation", () => {
 	});
 
 	test("admin ve todas las secciones", () => {
-		expect(getVisibleSections("admin")).toHaveLength(5);
+		expect(getVisibleSections("admin")).toHaveLength(6);
 	});
 });

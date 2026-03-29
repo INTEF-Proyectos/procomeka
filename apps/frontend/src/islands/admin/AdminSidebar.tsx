@@ -1,3 +1,4 @@
+import { buildHelpHref } from "../../lib/help-content.ts";
 import { url } from "../../lib/paths.ts";
 import { ROLE_LEVELS } from "../../lib/shared-utils.ts";
 import type { AdminSection } from "./AdminPageIsland.tsx";
@@ -61,6 +62,12 @@ export function AdminSidebar({
 						);
 					},
 				)}
+				<a className="admin-nav-item" href={url(buildHelpHref("publicar-recurso"))}>
+					<span className="material-symbols-outlined" aria-hidden="true">
+						help
+					</span>
+					<span>Ayuda</span>
+				</a>
 			</nav>
 
 			<div className="admin-sidebar-footer" />

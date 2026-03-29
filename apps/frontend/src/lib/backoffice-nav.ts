@@ -1,3 +1,5 @@
+import { buildHelpHref } from "./help-content.ts";
+
 export type BackofficeRole = "reader" | "author" | "curator" | "admin";
 
 export type BackofficeSection = {
@@ -21,6 +23,7 @@ export const BACKOFFICE_SECTIONS: BackofficeSection[] = [
 	{ id: "collections", label: "Colecciones", href: "admin/colecciones", minRole: "author", icon: "C" },
 	{ id: "taxonomies", label: "Categorias", href: "admin/categorias", minRole: "curator", icon: "T" },
 	{ id: "users", label: "Usuarios", href: "admin/usuarios", minRole: "admin", icon: "U" },
+	{ id: "help", label: "Ayuda", href: buildHelpHref("publicar-recurso"), minRole: "author", icon: "?" },
 ];
 
 export function canAccessSection(role: string | null | undefined, minRole: BackofficeRole): boolean {

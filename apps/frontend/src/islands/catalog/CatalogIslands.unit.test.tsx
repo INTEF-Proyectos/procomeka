@@ -18,7 +18,7 @@ describe("Catalog islands", () => {
 		expect(html).toContain("Filtros");
 		expect(html).toContain("Cargando recursos...");
 		expect(html).toContain("Limpiar filtros");
-		expect(html).toContain("Siguiente");
+		expect(html).toContain("chevron_right");
 	});
 
 	test("ResourceDetailIsland renderiza el estado de carga inicial", () => {
