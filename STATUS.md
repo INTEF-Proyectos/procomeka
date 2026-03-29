@@ -48,6 +48,7 @@ Antes de escribir código de negocio, se deben resolver las siguientes decisione
 | Fecha | Agente | Acción / Entregable | Estado |
 |-------|--------|---------------------|--------|
 | 2026-03-29 | `@.agents/skills/frontend-ux-accesibilidad` + `@.agents/skills/backend-api-servicios` + `@.agents/skills/documentacion-y-roadmap` | Colecciones públicas reales, gestión editorial de recursos asociados, RBAC elevado a `curator`, tests y trazabilidad documental de issue #66 | Completado con desviación controlada |
+| 2026-03-29 | `@.agents/skills/documentacion-y-roadmap` | Actualización de Roadmap y ADR-0007 para reflejar el cumplimiento del requisito de SSO educativo (OIDC) basado en la arquitectura Better Auth ya existente | Completado |
 
 ## Actualización 2026-03-29 (Feature: colecciones públicas y gestión editorial)
 

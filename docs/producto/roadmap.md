@@ -81,7 +81,7 @@ Catalogo MVP operativo con busqueda facetada, CRUD unificado, flujo editorial co
 | Épica | Estado |
 |-------|--------|
 | Integración LTI (Moodle) | No iniciada |
-| SSO educativo | No iniciada |
+| SSO educativo | Completado |
 | Observabilidad y alertas | No iniciada |
 | Documentación para operadores | No iniciada |
 

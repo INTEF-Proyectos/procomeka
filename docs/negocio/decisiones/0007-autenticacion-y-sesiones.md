@@ -28,7 +28,7 @@ El mapa de capacidades define autenticación como prioridad alta: "Login con ema
 - Solución todo-en-uno: password, OIDC, sesiones, verificación de email, reset de contraseña.
 - Adaptador Drizzle nativo (`better-auth/adapters/drizzle`) con soporte PostgreSQL.
 - Compatible con Hono vía Web Standards (Request/Response).
-- Plugin SSO genérico para OIDC, configurable por variables de entorno.
+* Plugin SSO genérico para OIDC, configurable por variables de entorno para soportar proveedores institucionales (EducaMadrid, XTEC, Google Workspace, Microsoft Entra ID, etc.).
 - Plugin admin con RBAC integrado (`createAccessControl`).
 - Hasheo de contraseñas con Argon2id por defecto.
 - MIT, activamente mantenido, comunidad creciente.
@@ -79,6 +79,8 @@ Justificación principal:
 
 ### Positivas
 * Se habilita login por password y OIDC con una sola integración.
+* Soporte para proveedores SSO educativos mediante el estándar OIDC.
+* Provisioning automático de usuarios con rol `reader` por defecto.
 * OIDC se activa/desactiva por configuración (`OIDC_ENABLED`, `OIDC_ISSUER`, etc.), cumpliendo requisito de configurabilidad.
 * Sesiones server-side con cookies seguras, sin JWT en cliente.
 * Verificación de email y reset de contraseña disponibles sin desarrollo adicional.
