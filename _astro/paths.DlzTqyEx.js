@@ -1,0 +1,1 @@
+function n(){return typeof window<"u"&&window.__BASE_URL__||typeof import.meta<"u"&&"/procomeka/"||"/"}function o(){return typeof window<"u"&&window.__PREVIEW_MODE__===!0}function r(e){return n()+e.replace(/^\//,"")}export{n as getBaseUrl,o as isPreviewMode,r as url};
