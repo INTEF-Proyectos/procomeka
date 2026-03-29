@@ -800,6 +800,208 @@
 			"hasPreview": 1
 		}
 	],
+	"mediaItems": [
+		{
+			"id": "media-res-01",
+			"resourceId": "res-01",
+			"type": "elpx",
+			"mimeType": "application/zip",
+			"url": "api/v1/elpx-raw/preview-elpx-res-01.elpx",
+			"fileSize": null,
+			"filename": "demo-sistemas-ia-etica-aplicaciones-aula.elpx",
+			"isPrimary": 1
+		},
+		{
+			"id": "media-res-02",
+			"resourceId": "res-02",
+			"type": "elpx",
+			"mimeType": "application/zip",
+			"url": "api/v1/elpx-raw/preview-elpx-res-02.elpx",
+			"fileSize": null,
+			"filename": "demo-introduccion-ia-aula-etica-herramientas.elpx",
+			"isPrimary": 1
+		},
+		{
+			"id": "media-res-03",
+			"resourceId": "res-03",
+			"type": "elpx",
+			"mimeType": "application/zip",
+			"url": "api/v1/elpx-raw/preview-elpx-res-03.elpx",
+			"fileSize": null,
+			"filename": "demo-como-funciona-bot-taller-robotica.elpx",
+			"isPrimary": 1
+		},
+		{
+			"id": "media-res-04",
+			"resourceId": "res-04",
+			"type": "elpx",
+			"mimeType": "application/zip",
+			"url": "api/v1/elpx-raw/preview-elpx-res-04.elpx",
+			"fileSize": null,
+			"filename": "demo-ia-investigacion-academica.elpx",
+			"isPrimary": 1
+		},
+		{
+			"id": "media-res-05",
+			"resourceId": "res-05",
+			"type": "elpx",
+			"mimeType": "application/zip",
+			"url": "api/v1/elpx-raw/preview-elpx-res-05.elpx",
+			"fileSize": null,
+			"filename": "demo-desarrollo-agil-asistentes-codigo.elpx",
+			"isPrimary": 1
+		},
+		{
+			"id": "media-res-06",
+			"resourceId": "res-06",
+			"type": "elpx",
+			"mimeType": "application/zip",
+			"url": "api/v1/elpx-raw/preview-elpx-res-06.elpx",
+			"fileSize": null,
+			"filename": "demo-primeros-pasos-robots-amigos.elpx",
+			"isPrimary": 1
+		},
+		{
+			"id": "media-res-07",
+			"resourceId": "res-07",
+			"type": "elpx",
+			"mimeType": "application/zip",
+			"url": "api/v1/elpx-raw/preview-elpx-res-07.elpx",
+			"fileSize": null,
+			"filename": "demo-matematicas-divertidas-algoritmos-visuales.elpx",
+			"isPrimary": 1
+		},
+		{
+			"id": "media-res-08",
+			"resourceId": "res-08",
+			"type": "elpx",
+			"mimeType": "application/zip",
+			"url": "api/v1/elpx-raw/preview-elpx-res-08.elpx",
+			"fileSize": null,
+			"filename": "demo-fracciones-proporciones-cocina-matematica.elpx",
+			"isPrimary": 1
+		},
+		{
+			"id": "media-res-09",
+			"resourceId": "res-09",
+			"type": "elpx",
+			"mimeType": "application/zip",
+			"url": "api/v1/elpx-raw/preview-elpx-res-09.elpx",
+			"fileSize": null,
+			"filename": "demo-cambio-climatico-explicado-datos.elpx",
+			"isPrimary": 1
+		},
+		{
+			"id": "media-res-10",
+			"resourceId": "res-10",
+			"type": "elpx",
+			"mimeType": "application/zip",
+			"url": "api/v1/elpx-raw/preview-elpx-res-10.elpx",
+			"fileSize": null,
+			"filename": "demo-laboratorio-virtual-fisica-movimiento.elpx",
+			"isPrimary": 1
+		},
+		{
+			"id": "media-res-11",
+			"resourceId": "res-11",
+			"type": "elpx",
+			"mimeType": "application/zip",
+			"url": "api/v1/elpx-raw/preview-elpx-res-11.elpx",
+			"fileSize": null,
+			"filename": "demo-geometria-arquitectura-ciudad.elpx",
+			"isPrimary": 1
+		},
+		{
+			"id": "media-res-12",
+			"resourceId": "res-12",
+			"type": "elpx",
+			"mimeType": "application/zip",
+			"url": "api/v1/elpx-raw/preview-elpx-res-12.elpx",
+			"fileSize": null,
+			"filename": "demo-estadistica-ciudadanos-criticos.elpx",
+			"isPrimary": 1
+		},
+		{
+			"id": "media-res-13",
+			"resourceId": "res-13",
+			"type": "elpx",
+			"mimeType": "application/zip",
+			"url": "api/v1/elpx-raw/preview-elpx-res-13.elpx",
+			"fileSize": null,
+			"filename": "demo-seguridad-internet-identidad-digital.elpx",
+			"isPrimary": 1
+		},
+		{
+			"id": "media-res-14",
+			"resourceId": "res-14",
+			"type": "elpx",
+			"mimeType": "application/zip",
+			"url": "api/v1/elpx-raw/preview-elpx-res-14.elpx",
+			"fileSize": null,
+			"filename": "demo-pensamiento-computacional-sin-ordenador.elpx",
+			"isPrimary": 1
+		},
+		{
+			"id": "media-res-15",
+			"resourceId": "res-15",
+			"type": "elpx",
+			"mimeType": "application/zip",
+			"url": "api/v1/elpx-raw/preview-elpx-res-15.elpx",
+			"fileSize": null,
+			"filename": "demo-creacion-podcast-educativo.elpx",
+			"isPrimary": 1
+		},
+		{
+			"id": "media-res-16",
+			"resourceId": "res-16",
+			"type": "elpx",
+			"mimeType": "application/zip",
+			"url": "api/v1/elpx-raw/preview-elpx-res-16.elpx",
+			"fileSize": null,
+			"filename": "demo-evaluacion-rubricas-digitales.elpx",
+			"isPrimary": 1
+		},
+		{
+			"id": "media-res-17",
+			"resourceId": "res-17",
+			"type": "elpx",
+			"mimeType": "application/zip",
+			"url": "api/v1/elpx-raw/preview-elpx-res-17.elpx",
+			"fileSize": null,
+			"filename": "demo-aprendizaje-basado-proyectos-guia.elpx",
+			"isPrimary": 1
+		},
+		{
+			"id": "media-res-18",
+			"resourceId": "res-18",
+			"type": "elpx",
+			"mimeType": "application/zip",
+			"url": "api/v1/elpx-raw/preview-elpx-res-18.elpx",
+			"fileSize": null,
+			"filename": "demo-storytelling-digital-aula.elpx",
+			"isPrimary": 1
+		},
+		{
+			"id": "media-res-19",
+			"resourceId": "res-19",
+			"type": "elpx",
+			"mimeType": "application/zip",
+			"url": "api/v1/elpx-raw/preview-elpx-res-19.elpx",
+			"fileSize": null,
+			"filename": "demo-introduccion-programacion-scratch.elpx",
+			"isPrimary": 1
+		},
+		{
+			"id": "media-res-20",
+			"resourceId": "res-20",
+			"type": "elpx",
+			"mimeType": "application/zip",
+			"url": "api/v1/elpx-raw/preview-elpx-res-20.elpx",
+			"fileSize": null,
+			"filename": "demo-diseno-web-responsive-principiantes.elpx",
+			"isPrimary": 1
+		}
+	],
 	"collections": [
 		{
 			"id": "col-01",
