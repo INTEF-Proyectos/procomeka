@@ -163,6 +163,7 @@ export interface SessionUser {
 	email: string;
 	name: string;
 	role: string;
+	lastProviderId?: string;
 }
 
 export interface SessionData {
@@ -171,7 +172,7 @@ export interface SessionData {
 
 export interface AppConfig {
 	oidcEnabled: boolean;
-	oidcProviders: { id: string; name: string }[];
+	oidcProviders: { id: string; name: string; endSessionUrl?: string }[];
 	oidcEndSessionUrl: string | null;
 }
 
@@ -214,7 +215,7 @@ export interface ApiClient {
 	// Auth
 	getSession(): Promise<SessionData | null>;
 	signIn(email: string, password: string): Promise<SignInResult>;
-	signInOidc(providerId?: string): Promise<SignInResult>;
+	signInOidc(providerId?: string, callbackURL?: string): Promise<SignInResult>;
 	signOut(): Promise<void>;
 
 	// Admin

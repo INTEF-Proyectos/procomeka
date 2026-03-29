@@ -266,7 +266,7 @@ export class PreviewApiClient implements ApiClient {
 		return { ok: false, error: "Usuario de demostración no encontrado" };
 	}
 
-	async signInOidc(_providerId?: string): Promise<SignInResult> {
+	async signInOidc(_providerId?: string, _callbackURL?: string): Promise<SignInResult> {
 		return { ok: false, error: "OIDC no disponible en modo preview" };
 	}
 

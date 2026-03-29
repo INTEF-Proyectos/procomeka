@@ -44,6 +44,7 @@ app.get("/api/v1/config", (c) => {
 		oidcProviders: oidcProviders.map((p) => ({
 			id: p.providerId,
 			name: p.name,
+			endSessionUrl: p.endSessionUrl,
 		})),
 		// Keep for backward compatibility if needed, but the frontend should use oidcProviders
 		oidcEndSessionUrl: process.env.OIDC_ISSUER

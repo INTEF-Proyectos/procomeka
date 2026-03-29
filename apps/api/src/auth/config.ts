@@ -24,6 +24,7 @@ export interface OidcProviderConfig {
 	issuer?: string;
 	scopes?: string[];
 	pkce?: boolean;
+	endSessionUrl?: string;
 }
 
 export function getOidcProviders(): OidcProviderConfig[] {
@@ -43,6 +44,7 @@ export function getOidcProviders(): OidcProviderConfig[] {
 					issuer: p.issuer,
 					scopes: p.scopes || ["openid", "email", "profile"],
 					pkce: p.pkce ?? true,
+					endSessionUrl: p.endSessionUrl,
 				}));
 			}
 		} catch (e) {
@@ -63,6 +65,9 @@ export function getOidcProviders(): OidcProviderConfig[] {
 					: undefined,
 				scopes: (process.env.OIDC_SCOPE ?? "openid email profile").split(" "),
 				pkce: true,
+				endSessionUrl: process.env.OIDC_ISSUER
+					? `${process.env.OIDC_ISSUER}/connect/endsession`
+					: undefined,
 			},
 		];
 	}
@@ -84,6 +89,15 @@ export const auth = betterAuth({
 	session: {
 		expiresIn: 60 * 60 * 24 * 7,
 		updateAge: 60 * 60 * 24,
+	},
+	user: {
+		additionalFields: {
+			lastProviderId: {
+				type: "string",
+				required: false,
+				input: false,
+			},
+		},
 	},
 	account: {
 		accountLinking: {
@@ -112,6 +126,11 @@ export const auth = betterAuth({
 							issuer: p.issuer,
 							scopes: p.scopes,
 							pkce: p.pkce,
+							mapProfileToUser: async () => {
+								return {
+									lastProviderId: p.providerId,
+								};
+							},
 						})),
 					}),
 				]

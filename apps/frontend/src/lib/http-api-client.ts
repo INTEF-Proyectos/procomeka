@@ -94,12 +94,12 @@ export class HttpApiClient implements ApiClient {
 		return { ok: false, error: data?.message ?? "Credenciales incorrectas" };
 	}
 
-	async signInOidc(providerId = "oidc"): Promise<SignInResult> {
+	async signInOidc(providerId = "oidc", callbackURL = "/dashboard"): Promise<SignInResult> {
 		const res = await fetch("/api/auth/sign-in/oauth2", {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
 			credentials: "include",
-			body: JSON.stringify({ providerId, callbackURL: "/dashboard" }),
+			body: JSON.stringify({ providerId, callbackURL }),
 			redirect: "manual",
 		});
 		const location = res.headers.get("location");
