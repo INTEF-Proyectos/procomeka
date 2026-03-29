@@ -158,6 +158,54 @@ export const SCHEMA_STATEMENTS = [
 		created_at TIMESTAMP NOT NULL DEFAULT NOW(),
 		updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 	)`,
+	// Social tables
+	`CREATE TABLE IF NOT EXISTS "ratings" (
+		id TEXT PRIMARY KEY,
+		resource_id TEXT NOT NULL REFERENCES resources(id) ON DELETE CASCADE,
+		user_id TEXT NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
+		score INTEGER NOT NULL,
+		created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+		updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+		UNIQUE(resource_id, user_id)
+	)`,
+	`CREATE TABLE IF NOT EXISTS "favorites" (
+		id TEXT PRIMARY KEY,
+		resource_id TEXT NOT NULL REFERENCES resources(id) ON DELETE CASCADE,
+		user_id TEXT NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
+		created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+		UNIQUE(resource_id, user_id)
+	)`,
+	`CREATE TABLE IF NOT EXISTS "comments" (
+		id TEXT PRIMARY KEY,
+		resource_id TEXT NOT NULL REFERENCES resources(id) ON DELETE CASCADE,
+		user_id TEXT NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
+		parent_id TEXT,
+		body TEXT NOT NULL,
+		status VARCHAR(50) NOT NULL DEFAULT 'visible',
+		created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+		updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+		deleted_at TIMESTAMP
+	)`,
+	`CREATE TABLE IF NOT EXISTS "comment_votes" (
+		id TEXT PRIMARY KEY,
+		comment_id TEXT NOT NULL REFERENCES comments(id) ON DELETE CASCADE,
+		user_id TEXT NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
+		vote_type VARCHAR(20) NOT NULL DEFAULT 'useful',
+		created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+		UNIQUE(comment_id, user_id)
+	)`,
+	`CREATE TABLE IF NOT EXISTS "downloads" (
+		id TEXT PRIMARY KEY,
+		resource_id TEXT NOT NULL REFERENCES resources(id) ON DELETE CASCADE,
+		user_id TEXT REFERENCES "user"(id) ON DELETE SET NULL,
+		created_at TIMESTAMP NOT NULL DEFAULT NOW()
+	)`,
+	// Indexes
+	`CREATE INDEX IF NOT EXISTS idx_ratings_resource_id ON ratings(resource_id)`,
+	`CREATE INDEX IF NOT EXISTS idx_favorites_resource_id ON favorites(resource_id)`,
+	`CREATE INDEX IF NOT EXISTS idx_favorites_user_id ON favorites(user_id)`,
+	`CREATE INDEX IF NOT EXISTS idx_comments_resource_id ON comments(resource_id)`,
+	`CREATE INDEX IF NOT EXISTS idx_downloads_resource_id ON downloads(resource_id)`,
 	`CREATE INDEX IF NOT EXISTS idx_resources_slug ON resources(slug)`,
 	`CREATE INDEX IF NOT EXISTS idx_resources_status ON resources(editorial_status)`,
 	`CREATE INDEX IF NOT EXISTS idx_resources_type ON resources(resource_type)`,

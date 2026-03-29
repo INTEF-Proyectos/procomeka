@@ -332,6 +332,123 @@ export class HttpApiClient implements ApiClient {
 		});
 	}
 
+	// --- Social ---
+
+	async getResourceRatings(slug: string) {
+		const res = await fetch(`/api/v1/resources/${slug}/ratings`);
+		return res.json();
+	}
+
+	async submitRating(slug: string, score: number) {
+		const res = await fetch(`/api/v1/resources/${slug}/ratings`, {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			credentials: "include",
+			body: JSON.stringify({ score }),
+		});
+		if (!res.ok) {
+			const err = await res.json().catch(() => ({}));
+			throw err;
+		}
+		return res.json();
+	}
+
+	async getResourceComments(slug: string, opts?: { limit?: number; offset?: number }) {
+		const params = new URLSearchParams();
+		if (opts?.limit) params.set("limit", String(opts.limit));
+		if (opts?.offset) params.set("offset", String(opts.offset));
+		const qs = params.toString();
+		const res = await fetch(`/api/v1/resources/${slug}/comments${qs ? `?${qs}` : ""}`);
+		return res.json();
+	}
+
+	async createComment(slug: string, body: string, parentId?: string) {
+		const res = await fetch(`/api/v1/resources/${slug}/comments`, {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			credentials: "include",
+			body: JSON.stringify({ body, parentId }),
+		});
+		if (!res.ok) {
+			const err = await res.json().catch(() => ({}));
+			throw err;
+		}
+		return res.json();
+	}
+
+	async editComment(id: string, body: string) {
+		const res = await fetch(`/api/v1/comments/${id}`, {
+			method: "PATCH",
+			headers: { "Content-Type": "application/json" },
+			credentials: "include",
+			body: JSON.stringify({ body }),
+		});
+		if (!res.ok) {
+			const err = await res.json().catch(() => ({}));
+			throw err;
+		}
+		return res.json();
+	}
+
+	async deleteComment(id: string): Promise<void> {
+		await fetch(`/api/v1/comments/${id}`, {
+			method: "DELETE",
+			credentials: "include",
+		});
+	}
+
+	async voteComment(id: string) {
+		const res = await fetch(`/api/v1/comments/${id}/vote`, {
+			method: "POST",
+			credentials: "include",
+		});
+		return res.json();
+	}
+
+	async toggleFavorite(slug: string) {
+		const res = await fetch(`/api/v1/resources/${slug}/favorite`, {
+			method: "POST",
+			credentials: "include",
+		});
+		return res.json();
+	}
+
+	async getUserFavorites(opts?: { limit?: number; offset?: number }): Promise<import("./api-client.ts").PaginatedResult<import("./api-client.ts").Resource>> {
+		const params = new URLSearchParams();
+		if (opts?.limit) params.set("limit", String(opts.limit));
+		if (opts?.offset) params.set("offset", String(opts.offset));
+		const qs = params.toString();
+		const res = await fetch(`/api/v1/users/me/favorites${qs ? `?${qs}` : ""}`, { credentials: "include" });
+		return res.json();
+	}
+
+	async getUserRatings(opts?: { limit?: number; offset?: number }): Promise<import("./api-client.ts").PaginatedResult<import("./api-client.ts").Resource>> {
+		const params = new URLSearchParams();
+		if (opts?.limit) params.set("limit", String(opts.limit));
+		if (opts?.offset) params.set("offset", String(opts.offset));
+		const qs = params.toString();
+		const res = await fetch(`/api/v1/users/me/ratings${qs ? `?${qs}` : ""}`, { credentials: "include" });
+		return res.json();
+	}
+
+	async getUserDashboard() {
+		const res = await fetch("/api/v1/users/me/dashboard", { credentials: "include" });
+		return res.json();
+	}
+
+	async trackDownload(slug: string): Promise<{ count: number }> {
+		const res = await fetch(`/api/v1/resources/${slug}/download`, {
+			method: "POST",
+			credentials: "include",
+		});
+		return res.json();
+	}
+
+	async getResourceStats(slug: string): Promise<{ downloadCount: number; favoriteCount: number; ratingAvg: number; ratingCount: number; commentCount: number }> {
+		const res = await fetch(`/api/v1/resources/${slug}/stats`);
+		return res.json();
+	}
+
 	async seedResources(count: number, clean?: boolean): Promise<{ count: number; durationMs: number }> {
 		const res = await fetch("/api/dev/seed-resources", {
 			method: "POST",

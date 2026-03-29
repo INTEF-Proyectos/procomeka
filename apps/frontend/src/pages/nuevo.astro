@@ -1,0 +1,392 @@
+---
+import PublicLayout from "../layouts/PublicLayout.astro";
+---
+
+<PublicLayout title="Crear recurso" showNavSearch={true}>
+  <div class="new-resource-page">
+    <h1 class="new-resource-title">Crear recurso</h1>
+
+    <div id="auth-check" style="display:none;">
+      <div class="new-resource-auth-msg">
+        <span class="material-symbols-outlined" aria-hidden="true">lock</span>
+        <p>Necesitas <a id="login-link" href="#">iniciar sesión</a> como autor o superior para crear recursos.</p>
+      </div>
+    </div>
+
+    <div id="error-message" class="new-resource-error" role="alert" aria-live="polite" style="display:none;"></div>
+    <div id="success-message" class="new-resource-success" role="status" aria-live="polite" style="display:none;"></div>
+
+    <section id="elpx-drawer" class="elpx-drawer" style="display:none;">
+      <div class="elpx-drawer-content">
+        <span class="material-symbols-outlined elpx-drawer-icon" aria-hidden="true">upload_file</span>
+        <h2>Sube un archivo .elpx</h2>
+        <p>Arrastra un archivo .elpx de eXeLearning para crear el recurso con sus metadatos automáticamente.</p>
+        <div id="elpx-dropzone" class="elpx-dropzone" tabindex="0">
+          <label class="elpx-file-label">
+            <span>Seleccionar archivo .elpx</span>
+            <input type="file" id="elpx-file-input" accept=".elpx,.elp" />
+          </label>
+          <p class="elpx-drop-hint">o arrastra aquí</p>
+        </div>
+        <div id="elpx-loading" class="elpx-loading" style="display:none;">
+          <span>Analizando archivo...</span>
+        </div>
+        <div id="elpx-error" class="elpx-error" role="alert" style="display:none;"></div>
+        <button type="button" id="skip-elpx" class="skip-link">Crear recurso manualmente</button>
+      </div>
+    </section>
+
+    <div id="elpx-success-banner" class="elpx-success-banner" style="display:none;"></div>
+
+    <form id="resource-form" class="new-resource-form" style="display:none;" novalidate>
+      <div class="form-field">
+        <label for="title">Título *</label>
+        <input type="text" id="title" required aria-describedby="title-error" placeholder="Nombre del recurso educativo" />
+        <span id="title-error" class="field-error" role="alert"></span>
+      </div>
+
+      <div class="form-field">
+        <label for="description">Descripción *</label>
+        <textarea id="description" rows="4" required aria-describedby="description-error" placeholder="Describe el contenido, objetivos y destinatarios del recurso..."></textarea>
+        <span id="description-error" class="field-error" role="alert"></span>
+      </div>
+
+      <div class="form-row">
+        <div class="form-field">
+          <label for="language">Idioma *</label>
+          <select id="language" required aria-describedby="language-error">
+            <option value="es">Español</option>
+            <option value="en">Inglés</option>
+            <option value="ca">Catalán</option>
+            <option value="eu">Euskera</option>
+            <option value="gl">Gallego</option>
+          </select>
+          <span id="language-error" class="field-error" role="alert"></span>
+        </div>
+
+        <div class="form-field">
+          <label for="license">Licencia *</label>
+          <select id="license" required aria-describedby="license-error">
+            <option value="cc-by">CC BY</option>
+            <option value="cc-by-sa">CC BY-SA</option>
+            <option value="cc-by-nc">CC BY-NC</option>
+            <option value="cc-by-nc-sa">CC BY-NC-SA</option>
+            <option value="cc0">CC0 (Dominio público)</option>
+          </select>
+          <span id="license-error" class="field-error" role="alert"></span>
+        </div>
+      </div>
+
+      <div class="form-field">
+        <label for="resourceType">Tipo de recurso *</label>
+        <select id="resourceType" required aria-describedby="resourceType-error">
+          <option value="documento">Documento</option>
+          <option value="presentacion">Presentación</option>
+          <option value="video">Vídeo</option>
+          <option value="audio">Audio</option>
+          <option value="imagen">Imagen</option>
+          <option value="actividad-interactiva">Actividad interactiva</option>
+          <option value="secuencia-didactica">Secuencia didáctica</option>
+          <option value="ejercicio">Ejercicio</option>
+          <option value="evaluacion">Evaluación</option>
+          <option value="proyecto">Proyecto</option>
+        </select>
+        <span id="resourceType-error" class="field-error" role="alert"></span>
+      </div>
+
+      <div class="form-field">
+        <label for="author">Autor</label>
+        <input type="text" id="author" aria-describedby="author-error" placeholder="Nombre del autor" />
+        <span id="author-error" class="field-error" role="alert"></span>
+      </div>
+
+      <div class="form-field">
+        <label for="keywords">Palabras clave (separadas por comas)</label>
+        <input type="text" id="keywords" placeholder="matemáticas, fracciones, visual" aria-describedby="keywords-error" />
+        <span id="keywords-error" class="field-error" role="alert"></span>
+      </div>
+
+      <button type="submit" id="submit-btn" class="form-submit">Crear recurso</button>
+    </form>
+  </div>
+</PublicLayout>
+
+<script>
+  import { getApiClient } from "../lib/get-api-client.ts";
+  import { url, isPreviewMode } from "../lib/paths.ts";
+  import { parseElpxMetadata as parseElpxClientSide } from "../lib/elpx-browser.ts";
+
+  const form = document.getElementById("resource-form") as HTMLFormElement;
+  const authCheck = document.getElementById("auth-check") as HTMLDivElement;
+  const errorDiv = document.getElementById("error-message") as HTMLDivElement;
+  const successDiv = document.getElementById("success-message") as HTMLDivElement;
+  const elpxDrawer = document.getElementById("elpx-drawer") as HTMLElement;
+  const elpxDropzone = document.getElementById("elpx-dropzone") as HTMLDivElement;
+  const elpxFileInput = document.getElementById("elpx-file-input") as HTMLInputElement;
+  const elpxLoading = document.getElementById("elpx-loading") as HTMLDivElement;
+  const elpxError = document.getElementById("elpx-error") as HTMLDivElement;
+  const skipElpxBtn = document.getElementById("skip-elpx") as HTMLButtonElement;
+  const elpxSuccessBanner = document.getElementById("elpx-success-banner") as HTMLDivElement;
+  const titleInput = document.getElementById("title") as HTMLInputElement;
+  const descriptionInput = document.getElementById("description") as HTMLTextAreaElement;
+  const authorInput = document.getElementById("author") as HTMLInputElement;
+  const languageSelect = document.getElementById("language") as HTMLSelectElement;
+  const licenseSelect = document.getElementById("license") as HTMLSelectElement;
+  const resourceTypeSelect = document.getElementById("resourceType") as HTMLSelectElement;
+  let storedElpxFile: File | null = null;
+
+  const loginLink = document.getElementById("login-link") as HTMLAnchorElement;
+  if (loginLink) loginLink.href = url("login");
+
+  function clearFieldErrors() {
+    form.querySelectorAll(".field-error").forEach((el) => { el.textContent = ""; });
+    form.querySelectorAll("[aria-invalid]").forEach((el) => { el.removeAttribute("aria-invalid"); });
+  }
+
+  function showFieldErrors(details: { field: string; message: string }[]) {
+    for (const err of details) {
+      const errorSpan = document.getElementById(`${err.field}-error`);
+      const input = document.getElementById(err.field);
+      if (errorSpan) errorSpan.textContent = err.message;
+      if (input) input.setAttribute("aria-invalid", "true");
+    }
+  }
+
+  async function checkAuth() {
+    try {
+      const api = await getApiClient();
+      const session = await api.getSession();
+      if (!session?.user) { authCheck.style.display = "block"; return; }
+      const role = session.user.role ?? "reader";
+      if (["reader"].includes(role)) { authCheck.style.display = "block"; return; }
+      elpxDrawer.style.display = "block";
+    } catch { authCheck.style.display = "block"; }
+  }
+
+  skipElpxBtn.addEventListener("click", () => { elpxDrawer.style.display = "none"; form.style.display = "block"; });
+
+  elpxFileInput.addEventListener("change", () => { const f = elpxFileInput.files?.[0]; if (f) handleElpxFile(f); });
+  elpxDropzone.addEventListener("dragover", (e) => { e.preventDefault(); elpxDropzone.classList.add("is-dragover"); });
+  elpxDropzone.addEventListener("dragleave", () => { elpxDropzone.classList.remove("is-dragover"); });
+  elpxDropzone.addEventListener("drop", (e) => { e.preventDefault(); elpxDropzone.classList.remove("is-dragover"); const f = e.dataTransfer?.files[0]; if (f) handleElpxFile(f); });
+
+  const isPreview = isPreviewMode();
+
+  async function handleElpxFile(file: File) {
+    elpxLoading.style.display = "block";
+    elpxError.style.display = "none";
+    try {
+      let metadata: Record<string, string>; let filename: string;
+      if (isPreview) {
+        metadata = await parseElpxClientSide(file) as Record<string, string>;
+        filename = file.name;
+      } else {
+        const formData = new FormData(); formData.append("file", file);
+        const res = await fetch(url("api/admin/elpx/analyze"), { method: "POST", credentials: "include", body: formData });
+        if (!res.ok) { const err = await res.json().catch(() => ({ error: "Error" })); elpxError.textContent = err.error; elpxError.style.display = "block"; elpxLoading.style.display = "none"; return; }
+        const result = await res.json(); metadata = result.metadata; filename = result.filename;
+      }
+      storedElpxFile = file;
+      elpxDrawer.style.display = "none"; form.style.display = "block";
+      if (metadata.title) titleInput.value = metadata.title;
+      if (metadata.description) descriptionInput.value = metadata.description;
+      if (metadata.author) authorInput.value = metadata.author;
+      if (metadata.language) { const opt = languageSelect.querySelector(`option[value="${metadata.language}"]`); if (opt) languageSelect.value = metadata.language; }
+      if (metadata.license) { const opt = licenseSelect.querySelector(`option[value="${metadata.license}"]`); if (opt) licenseSelect.value = metadata.license; }
+      resourceTypeSelect.value = "actividad-interactiva";
+      elpxSuccessBanner.textContent = `Metadatos extraídos de ${filename || file.name}. Revisa y crea el recurso.`;
+      elpxSuccessBanner.style.display = "block";
+    } catch { elpxError.textContent = "Error al analizar el archivo"; elpxError.style.display = "block"; }
+    finally { elpxLoading.style.display = "none"; }
+  }
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault(); errorDiv.style.display = "none"; successDiv.style.display = "none"; clearFieldErrors();
+    const body = { title: titleInput.value, description: descriptionInput.value, language: languageSelect.value, license: licenseSelect.value, resourceType: resourceTypeSelect.value, author: authorInput.value || undefined, keywords: (document.getElementById("keywords") as HTMLInputElement).value || undefined };
+    const submitBtn = document.getElementById("submit-btn") as HTMLButtonElement;
+    submitBtn.disabled = true; submitBtn.textContent = "Creando recurso…";
+    try {
+      const api = await getApiClient();
+      const data = await api.createResource(body);
+      if (storedElpxFile) {
+        submitBtn.textContent = "Subiendo archivo .elpx…";
+        if (isPreview) {
+          try { const { saveElpxInPreview } = await import("../lib/elpx-preview-service.ts"); await saveElpxInPreview({ resourceId: data.id, blob: storedElpxFile, filename: storedElpxFile.name }); } catch (err) { console.error("Error guardando .elpx en preview:", err); }
+        } else {
+          const uploadForm = new FormData(); uploadForm.append("file", storedElpxFile);
+          await fetch(url(`api/admin/elpx/upload/${data.id}`), { method: "POST", credentials: "include", body: uploadForm });
+        }
+      }
+      successDiv.innerHTML = "Recurso creado. Redirigiendo…";
+      successDiv.style.display = "block";
+      setTimeout(() => { window.location.href = url(`editar?id=${data.id}`); }, 500);
+    } catch (err: unknown) {
+      const e = err as { details?: { field: string; message: string }[]; error?: string };
+      if (e?.details) showFieldErrors(e.details);
+      errorDiv.textContent = e?.error ?? "Error al crear el recurso";
+      errorDiv.style.display = "block";
+    } finally { submitBtn.disabled = false; submitBtn.textContent = "Crear recurso"; }
+  });
+
+  checkAuth();
+</script>
+
+<style is:global>
+  .new-resource-page {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 2rem 0;
+  }
+
+  .new-resource-title {
+    font-family: var(--font-display);
+    font-size: 1.75rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin-bottom: 2rem;
+  }
+
+  .new-resource-auth-msg {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1.25rem;
+    background: var(--color-surface-container-low);
+    border-radius: 0.75rem;
+    font-size: 0.9375rem;
+    color: var(--color-on-surface-variant);
+  }
+
+  .new-resource-auth-msg .material-symbols-outlined { font-size: 1.5rem; color: var(--color-outline); }
+  .new-resource-auth-msg a { color: var(--color-primary); font-weight: 600; }
+
+  .new-resource-error { background: var(--color-error-container); color: var(--color-on-error-container); padding: 0.75rem 1rem; border-radius: 0.75rem; margin-bottom: 1rem; font-size: 0.875rem; }
+  .new-resource-success { background: var(--color-secondary-fixed); color: var(--color-on-secondary-fixed); padding: 0.75rem 1rem; border-radius: 0.75rem; margin-bottom: 1rem; font-size: 0.875rem; font-weight: 600; }
+
+  /* Form */
+  .new-resource-form { display: flex; flex-direction: column; gap: 1.25rem; }
+
+  .form-field { display: flex; flex-direction: column; gap: 0.375rem; }
+  .form-field label { font-size: 0.875rem; font-weight: 600; color: var(--color-on-surface); }
+
+  .form-field input,
+  .form-field textarea,
+  .form-field select {
+    padding: 0.75rem 1rem;
+    background: var(--color-surface-container-highest);
+    border: none;
+    border-radius: 0.75rem;
+    font-size: 0.9375rem;
+    font-family: var(--font-body);
+    color: var(--color-on-surface);
+    transition: background-color 200ms ease, box-shadow 200ms ease;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .form-field input:focus,
+  .form-field textarea:focus,
+  .form-field select:focus {
+    outline: none;
+    background: var(--color-surface-container-lowest);
+    box-shadow: 0 0 0 2px rgba(0, 63, 177, 0.3);
+  }
+
+  .form-field input::placeholder,
+  .form-field textarea::placeholder { color: var(--color-outline); }
+
+  .form-field input[aria-invalid="true"],
+  .form-field textarea[aria-invalid="true"],
+  .form-field select[aria-invalid="true"] {
+    box-shadow: 0 0 0 2px rgba(186, 26, 26, 0.4);
+  }
+
+  .form-field textarea { resize: vertical; }
+
+  .form-row { display: flex; gap: 1rem; }
+  .form-row .form-field { flex: 1; }
+
+  .field-error { font-size: 0.75rem; color: var(--color-error); font-weight: 500; min-height: 1rem; }
+
+  .form-submit {
+    padding: 0.875rem;
+    background: var(--color-primary);
+    color: var(--color-on-primary);
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1rem;
+    border-radius: 9999px;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 10px 15px -3px rgba(0, 63, 177, 0.2);
+    transition: all 200ms ease-in-out;
+    margin-top: 0.5rem;
+  }
+
+  .form-submit:hover:not(:disabled) { background: var(--color-primary-container); }
+  .form-submit:active:not(:disabled) { transform: scale(0.97); }
+  .form-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* Elpx drawer */
+  .elpx-drawer {
+    background: var(--color-surface-container-low);
+    border-radius: 1.5rem;
+    padding: 2.5rem;
+    text-align: center;
+    margin-bottom: 1.5rem;
+  }
+
+  .elpx-drawer-icon { font-size: 3rem; color: var(--color-primary); margin-bottom: 0.75rem; }
+  .elpx-drawer h2 { font-family: var(--font-display); font-size: 1.25rem; font-weight: 700; margin-bottom: 0.5rem; }
+  .elpx-drawer p { color: var(--color-on-surface-variant); font-size: 0.875rem; margin-bottom: 1.25rem; }
+
+  .elpx-dropzone {
+    border: 2px dashed var(--color-outline-variant);
+    border-radius: 1rem;
+    padding: 1.5rem;
+    background: var(--color-surface-container-lowest);
+    margin-bottom: 1rem;
+    transition: border-color 200ms ease, background 200ms ease;
+  }
+  .elpx-dropzone.is-dragover { border-color: var(--color-primary); background: rgba(0, 63, 177, 0.03); }
+
+  .elpx-file-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1.25rem;
+    background: var(--color-primary);
+    color: var(--color-on-primary);
+    border-radius: 9999px;
+    font-weight: 700;
+    cursor: pointer;
+    font-size: 0.875rem;
+    transition: background-color 200ms ease;
+  }
+  .elpx-file-label:hover { background: var(--color-primary-container); }
+  .elpx-file-label input { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
+
+  .elpx-drop-hint { color: var(--color-outline); font-size: 0.8125rem; margin-top: 0.5rem; }
+  .elpx-loading { color: var(--color-primary); font-weight: 600; padding: 1rem; }
+  .elpx-error { background: var(--color-error-container); color: var(--color-on-error-container); padding: 0.75rem; border-radius: 0.5rem; margin-top: 0.5rem; font-size: 0.875rem; }
+
+  .skip-link {
+    background: none; border: none; color: var(--color-primary);
+    cursor: pointer; font-size: 0.8125rem; margin-top: 0.75rem; font-weight: 500;
+  }
+  .skip-link:hover { text-decoration: underline; }
+
+  .elpx-success-banner {
+    background: var(--color-secondary-fixed);
+    color: var(--color-on-secondary-fixed);
+    padding: 0.75rem 1rem;
+    border-radius: 0.75rem;
+    margin-bottom: 1rem;
+    font-weight: 600;
+    font-size: 0.875rem;
+  }
+
+  @media (max-width: 640px) {
+    .form-row { flex-direction: column; gap: 1.25rem; }
+  }
+</style>

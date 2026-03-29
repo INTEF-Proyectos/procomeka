@@ -1,0 +1,57 @@
+/* Badge.css */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-radius: 0.25rem;
+  white-space: nowrap;
+}
+
+.badge-sm {
+  padding: 0 0.5rem;
+  line-height: 1.375rem;
+}
+.badge-md {
+  padding: 0.125rem 0.625rem;
+  line-height: 1.375rem;
+}
+
+.badge-icon {
+  font-size: 14px;
+}
+
+.badge-default {
+  background: var(--color-secondary-fixed);
+  color: var(--color-on-secondary-fixed);
+}
+.badge-primary {
+  background: var(--color-primary-fixed);
+  color: var(--color-on-primary-fixed);
+}
+.badge-success {
+  background: var(--color-secondary-fixed);
+  color: var(--color-on-secondary-fixed);
+}
+.badge-warning {
+  background: var(--color-tertiary-fixed);
+  color: var(--color-on-tertiary-fixed);
+}
+.badge-error {
+  background: var(--color-error-container);
+  color: var(--color-on-error-container);
+}
+.badge-info {
+  background: var(--color-primary-fixed);
+  color: var(--color-on-primary-fixed-variant);
+}
+.badge-overlay {
+  background: rgba(0, 63, 177, 0.9);
+  color: white;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}

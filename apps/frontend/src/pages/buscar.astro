@@ -1,0 +1,5 @@
+---
+// Redirect /buscar to /explorar — the canonical explore/search URL
+const query = Astro.url.search;
+return Astro.redirect(`${import.meta.env.BASE_URL}explorar${query}`, 301);
+---

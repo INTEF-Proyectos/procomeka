@@ -1,90 +1,692 @@
 ---
-import Base from "../layouts/Base.astro";
-import { CatalogIsland } from "../islands/catalog/CatalogIsland.tsx";
-import { CatalogSearchIsland } from "../islands/catalog/CatalogSearchIsland.tsx";
-
-const initialQuery = Astro.url.searchParams.get("q") ?? "";
+import PublicLayout from "../layouts/PublicLayout.astro";
+import { HeroIsland } from "../islands/home/HeroIsland.tsx";
+import { FeaturedResourcesIsland } from "../islands/home/FeaturedResourcesIsland.tsx";
 ---
 
-<Base title="Inicio">
-	<CatalogSearchIsland slot="header-center" client:load initialQuery={initialQuery} />
-	<CatalogIsland client:load />
-</Base>
+<PublicLayout title="Inicio" fullWidth={true} activePage="inicio">
+  <HeroIsland client:load />
 
-<style is:global>
-	.header-search-input { width: 100%; padding: 0.5rem 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.95rem; }
+  <!-- Stats Section — overlaps hero with negative margin -->
+  <section class="stats-section" aria-label="Cifras de la plataforma">
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-number">105k+</div>
+        <div class="stat-label">Recursos OER</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">42k</div>
+        <div class="stat-label">Docentes Activos</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">12k</div>
+        <div class="stat-label">Colecciones</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">850</div>
+        <div class="stat-label">Comunidades</div>
+      </div>
+    </div>
+  </section>
 
-	.catalog { display: grid; grid-template-columns: 240px 1fr; gap: 1.5rem; align-items: start; }
-	.sidebar { position: sticky; top: 4.5rem; border: 1px solid #e5e7eb; border-radius: 8px; padding: 1rem; background: #f9fafb; }
-	.sidebar-title { font-size: 1rem; margin-bottom: 0.75rem; font-weight: 600; }
-	.filter-group { margin-bottom: 0.75rem; }
-	.filter-group label { display: block; font-size: 0.8rem; color: #6b7280; margin-bottom: 0.25rem; }
-	.filter-group select { width: 100%; padding: 0.4rem; border: 1px solid #d1d5db; border-radius: 4px; font-size: 0.85rem; }
-	.clear-btn { width: 100%; padding: 0.4rem; border: 1px solid #d1d5db; border-radius: 4px; background: #fff; cursor: pointer; font-size: 0.85rem; color: #6b7280; margin-top: 0.25rem; }
-	.clear-btn:hover { background: #f3f4f6; }
-	.toggle-sidebar-btn { display: none; padding: 0.4rem 0.75rem; border: 1px solid #d1d5db; border-radius: 4px; background: #fff; cursor: pointer; font-size: 0.85rem; }
+  <!-- Featured Resources — Bento Grid -->
+  <section class="featured-section" aria-label="Recursos destacados">
+    <div class="featured-section-inner">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">Recursos Destacados</h2>
+          <p class="section-subtitle">Selección editorial de los contenidos más valorados y de mayor calidad técnica de este mes.</p>
+        </div>
+        <a href="explorar" class="section-link">
+          Ver todos
+          <span class="material-symbols-outlined" aria-hidden="true">arrow_forward</span>
+        </a>
+      </div>
+      <FeaturedResourcesIsland client:visible />
+    </div>
+  </section>
 
-	.toolbar { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem; flex-wrap: wrap; }
-	.results-summary { color: #6b7280; font-size: 0.9rem; flex: 1; }
-	.toolbar-right { display: flex; gap: 0.35rem; align-items: center; }
-	.view-btn { width: 2rem; height: 2rem; border: 1px solid #d1d5db; border-radius: 4px; background: #fff; cursor: pointer; font-size: 1rem; line-height: 1; }
-	.view-btn.active { background: #1a56db; color: #fff; border-color: #1a56db; }
+  <!-- Collections — full-width tinted background -->
+  <section class="collections-section" aria-label="Colecciones temáticas">
+    <div class="collections-inner">
+      <div class="collections-header">
+        <h2 class="section-title">Colecciones Temáticas</h2>
+        <div class="collections-arrows">
+          <button class="collections-arrow-btn" aria-label="Anterior">
+            <span class="material-symbols-outlined" aria-hidden="true">chevron_left</span>
+          </button>
+          <button class="collections-arrow-btn" aria-label="Siguiente">
+            <span class="material-symbols-outlined" aria-hidden="true">chevron_right</span>
+          </button>
+        </div>
+      </div>
+      <div class="collections-grid">
+        <a href="explorar?collection=ia-en-el-aula" class="collection-card">
+          <div class="collection-image">
+            <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuB0FIbUl9d_9m4ZjbvwtWE5h9_cjzSNFuk0ipVPTaz20KrYAjHVbP-IR7tqBTK3ukJv9OUT2xU1TJT36bx7-lytWIlcq-r3JOpC0aYKAWQnrYDsOjs3OTE-RP_VnmbIxXFf7YAFrVAgMoSd4TZlAbWufwuwyrCMany-wOgO-G8BzxeO3gkokpK2L1s7pfvfGL4MIGH4zqp1QnzGv8KZXqZb8_YHFbdZvyqC_Tf3t3HNUskExGZ3f1d5CAPBas8TDatYm3Di2AbppK8" alt="IA en el Aula" loading="lazy" />
+            <div class="collection-image-overlay"></div>
+          </div>
+          <h4 class="collection-title">IA en el Aula</h4>
+          <p class="collection-count">42 Recursos curados</p>
+          <div class="collection-avatars">
+            <div class="collection-avatar" style="background: #cbd5e1;"></div>
+            <div class="collection-avatar" style="background: #94a3b8;"></div>
+            <div class="collection-avatar" style="background: #64748b;"></div>
+            <div class="collection-avatar collection-avatar-count">+12</div>
+          </div>
+        </a>
+        <a href="explorar?collection=ods-sostenibilidad" class="collection-card">
+          <div class="collection-image">
+            <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuAKTQKzJ-QNCWfPJ9H1I3BoWVuhGB_0qh37eRHB9xtwBUCcdE7HmMTSbB8BmkqG73HxJWnoYjmjZI-0NI4XFXnGItdomTexyCfA2UeZ8PUlvs1gcdZV9JSP23BHrm2qqTICp7qiSplUuAiBkDaPjn1muQ8DyJBowBwR0AMwHUVWJcGi8FYLXdN72g8RYyIRF110oCPMF5av3uGJibzUjrN9g4TIU6fvOHq4AsxkmYCLb9X90j3owroCzEiRoX-wejgL9TEuRHQM_jg" alt="ODS y Sostenibilidad" loading="lazy" />
+            <div class="collection-image-overlay"></div>
+          </div>
+          <h4 class="collection-title">ODS y Sostenibilidad</h4>
+          <p class="collection-count">85 Recursos curados</p>
+          <div class="collection-avatars">
+            <div class="collection-avatar" style="background: #cbd5e1;"></div>
+            <div class="collection-avatar" style="background: #94a3b8;"></div>
+            <div class="collection-avatar collection-avatar-count">+5</div>
+          </div>
+        </a>
+        <a href="explorar?collection=gamificacion-musical" class="collection-card">
+          <div class="collection-image">
+            <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuA5wYjz8t4-gJ6QxVmto117raZ6G5JO6Eg4tuJJbzljhMzG1ceu2dnjxogaUU-z74n8UznQtuEt9hYiNznKP90WUpAH5L_G_prY3EU-oQ1w_GAwpHceGan9Gq0O7G4nTYz2241wITNJhWinqsxAF2Jhff7oLO9W8sgOhDhqzoWgsiDMTSI4neeOYR6gQj30YxpdF4ZMjdSBVKRN5lNmpFs_ZxvaW5eUN49W3tyhUBUKJK1_mgaDddXiGyE9zompL9-M2oASvfUcU4I" alt="Gamificación Musical" loading="lazy" />
+            <div class="collection-image-overlay"></div>
+          </div>
+          <h4 class="collection-title">Gamificación Musical</h4>
+          <p class="collection-count">28 Recursos curados</p>
+          <div class="collection-avatars">
+            <div class="collection-avatar" style="background: #cbd5e1;"></div>
+            <div class="collection-avatar collection-avatar-count">+2</div>
+          </div>
+        </a>
+        <a href="explorar?collection=abp-secundaria" class="collection-card">
+          <div class="collection-image">
+            <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuCJghYk1Hpc4WjnkENQuH63VZ67vUIJy83KIuHo20UxT6XHDUSV7LbfToWXvo9-J1xKV1ryAG_620Yq1SVhSbi8ULwpWS8WlE6QRL-EnLEOXezBmoCg2BMVYiKyz0x8DrH0119US_GYEigYFP0UpwU7AZymvW1yoJb2K9ZCsmM-XiG6drGNDe1I7Gk0DdF92mbHVp4_dafxGak64jlbVlHN8j4xrPVBFO_JkZlKmnUFwUYH4tesmu_V1tOL2Kk2-jjzA8p6Zwe16_8" alt="ABP en Secundaria" loading="lazy" />
+            <div class="collection-image-overlay"></div>
+          </div>
+          <h4 class="collection-title">ABP en Secundaria</h4>
+          <p class="collection-count">156 Recursos curados</p>
+          <div class="collection-avatars">
+            <div class="collection-avatar" style="background: #cbd5e1;"></div>
+            <div class="collection-avatar" style="background: #94a3b8;"></div>
+            <div class="collection-avatar" style="background: #64748b;"></div>
+            <div class="collection-avatar collection-avatar-count">+99</div>
+          </div>
+        </a>
+      </div>
+    </div>
+  </section>
 
-	.resources-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; }
-	.resources-list-view { display: flex; flex-direction: column; gap: 0.75rem; }
-	.resources-list-view .resource-card { flex-direction: row; align-items: center; }
-	.resources-list-view .resource-card:not(.has-preview) { padding: 0.75rem 1rem; }
-	.resources-list-view .card-icon { font-size: 2rem; min-width: 3rem; }
+  <!-- CTA — dark rounded container -->
+  <section class="cta-section" aria-label="Únete a la comunidad">
+    <div class="cta-container">
+      <div class="cta-gradient-overlay" aria-hidden="true"></div>
+      <div class="cta-left">
+        <h2 class="cta-title">La educación se construye en comunidad</h2>
+        <p class="cta-description">
+          Únete a miles de docentes que comparten su pasión. Crea tu propio perfil, guarda tus recursos favoritos y participa en comunidades especializadas.
+        </p>
+        <div class="cta-buttons">
+          <a href="registro" class="cta-btn-primary">Empezar ahora</a>
+          <a href="sobre" class="cta-btn-ghost">Saber más</a>
+        </div>
+      </div>
+      <div class="cta-right">
+        <div class="cta-feature-card">
+          <span class="material-symbols-outlined cta-feature-icon" aria-hidden="true">group</span>
+          <h4 class="cta-feature-title">Comunidades</h4>
+          <p class="cta-feature-desc">Espacios de debate y colaboración por materias y niveles.</p>
+        </div>
+        <div class="cta-feature-card">
+          <span class="material-symbols-outlined cta-feature-icon" aria-hidden="true">upload_file</span>
+          <h4 class="cta-feature-title">Publicar</h4>
+          <p class="cta-feature-desc">Herramienta sencilla para subir y catalogar tus recursos.</p>
+        </div>
+        <div class="cta-feature-card">
+          <span class="material-symbols-outlined cta-feature-icon" aria-hidden="true">auto_awesome</span>
+          <h4 class="cta-feature-title">Itinerarios</h4>
+          <p class="cta-feature-desc">Crea secuencias didácticas completas y compártelas.</p>
+        </div>
+        <div class="cta-feature-card">
+          <span class="material-symbols-outlined cta-feature-icon" aria-hidden="true">shield_with_heart</span>
+          <h4 class="cta-feature-title">Calidad</h4>
+          <p class="cta-feature-desc">Sistema de revisión por pares y métricas de uso real.</p>
+        </div>
+      </div>
+    </div>
+  </section>
 
-	/* List view: preview becomes a small thumbnail on the left */
-	.resources-list-view .card-preview { width: 120px; min-width: 120px; aspect-ratio: 4 / 3; border-radius: 6px; flex-shrink: 0; }
-	.resources-list-view .has-preview .card-body { padding: 0.5rem 1rem; }
-	.resources-list-view .resource-card h3 { font-size: 0.9rem; margin-bottom: 0.2rem; }
-	.resources-list-view .resource-card p { font-size: 0.8rem; margin-bottom: 0.3rem; }
+  <!-- Latest News -->
+  <section class="news-section" aria-label="Últimas novedades">
+    <div class="news-inner">
+      <div class="news-header">
+        <h2 class="section-title section-title-sm">Últimas Novedades</h2>
+        <a href="explorar" class="news-feed-link">Ver feed completo</a>
+      </div>
+      <div class="news-grid">
+        <a href="explorar" class="news-card">
+          <div class="news-image">
+            <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuCyLgNBZBAuhsyTttEdR0uA9v3XOyx-ipogOwxaIyJ63jYviZdPCrX_PsfJj4-4MtgPfRz94Ey6vv53aiV-WiCxHLKHJBmoSjEGxyZbfq3WQFAUpMZ66Chtw3azbodozn6d8OXiF62RBybfjwtddpiec1b05FZeluUmPUNNISy5DSceu_iS45kfWXsh8CTTe79i5UnTSK3HsElCHz1pz4rSBAUyZ_3o_w4ZTO8K1BXz85EOz0w6pfL2U2Yxmw5dXp1RutcgXxQLAtU" alt="Diccionario Visual de Emociones" loading="lazy" />
+          </div>
+          <span class="news-timestamp">Hace 2 horas</span>
+          <h5 class="news-title">Diccionario Visual de Emociones para Infantil</h5>
+        </a>
+        <a href="explorar" class="news-card">
+          <div class="news-image">
+            <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuA6PcqKC_LtrRviymqchOEGW4Qrpb8ZpNyZ8xzR3RUsE3ns_dSZAfHwiCSPLCg4IxIR1l9cISZNR_7ktosJiBDhV3eYA2HJzabGsm5Z1jfD-3Dmo8AlV1oT0fwSh0OX0iHt5BhYMYu6ESYhaVQqQbk90KxJpIO748hI5gDZBn8NnZY6ooS5pQKH0y_mq6mfFSDw052R3ZgOBvxKa3g7Ld5aE1lt7pEOQ29o7ar5Zj_lBt2nipOGsQw0ZpCxBC9Ln3SE8aBtCElawr4" alt="Taller de Criptografía" loading="lazy" />
+          </div>
+          <span class="news-timestamp">Hace 5 horas</span>
+          <h5 class="news-title">Taller de Criptografía básica para 4º ESO</h5>
+        </a>
+        <a href="explorar" class="news-card">
+          <div class="news-image">
+            <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuAOtCHsN1v8YCXw5t6O8u2NNXlSDDZ_PIdDCiVp_B3WqbOIQsKYZDL8Xr2abYxK_GJgPkxOFYgubfa335hU8wP-PlAMDZTh1_tz7PTsm-dKuUHik4RHCdx3TvRlDMn3jaPDrrxa_xwdXvxBFBaZbdtQJpYOvW9sQkYDAbUSiFjD1VaftmhsHLmPt_uMO6z4XoweaRJW6HWQQ9Zb_tTiS7zWFhFMU_S4gc6ORBB_4lMG4N7hOf0qFnWXZiC8olS-Q8QL9mVO_z8HG9M" alt="La Ruta de la Seda" loading="lazy" />
+          </div>
+          <span class="news-timestamp">Ayer</span>
+          <h5 class="news-title">La Ruta de la Seda: Juego de Rol Histórico</h5>
+        </a>
+        <a href="explorar" class="news-card">
+          <div class="news-image">
+            <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuAMUvRKSy1EbjWHrhcVmHdSvctACIjl5_aHGDDrlTnrY-0P2QR0wHC1NN4ZRyKCj1WfWv2q1NGRSePpUkD8x2cbMTX4ZyArLSiCSF747rasEzSWDohr3gsFOsviaIH2BnpuhC0k86nSBJAVBuM9rcHPWYdKPSR49xMCdOkgSTmojJABdlotBi1gi1zNxSv6l5Kr2Zv-HvMvPfUd6rwmdstVpVTg1QHt0BiMK2RKfs82vfdw70JL5wocQzngIS19Jnif0sn7uk-8Ya8" alt="Manual de Accesibilidad" loading="lazy" />
+          </div>
+          <span class="news-timestamp">Ayer</span>
+          <h5 class="news-title">Manual de Accesibilidad para Contenidos Digitales</h5>
+        </a>
+      </div>
+    </div>
+  </section>
+</PublicLayout>
 
-	.resource-card { display: flex; flex-direction: column; border: 1px solid #e5e7eb; border-radius: 10px; text-decoration: none; color: inherit; background: #fff; transition: border-color 0.15s, box-shadow 0.2s, transform 0.15s; overflow: hidden; }
-	.resource-card:not(.has-preview) { padding: 1.1rem; }
-	.resource-card:hover { border-color: #93c5fd; box-shadow: 0 4px 16px rgba(26,86,219,0.1); transform: translateY(-2px); }
-	.card-icon { font-size: 2.2rem; line-height: 1; margin-bottom: 0.5rem; }
-	.card-body { flex: 1; display: flex; flex-direction: column; }
-	.has-preview .card-body { padding: 0.75rem 1.1rem 1.1rem; }
+<style>
+  /* ===== Stats Section — overlaps hero ===== */
+  .stats-section {
+    max-width: 80rem;
+    margin: -3rem auto 5rem;
+    padding: 0 var(--space-6);
+    position: relative;
+    z-index: 1;
+  }
 
-	/* eXeLearning preview embed (YouTube-style, scaled iframe) */
-	.card-preview { position: relative; width: 100%; aspect-ratio: 16 / 9; overflow: hidden; background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%); display: flex; align-items: center; justify-content: center; }
-	.card-preview::before { content: "eXe"; font-size: 1.5rem; font-weight: 700; color: #a5b4fc; position: absolute; z-index: 0; }
-	.card-preview iframe {
-		position: absolute; top: 0; left: 0;
-		width: 1200px; height: 675px;
-		border: none; pointer-events: none;
-		transform-origin: 0 0;
-		z-index: 1; background: #fff;
-		/* scale is set inline by JS based on container width */
-	}
-	.card-preview-overlay { position: absolute; inset: 0; cursor: pointer; }
-	.resource-card h3 { font-size: 1rem; font-weight: 600; margin: 0 0 0.35rem; color: #111827; line-height: 1.3; }
-	.resource-card p { color: #6b7280; font-size: 0.84rem; margin: 0 0 0.6rem; line-height: 1.45; flex: 1; }
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-4);
+  }
 
-	.card-tags { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-bottom: 0.3rem; }
-	.pill { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 999px; font-size: 0.68rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.02em; }
-	.pill-type { background: #ede9fe; color: #6d28d9; }
-	.pill-lang { background: #dbeafe; color: #1e40af; }
-	.pill-license { background: #d1fae5; color: #065f46; }
-	.card-meta { display: block; margin-top: 0.25rem; font-size: 0.75rem; color: #9ca3af; }
+  @media (min-width: 769px) {
+    .stats-grid {
+      grid-template-columns: repeat(4, 1fr);
+    }
+  }
 
-	.empty { color: #9ca3af; padding: 2rem 0; text-align: center; }
-	.loading { color: #9ca3af; }
+  .stat-card {
+    background: var(--color-surface-container-lowest);
+    padding: var(--space-6);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-lg);
+    text-align: center;
+  }
 
-	.pagination { margin-top: 1.5rem; display: flex; align-items: center; justify-content: center; gap: 0.25rem; }
-	.pag-btn { padding: 0.4rem 0.75rem; border: 1px solid #d1d5db; border-radius: 4px; background: #fff; cursor: pointer; font-size: 0.85rem; }
-	.pag-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-	.pag-num { width: 2rem; height: 2rem; border: 1px solid #d1d5db; border-radius: 4px; background: #fff; cursor: pointer; font-size: 0.85rem; line-height: 2rem; text-align: center; }
-	.pag-num.active { background: #1a56db; color: #fff; border-color: #1a56db; }
-	.pag-ellipsis { padding: 0 0.25rem; color: #9ca3af; }
+  .stat-number {
+    font-family: var(--font-display);
+    font-size: 1.875rem;
+    font-weight: var(--weight-extrabold);
+    color: var(--color-primary);
+  }
 
-	@media (max-width: 768px) {
-		.catalog { grid-template-columns: 1fr; }
-		.sidebar { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 200; border-radius: 0; overflow-y: auto; }
-		.sidebar.open { display: block; }
-		.toggle-sidebar-btn { display: inline-block; }
-	}
+  .stat-label {
+    font-size: var(--text-body-sm);
+    color: var(--color-outline);
+    font-weight: var(--weight-medium);
+  }
+
+  /* ===== Featured Resources Section ===== */
+  .featured-section {
+    padding: var(--space-20) 0;
+  }
+
+  .featured-section-inner {
+    max-width: 80rem;
+    margin: 0 auto;
+    padding: 0 var(--space-6);
+  }
+
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: var(--space-12);
+  }
+
+  .section-title {
+    font-family: var(--font-display);
+    font-size: 2.25rem;
+    font-weight: var(--weight-extrabold);
+    color: var(--color-on-surface);
+    letter-spacing: var(--tracking-tight);
+    margin-bottom: var(--space-2);
+  }
+
+  .section-title-sm {
+    font-size: 1.875rem;
+  }
+
+  .section-subtitle {
+    color: var(--color-on-surface-variant);
+    max-width: 36rem;
+  }
+
+  .section-link {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-weight: var(--weight-bold);
+    color: var(--color-primary);
+    text-decoration: none;
+    transition: gap var(--transition-fast);
+    white-space: nowrap;
+  }
+
+  .section-link:hover {
+    gap: 0.75rem;
+    text-decoration: none;
+  }
+
+  .section-link .material-symbols-outlined {
+    font-size: 20px;
+  }
+
+  /* ===== Collections Section — full-width tinted bg ===== */
+  .collections-section {
+    background: var(--color-surface-container-low);
+    padding: var(--space-24) 0;
+  }
+
+  .collections-inner {
+    max-width: 80rem;
+    margin: 0 auto;
+    padding: 0 var(--space-6);
+  }
+
+  .collections-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-12);
+  }
+
+  .collections-arrows {
+    display: flex;
+    gap: var(--space-2);
+  }
+
+  .collections-arrow-btn {
+    width: 3rem;
+    height: 3rem;
+    border-radius: var(--radius-full);
+    border: 1px solid var(--color-outline-variant);
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background-color var(--transition-fast);
+    color: var(--color-on-surface);
+  }
+
+  .collections-arrow-btn:hover {
+    background: var(--color-surface-container-lowest);
+  }
+
+  .collections-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--space-6);
+  }
+
+  @media (min-width: 769px) {
+    .collections-grid {
+      grid-template-columns: repeat(4, 1fr);
+    }
+  }
+
+  .collection-card {
+    background: var(--color-surface-container-lowest);
+    padding: var(--space-6);
+    border-radius: var(--radius-2xl);
+    box-shadow: var(--shadow-sm);
+    text-decoration: none;
+    color: inherit;
+    cursor: pointer;
+    transition: box-shadow var(--transition-base);
+  }
+
+  .collection-card:hover {
+    box-shadow: var(--shadow-md);
+    text-decoration: none;
+  }
+
+  .collection-image {
+    aspect-ratio: 1 / 1;
+    border-radius: var(--radius-xl);
+    overflow: hidden;
+    margin-bottom: var(--space-4);
+    position: relative;
+  }
+
+  .collection-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .collection-image-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 63, 177, 0.2);
+    transition: background-color var(--transition-fast);
+  }
+
+  .collection-card:hover .collection-image-overlay {
+    background: rgba(0, 63, 177, 0);
+  }
+
+  .collection-title {
+    font-family: var(--font-display);
+    font-weight: var(--weight-bold);
+    font-size: 1.125rem;
+    margin-bottom: 0.25rem;
+    color: var(--color-on-surface);
+  }
+
+  .collection-count {
+    font-size: var(--text-body-sm);
+    color: var(--color-outline);
+    margin-bottom: 0.75rem;
+  }
+
+  .collection-avatars {
+    display: flex;
+  }
+
+  .collection-avatar {
+    width: 2rem;
+    height: 2rem;
+    border-radius: var(--radius-full);
+    border: 2px solid white;
+    margin-left: -0.5rem;
+  }
+
+  .collection-avatar:first-child {
+    margin-left: 0;
+  }
+
+  .collection-avatar-count {
+    background: var(--color-primary);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: var(--weight-bold);
+  }
+
+  /* ===== CTA Section ===== */
+  .cta-section {
+    max-width: 80rem;
+    margin: 0 auto;
+    padding: var(--space-24) var(--space-6);
+  }
+
+  .cta-container {
+    background: var(--color-on-surface);
+    color: var(--color-surface-container-lowest);
+    border-radius: 3rem;
+    padding: 3rem;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-12);
+  }
+
+  @media (min-width: 769px) {
+    .cta-container {
+      flex-direction: row;
+      padding: 5rem;
+    }
+  }
+
+  .cta-gradient-overlay {
+    position: absolute;
+    inset: 0;
+    opacity: 0.1;
+    background: radial-gradient(circle at center, white, transparent, transparent);
+  }
+
+  .cta-left {
+    flex: 1;
+    position: relative;
+    z-index: 1;
+  }
+
+  .cta-title {
+    font-family: var(--font-display);
+    font-size: clamp(2rem, 4vw, 3rem);
+    font-weight: var(--weight-extrabold);
+    line-height: var(--leading-tight);
+    margin-bottom: var(--space-6);
+  }
+
+  .cta-description {
+    color: var(--color-surface-variant);
+    font-size: 1.125rem;
+    max-width: 36rem;
+    margin-bottom: var(--space-10);
+  }
+
+  .cta-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-4);
+  }
+
+  .cta-btn-primary {
+    background: var(--color-primary);
+    color: var(--color-on-primary);
+    padding: var(--space-4) var(--space-8);
+    border-radius: var(--radius-full);
+    font-weight: var(--weight-bold);
+    font-size: 1.125rem;
+    text-decoration: none;
+    box-shadow: var(--shadow-xl), var(--shadow-primary);
+    transition: transform var(--transition-fast);
+    display: inline-block;
+  }
+
+  .cta-btn-primary:hover {
+    transform: scale(1.05);
+    text-decoration: none;
+  }
+
+  .cta-btn-ghost {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    padding: var(--space-4) var(--space-8);
+    border-radius: var(--radius-full);
+    font-weight: var(--weight-bold);
+    font-size: 1.125rem;
+    text-decoration: none;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    transition: background-color var(--transition-fast);
+    display: inline-block;
+  }
+
+  .cta-btn-ghost:hover {
+    background: rgba(255, 255, 255, 0.2);
+    text-decoration: none;
+  }
+
+  .cta-right {
+    flex: 1;
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-4);
+    width: 100%;
+  }
+
+  .cta-feature-card {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    padding: var(--space-6);
+    border-radius: var(--radius-2xl);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+
+  .cta-feature-icon {
+    font-size: 1.875rem;
+    color: var(--color-secondary-container);
+  }
+
+  .cta-feature-title {
+    font-weight: var(--weight-bold);
+  }
+
+  .cta-feature-desc {
+    font-size: var(--text-body-sm);
+    color: var(--color-surface-variant);
+  }
+
+  /* ===== News Section ===== */
+  .news-section {
+    padding: var(--space-20) 0;
+  }
+
+  .news-inner {
+    max-width: 80rem;
+    margin: 0 auto;
+    padding: 0 var(--space-6);
+  }
+
+  .news-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: var(--space-12);
+  }
+
+  .news-feed-link {
+    font-size: var(--text-body-sm);
+    font-weight: var(--weight-bold);
+    color: var(--color-primary);
+    text-decoration: none;
+  }
+
+  .news-feed-link:hover {
+    text-decoration: underline;
+  }
+
+  .news-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--space-8);
+  }
+
+  @media (min-width: 769px) {
+    .news-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .news-grid {
+      grid-template-columns: repeat(4, 1fr);
+    }
+  }
+
+  .news-card {
+    cursor: pointer;
+    text-decoration: none;
+    color: inherit;
+  }
+
+  .news-card:hover {
+    text-decoration: none;
+  }
+
+  .news-image {
+    height: 10rem;
+    border-radius: var(--radius-xl);
+    overflow: hidden;
+    margin-bottom: var(--space-4);
+  }
+
+  .news-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform var(--transition-base);
+  }
+
+  .news-card:hover .news-image img {
+    transform: scale(1.05);
+  }
+
+  .news-timestamp {
+    font-size: 10px;
+    font-weight: var(--weight-bold);
+    color: var(--color-primary);
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-widest);
+  }
+
+  .news-title {
+    font-family: var(--font-display);
+    font-weight: var(--weight-bold);
+    margin-top: 0.25rem;
+    color: var(--color-on-surface);
+    line-height: var(--leading-tight);
+    transition: color var(--transition-fast);
+  }
+
+  .news-card:hover .news-title {
+    color: var(--color-primary);
+  }
+
+  /* ===== Responsive mobile ===== */
+  @media (max-width: 768px) {
+    .section-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: var(--space-4);
+    }
+
+    .collections-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .cta-right {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .collections-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .cta-right {
+      grid-template-columns: 1fr;
+    }
+  }
 </style>

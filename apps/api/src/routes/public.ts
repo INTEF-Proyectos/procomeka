@@ -3,7 +3,6 @@ import { readUploadContent } from "./uploads.ts";
 import { parsePagination } from "../helpers.ts";
 import { getDb } from "../db.ts";
 import * as repo from "@procomeka/db/repository";
-
 const publicRoutes = new Hono();
 
 publicRoutes.get("/resources", async (c) => {
@@ -41,8 +40,30 @@ publicRoutes.get("/resources", async (c) => {
 publicRoutes.get("/resources/:slug", async (c) => {
 	const { slug } = c.req.param();
 	const resource = await repo.getResourceBySlug(getDb().db, slug);
-	if (!resource || resource.editorialStatus !== "published") {
+	if (!resource) {
 		return c.json({ error: "Recurso no encontrado" }, 404);
+	}
+
+	// Published resources are visible to everyone
+	// Non-published resources: check session to see if user is owner/curator/admin
+	if (resource.editorialStatus !== "published") {
+		let user: { id: string; role?: string } | null = null;
+		try {
+			const result = await import("../auth/config.ts").then((m) => m.auth.api.getSession({ headers: c.req.raw.headers }));
+			if (result) user = result.user as { id: string; role?: string };
+		} catch {
+			// No session — treat as anonymous
+		}
+
+		if (!user) {
+			return c.json({ error: "Recurso no encontrado" }, 404);
+		}
+		const isOwner = resource.createdBy === user.id;
+		const HIGH_ROLES = ["curator", "admin"];
+		const isHighRole = HIGH_ROLES.includes(user.role ?? "");
+		if (!isOwner && !isHighRole) {
+			return c.json({ error: "Recurso no encontrado" }, 404);
+		}
 	}
 
 	// Include elpx preview URL if the resource has an associated eXeLearning project

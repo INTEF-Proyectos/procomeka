@@ -1,0 +1,228 @@
+/* ==========================================================================
+   Procomeka Design Tokens
+   Derived from Stitch design project "Ficha de Recurso Educativo"
+   Creative direction: "The Digital Curator" — editorial, content-first
+   ========================================================================== */
+
+/* ---------- Fonts ---------- */
+@font-face {
+  font-family: "Plus Jakarta Sans";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/fonts/plus-jakarta-sans-v8-latin-600.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Plus Jakarta Sans";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/fonts/plus-jakarta-sans-v8-latin-700.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Plus Jakarta Sans";
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url("/fonts/plus-jakarta-sans-v8-latin-800.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/inter-v18-latin-regular.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("/fonts/inter-v18-latin-500.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/fonts/inter-v18-latin-600.woff2") format("woff2");
+}
+
+/* ---------- Color Tokens (Light Mode) ---------- */
+:root {
+  /* Primary */
+  --color-primary: #003fb1;
+  --color-primary-container: #1a56db;
+  --color-on-primary: #ffffff;
+  --color-on-primary-container: #d4dcff;
+  --color-primary-fixed: #dbe1ff;
+  --color-primary-fixed-dim: #b5c4ff;
+  --color-on-primary-fixed: #00174d;
+  --color-on-primary-fixed-variant: #003dab;
+  --color-inverse-primary: #b5c4ff;
+
+  /* Secondary (teal) */
+  --color-secondary: #006a61;
+  --color-secondary-container: #86f2e4;
+  --color-on-secondary: #ffffff;
+  --color-on-secondary-container: #006f66;
+  --color-secondary-fixed: #89f5e7;
+  --color-secondary-fixed-dim: #6bd8cb;
+  --color-on-secondary-fixed: #00201d;
+  --color-on-secondary-fixed-variant: #005049;
+
+  /* Tertiary (warm orange) */
+  --color-tertiary: #7c3400;
+  --color-tertiary-container: #a24500;
+  --color-on-tertiary: #ffffff;
+  --color-on-tertiary-container: #ffd4bf;
+  --color-tertiary-fixed: #ffdbca;
+  --color-tertiary-fixed-dim: #ffb690;
+  --color-on-tertiary-fixed: #341100;
+  --color-on-tertiary-fixed-variant: #783200;
+
+  /* Error */
+  --color-error: #ba1a1a;
+  --color-error-container: #ffdad6;
+  --color-on-error: #ffffff;
+  --color-on-error-container: #93000a;
+
+  /* Surface & Background */
+  --color-background: #f8f9ff;
+  --color-on-background: #121c28;
+  --color-surface: #f8f9ff;
+  --color-surface-dim: #d1dbec;
+  --color-surface-bright: #f8f9ff;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #eef4ff;
+  --color-surface-container: #e5eeff;
+  --color-surface-container-high: #dfe9fa;
+  --color-surface-container-highest: #d9e3f4;
+  --color-on-surface: #121c28;
+  --color-on-surface-variant: #434654;
+  --color-surface-variant: #d9e3f4;
+  --color-surface-tint: #1353d8;
+  --color-inverse-surface: #27313e;
+  --color-inverse-on-surface: #eaf1ff;
+
+  /* Outline */
+  --color-outline: #737686;
+  --color-outline-variant: #c3c5d7;
+
+  /* Semantic aliases */
+  --color-bg: var(--color-background);
+  --color-text: var(--color-on-surface);
+  --color-text-secondary: var(--color-on-surface-variant);
+  --color-text-inverse: var(--color-inverse-on-surface);
+  --color-link: var(--color-primary);
+  --color-success: #006a61;
+  --color-warning: #7c3400;
+  --color-info: #1353d8;
+
+  /* ---------- Typography ---------- */
+  --font-display: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+  --font-body: "Inter", system-ui, -apple-system, sans-serif;
+
+  /* Display */
+  --text-display-lg: 3.5rem;    /* 56px */
+  --text-display-md: 2.75rem;   /* 44px */
+  --text-display-sm: 2.25rem;   /* 36px */
+
+  /* Headline */
+  --text-headline-lg: 2rem;     /* 32px */
+  --text-headline-md: 1.75rem;  /* 28px */
+  --text-headline-sm: 1.5rem;   /* 24px */
+
+  /* Title */
+  --text-title-lg: 1.375rem;    /* 22px */
+  --text-title-md: 1rem;        /* 16px */
+  --text-title-sm: 0.875rem;    /* 14px */
+
+  /* Body */
+  --text-body-lg: 1rem;         /* 16px */
+  --text-body-md: 0.875rem;     /* 14px */
+  --text-body-sm: 0.75rem;      /* 12px */
+
+  /* Label */
+  --text-label-lg: 0.875rem;    /* 14px */
+  --text-label-md: 0.75rem;     /* 12px */
+  --text-label-sm: 0.6875rem;   /* 11px */
+
+  /* Font weights */
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+  --weight-extrabold: 800;
+
+  /* Line heights */
+  --leading-tight: 1.2;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.6;
+
+  /* Letter spacing */
+  --tracking-tight: -0.02em;
+  --tracking-normal: 0;
+  --tracking-wide: 0.02em;
+
+  /* ---------- Spacing ---------- */
+  --space-0: 0;
+  --space-1: 0.25rem;   /* 4px */
+  --space-2: 0.5rem;    /* 8px */
+  --space-3: 0.75rem;   /* 12px */
+  --space-4: 1rem;      /* 16px */
+  --space-5: 1.25rem;   /* 20px */
+  --space-6: 1.5rem;    /* 24px */
+  --space-8: 2rem;      /* 32px */
+  --space-10: 2.5rem;   /* 40px */
+  --space-12: 3rem;     /* 48px */
+  --space-16: 4rem;     /* 64px */
+  --space-20: 5rem;     /* 80px */
+  --space-24: 6rem;     /* 96px */
+
+  /* ---------- Border Radius ---------- */
+  --radius-xs: 0.125rem;  /* 2px */
+  --radius-sm: 0.25rem;   /* 4px - Stitch default */
+  --radius-md: 0.5rem;    /* 8px */
+  --radius-lg: 0.75rem;   /* 12px */
+  --radius-xl: 1rem;      /* 16px */
+  --radius-2xl: 1.5rem;   /* 24px */
+  --radius-full: 9999px;
+
+  /* ---------- Shadows (exact Stitch values) ---------- */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  --shadow-ambient: 0 20px 40px rgba(18, 28, 40, 0.06);
+  --shadow-hero-search: 0 20px 50px rgba(0, 0, 0, 0.2);
+  --shadow-primary: 0 10px 15px -3px rgba(0, 63, 177, 0.2);
+
+  /* ---------- Transitions ---------- */
+  --transition-fast: 150ms ease;
+  --transition-base: 200ms ease;
+  --transition-slow: 300ms ease;
+
+  /* ---------- Z-index scale ---------- */
+  --z-dropdown: 100;
+  --z-sticky: 200;
+  --z-overlay: 300;
+  --z-modal: 400;
+  --z-toast: 500;
+
+  /* ---------- Layout ---------- */
+  --max-width: 1280px;
+  --max-width-nav: 1536px;
+  --max-width-narrow: 800px;
+  --max-width-wide: 1440px;
+  --header-height: 3.5rem;
+
+  /* ---------- Glass effect (Stitch glassmorphism) ---------- */
+  --glass-bg: rgba(255, 255, 255, 0.8);
+  --glass-blur: blur(16px);
+
+  /* ---------- Stitch-specific letter spacing ---------- */
+  --tracking-tighter: -0.05em;
+  --tracking-widest: 0.1em;
+  --tracking-wider: 0.05em;
+}
