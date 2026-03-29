@@ -29,6 +29,7 @@ export interface CrudRouteConfig<TEntity> {
 
 	afterCreate?: (user: User, result: unknown, data: Record<string, unknown>) => Promise<void>;
 	afterUpdate?: (user: User, id: string, entity: TEntity, data: Record<string, unknown>) => Promise<void>;
+	afterDelete?: (user: User, id: string, entity: TEntity) => Promise<void>;
 
 	roles?: { create?: string; update?: string; remove?: string };
 	notFoundMessage?: string;
@@ -128,6 +129,9 @@ export function buildCrudRoutes<TEntity>(config: CrudRouteConfig<TEntity>): Hono
 				return c.json({ error: "Permisos insuficientes" }, 403);
 			}
 			await config.remove!(db(), id);
+			if (config.afterDelete) {
+				try { await config.afterDelete(user, id, entity); } catch { /* fire-and-forget */ }
+			}
 			return c.json({ id, deleted: true });
 		};
 		if (config.roles?.remove) {

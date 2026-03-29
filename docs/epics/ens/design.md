@@ -14,8 +14,7 @@ Dada la naturaleza de los recursos (recursos educativos públicos) y el volumen 
 ## Arquitectura de Seguridad
 - **Identificación y Autenticación**: Basada en Better Auth (ADR-0007). Soporte OIDC para integración institucional.
 - **Control de Acceso**: RBAC (Role Based Access Control) ya implementado (ADR-0008).
-- **Análisis Estático**: GitHub CodeQL integrado en el workflow de CI mediante el archivo `.github/workflows/codeql.yml`.
-    - *Nota*: Para que la configuración avanzada de CodeQL (vía workflow) funcione, se debe desactivar el "Default Setup" en la configuración de seguridad del repositorio de GitHub (`Settings > Code security and analysis > Code scanning`).
+- **Análisis Estático**: GitHub CodeQL habilitado mediante el "Default Setup" de GitHub para garantizar la detección automática de vulnerabilidades sin conflictos de configuración.
 - **Auditoría**:
     - Ampliación de `activity_events` para cubrir operaciones CRUD críticas.
     - Implementación de middleware de logging para accesos API (Hono logger + almacenamiento en DB/Logs).

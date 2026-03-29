@@ -129,3 +129,10 @@ export const activityEventsRelations = relations(activityEvents, ({ one }) => ({
 		references: [resources.id],
 	}),
 }));
+
+export const apiAccessLogsRelations = relations(apiAccessLogs, ({ one }) => ({
+	user: one(user, {
+		fields: [apiAccessLogs.userId],
+		references: [user.id],
+	}),
+}));

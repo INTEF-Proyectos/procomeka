@@ -41,7 +41,7 @@ Justificación:
 
 ## Notas de Implementación
 
-1. **GitHub Advanced Security**: Configurar CodeQL, Dependabot y Secret Scanning.
+1. **GitHub Advanced Security**: Habilitar CodeQL (Default Setup), Dependabot y Secret Scanning.
 2. **Auditoría**: Implementar middleware en la API para registrar todos los accesos en base de datos.
 3. **Trazabilidad**: Registrar eventos de autenticación y cambios de roles administrativos.
 4. **Cifrado**: Asegurar TLS y evaluar cifrado en reposo según el entorno de despliegue.

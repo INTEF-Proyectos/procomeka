@@ -17,7 +17,10 @@ export async function auditMiddleware(c: Context<AuthEnv>, next: Next) {
 	const method = c.req.method;
 	const path = c.req.path;
 	const status = c.res.status;
-	const ipAddress = c.req.header("x-forwarded-for") || c.req.header("remote-addr");
+	const ipAddress = c.req.header("x-forwarded-for")?.split(",")[0].trim() ||
+	                  c.req.header("cf-connecting-ip") ||
+	                  c.req.header("x-real-ip") ||
+	                  null;
 	const userAgent = c.req.header("user-agent");
 
 	// Fire-and-forget logging to not block the response
