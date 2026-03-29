@@ -30,8 +30,9 @@ export function emptyMetadata(): ElpxMetadata {
 export function parseContentXml(xml: string): ElpxMetadata {
   const metadata = emptyMetadata();
 
+  // Use [^<]* instead of .*? to avoid polynomial backtracking (CodeQL)
   const propertyRegex =
-    /<odeProperty>\s*<key>(.*?)<\/key>\s*<value>(.*?)<\/value>\s*<\/odeProperty>/gs;
+    /<odeProperty>\s*<key>([^<]*)<\/key>\s*<value>([^<]*)<\/value>\s*<\/odeProperty>/gs;
 
   let match: RegExpExecArray | null;
   while ((match = propertyRegex.exec(xml)) !== null) {
