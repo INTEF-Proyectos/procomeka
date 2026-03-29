@@ -221,3 +221,12 @@ La Fase 1 del MVP está prácticamente completa. La migración a React islands a
 - Se añade una ruta pública `/ayuda` con manual de uso estructurado para descubrimiento, publicación, colecciones, FAQ, roles y soporte.
 - La navegación pública y el footer ya enlazan a ayuda; el backoffice editorial añade acceso contextual para perfiles `author+`.
 - El cambio mejora onboarding, reduce fricción en búsqueda/publicación y deja una base reutilizable de contenido en `apps/frontend/src/lib/help-content.ts`.
+
+## Actualización 2026-03-29 — Colecciones públicas y gestión editorial
+
+- Las colecciones dejan de ser un placeholder en API pública y pasan a exponer listado y detalle con datos reales, conteo de recursos y curador responsable.
+- La navegación pública sustituye los enlaces provisionales por una entrada única `Colecciones` y la home enlaza a la nueva experiencia pública.
+- El backoffice de colecciones amplía el CRUD con portada, descripción, asociación de recursos existentes y reordenación manual.
+- El RBAC de colecciones se endurece: la gestión pasa a `curator` y `admin`; `author` queda fuera del backoffice de colecciones.
+- La validación completa del repositorio queda verde con `bun run test` (`337 pass`, `0 fail`, cobertura 91.77%).
+- Queda una limitación arquitectónica documentada: el detalle público se sirve en `/colecciones?slug=...` mientras el frontend siga en salida estática Astro.

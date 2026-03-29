@@ -63,7 +63,7 @@ const allLocales = ["es", "en", "ca", "gl", "eu"];
           <div class="public-nav-links">
             <a href={localUrl("")} class={`public-nav-link${activePage === "inicio" ? " public-nav-link-active" : ""}`}>{m.nav_home()}</a>
             <a href={localUrl("explorar")} class={`public-nav-link${activePage === "explorar" ? " public-nav-link-active" : ""}`}>{m.nav_explore()}</a>
-            <a href="#" class={`public-nav-link${activePage === "colecciones" ? " public-nav-link-active" : ""}`}>{m.footer_collections()}</a>
+            <a href={localUrl("colecciones")} class={`public-nav-link${activePage === "colecciones" ? " public-nav-link-active" : ""}`}>{m.footer_collections()}</a>
             <a href={`${base}${buildHelpHref()}`} class={`public-nav-link${activePage === "ayuda" ? " public-nav-link-active" : ""}`}>Ayuda</a>
           </div>
         </div>
@@ -105,7 +105,7 @@ const allLocales = ["es", "en", "ca", "gl", "eu"];
         <div class="public-footer-col">
           <h4>{m.footer_explore()}</h4>
           <a href={localUrl("explorar")}>{m.footer_resources()}</a>
-          <a href="#">{m.footer_collections()}</a>
+          <a href={localUrl("colecciones")}>{m.footer_collections()}</a>
           <a href="#">{m.footer_communities()}</a>
           <a href="#">{m.footer_users()}</a>
         </div>

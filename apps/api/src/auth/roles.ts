@@ -29,7 +29,7 @@ export function canManageCollection(
 	collection: { curatorId?: string | null },
 ) {
 	if (hasMinRole(user.role, "admin")) return true;
-	if (hasMinRole(user.role, "author")) {
+	if (hasMinRole(user.role, "curator")) {
 		return collection.curatorId === user.id;
 	}
 	return false;

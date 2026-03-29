@@ -39,7 +39,9 @@ export function DashboardIsland() {
 				}
 
 				const resourcesPromise = api.listAdminResources({ limit: 5, offset: 0 });
-				const collectionsPromise = api.listCollections({ limit: 5, offset: 0 });
+				const collectionsPromise = canAccessSection(nextRole, "curator")
+					? api.listCollections({ limit: 5, offset: 0 })
+					: Promise.resolve(null);
 				const taxonomiesPromise = canAccessSection(nextRole, "curator")
 					? api.listTaxonomies({ limit: 5, offset: 0 })
 					: Promise.resolve(null);
@@ -62,7 +64,7 @@ export function DashboardIsland() {
 					setRole(nextRole);
 					setSummary({
 						resources: `${resources.total} recursos visibles`,
-						collections: `${collections.total} colecciones visibles`,
+						collections: collections ? `${collections.total} colecciones visibles` : "No disponible",
 						taxonomies: taxonomies ? `${taxonomies.total} categorías visibles` : "No disponible",
 						users: users ? `${users.total} usuarios` : "No disponible",
 					});
@@ -90,14 +92,14 @@ export function DashboardIsland() {
 
 			const [resources, collections, taxonomies, users] = await Promise.all([
 				api.listAdminResources({ limit: 5, offset: 0 }),
-				api.listCollections({ limit: 5, offset: 0 }),
+				canAccessSection(role, "curator") ? api.listCollections({ limit: 5, offset: 0 }) : Promise.resolve(null),
 				canAccessSection(role, "curator") ? api.listTaxonomies({ limit: 5, offset: 0 }) : Promise.resolve(null),
 				canAccessSection(role, "admin") ? api.listUsers({ limit: 5, offset: 0 }) : Promise.resolve(null),
 			]);
 
 			setSummary({
 				resources: `${resources.total} recursos visibles`,
-				collections: `${collections.total} colecciones visibles`,
+				collections: collections ? `${collections.total} colecciones visibles` : "No disponible",
 				taxonomies: taxonomies ? `${taxonomies.total} categorías visibles` : "No disponible",
 				users: users ? `${users.total} usuarios` : "No disponible",
 			});
@@ -118,11 +120,13 @@ export function DashboardIsland() {
 					<p>{summary.resources}</p>
 					<a href={url("admin/recursos")}>Gestionar recursos</a>
 				</article>
-				<article className="summary-card">
-					<h2>Colecciones</h2>
-					<p>{summary.collections}</p>
-					<a href={url("admin/colecciones")}>Gestionar colecciones</a>
-				</article>
+				{canAccessSection(role, "curator") ? (
+					<article className="summary-card">
+						<h2>Colecciones</h2>
+						<p>{summary.collections}</p>
+						<a href={url("admin/colecciones")}>Gestionar colecciones</a>
+					</article>
+				) : null}
 				{canAccessSection(role, "curator") ? (
 					<article className="summary-card">
 						<h2>Categorías</h2>

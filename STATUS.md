@@ -47,6 +47,32 @@ Antes de escribir código de negocio, se deben resolver las siguientes decisione
 
 | Fecha | Agente | Acción / Entregable | Estado |
 |-------|--------|---------------------|--------|
+| 2026-03-29 | `@.agents/skills/frontend-ux-accesibilidad` + `@.agents/skills/backend-api-servicios` + `@.agents/skills/documentacion-y-roadmap` | Colecciones públicas reales, gestión editorial de recursos asociados, RBAC elevado a `curator`, tests y trazabilidad documental de issue #66 | Completado con desviación controlada |
+
+## Actualización 2026-03-29 (Feature: colecciones públicas y gestión editorial)
+
+- **Agente en turno:** `@.agents/skills/frontend-ux-accesibilidad/SKILL.md` + `@.agents/skills/backend-api-servicios/SKILL.md` + `@.agents/skills/documentacion-y-roadmap/SKILL.md`
+- **Acción realizada:** Se completa la issue #66 con persistencia real de colecciones en API pública, mejora del backoffice editorial y endurecimiento de permisos.
+- **Cambios aplicados:**
+  - `packages/db` amplía listado y detalle de colecciones con portada, curador, conteo de recursos y reordenación.
+  - La API pública deja de responder con stubs en `GET /api/v1/collections` y `GET /api/v1/collections/:slug`.
+  - El CRUD editorial de colecciones añade portada, descripción y gestión de recursos asociados desde la misma pantalla.
+  - El backoffice deja de mostrar colecciones a `author`; la gestión queda reservada a `curator` y `admin`.
+  - La navegación pública sustituye los placeholders "Artículos" e "Itinerarios" por `Colecciones` y la home enlaza a la nueva experiencia pública.
+  - Se documenta la feature en `docs/epics/epic-003/features/feature-colecciones-publicas-y-gestion/`.
+- **Validación:**
+  - `bun test packages/db/src/repository.unit.test.ts`: verde.
+  - `bun test apps/api/src/index.unit.test.ts apps/api/src/routes/admin.unit.test.ts`: verde.
+  - `cd apps/frontend && bun test`: verde.
+  - `cd apps/frontend && bun run build`: verde.
+  - `bun run test`: verde (`337 pass`, `0 fail`, cobertura 91.77%).
+- **Riesgos abiertos:**
+  - El detalle público se resuelve en `/colecciones?slug=...` y no en una ruta dinámica literal `/colecciones/:slug` mientras se mantenga la salida estática actual de Astro.
+  - La portada de colección usa URL directa; no existe todavía un flujo específico de upload o media picker dedicado.
+- **Traspaso recomendado:** `@.agents/skills/direccion-de-plataforma/SKILL.md` si se quiere desbloquear rutas dinámicas reales de colecciones en frontend, o `@.agents/skills/qa-validacion/SKILL.md` para ampliar cobertura E2E del flujo editorial de colecciones.
+
+| Fecha | Agente | Acción / Entregable | Estado |
+|-------|--------|---------------------|--------|
 | 2026-03-25 | `@.agents/skills/evaluacion-tecnologica` + `@.agents/skills/direccion-de-plataforma` | ADR-0004 Framework Frontend creada y aceptada | Completado |
 
 ## Actualización 2026-03-25 (Evaluación Tecnológica)

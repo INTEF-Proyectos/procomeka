@@ -10,6 +10,8 @@ import type {
 	PaginatedResult,
 	UserRecord,
 	CollectionRecord,
+	CollectionDetailRecord,
+	CollectionResourceRecord,
 	TaxonomyRecord,
 	MediaItemRecord,
 	UploadSessionRecord,
@@ -43,6 +45,22 @@ export class HttpApiClient implements ApiClient {
 
 	async getResourceBySlug(slug: string): Promise<Resource | null> {
 		const res = await fetch(`/api/v1/resources/${slug}`);
+		if (!res.ok) return null;
+		return res.json();
+	}
+
+	async listPublicCollections(opts?: { q?: string; limit?: number; offset?: number }): Promise<PaginatedResult<CollectionRecord>> {
+		const params = new URLSearchParams();
+		if (opts?.q) params.set("q", opts.q);
+		if (opts?.limit) params.set("limit", String(opts.limit));
+		if (opts?.offset) params.set("offset", String(opts.offset));
+		const qs = params.toString();
+		const res = await fetch(`/api/v1/collections${qs ? `?${qs}` : ""}`);
+		return res.json();
+	}
+
+	async getPublicCollectionBySlug(slug: string): Promise<CollectionDetailRecord | null> {
+		const res = await fetch(`/api/v1/collections/${slug}`);
 		if (!res.ok) return null;
 		return res.json();
 	}
@@ -245,7 +263,13 @@ export class HttpApiClient implements ApiClient {
 		return res.json();
 	}
 
-	async createCollection(data: { title: string; description: string; editorialStatus?: string; isOrdered?: boolean }) {
+	async listCollectionResources(collectionId: string): Promise<CollectionResourceRecord[]> {
+		const res = await fetch(`/api/admin/collections/${collectionId}/resources`, { credentials: "include" });
+		if (!res.ok) return [];
+		return res.json();
+	}
+
+	async createCollection(data: { title: string; description: string; coverImageUrl?: string | null; editorialStatus?: string; isOrdered?: boolean }) {
 		const res = await fetch("/api/admin/collections", {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
@@ -259,7 +283,7 @@ export class HttpApiClient implements ApiClient {
 		return res.json();
 	}
 
-	async updateCollection(id: string, data: Partial<{ title: string; description: string; editorialStatus: string; isOrdered: boolean }>) {
+	async updateCollection(id: string, data: Partial<{ title: string; description: string; coverImageUrl: string | null; editorialStatus: string; isOrdered: boolean }>) {
 		const res = await fetch(`/api/admin/collections/${id}`, {
 			method: "PATCH",
 			headers: { "Content-Type": "application/json" },
@@ -278,6 +302,46 @@ export class HttpApiClient implements ApiClient {
 			method: "DELETE",
 			credentials: "include",
 		});
+	}
+
+	async addResourceToCollection(collectionId: string, resourceId: string): Promise<{ ok: boolean }> {
+		const res = await fetch(`/api/admin/collections/${collectionId}/resources`, {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			credentials: "include",
+			body: JSON.stringify({ resourceId }),
+		});
+		if (!res.ok) {
+			const err = await res.json().catch(() => ({}));
+			throw err;
+		}
+		return res.json();
+	}
+
+	async removeResourceFromCollection(collectionId: string, resourceId: string): Promise<{ ok: boolean }> {
+		const res = await fetch(`/api/admin/collections/${collectionId}/resources/${resourceId}`, {
+			method: "DELETE",
+			credentials: "include",
+		});
+		if (!res.ok) {
+			const err = await res.json().catch(() => ({}));
+			throw err;
+		}
+		return res.json();
+	}
+
+	async reorderCollectionResource(collectionId: string, resourceId: string, direction: "up" | "down"): Promise<{ ok: boolean; error?: string }> {
+		const res = await fetch(`/api/admin/collections/${collectionId}/resources/reorder`, {
+			method: "PATCH",
+			headers: { "Content-Type": "application/json" },
+			credentials: "include",
+			body: JSON.stringify({ resourceId, direction }),
+		});
+		if (!res.ok) {
+			const err = await res.json().catch(() => ({}));
+			return { ok: false, error: err.error ?? "No se pudo reordenar el recurso" };
+		}
+		return res.json();
 	}
 
 	async listTaxonomies(opts?: { q?: string; type?: string; limit?: number; offset?: number }): Promise<PaginatedResult<TaxonomyRecord>> {

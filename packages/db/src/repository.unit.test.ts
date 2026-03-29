@@ -15,6 +15,7 @@ import {
 	ensureUser,
 	failUploadSession,
 	getCollectionById,
+	getCollectionBySlug,
 	getElpxProjectByHash,
 	getElpxProjectByResourceId,
 	getTaxonomyById,
@@ -24,6 +25,7 @@ import {
 	listTaxonomies,
 	listUsers,
 	removeResourceFromCollection,
+	reorderCollectionResource,
 	updateCollection,
 	updateTaxonomy,
 	updateUser,
@@ -92,6 +94,7 @@ describe("repository admin helpers", () => {
 		const first = await createCollection(db, {
 			title: "Álgebra visual",
 			description: "Colección de matemáticas",
+			coverImageUrl: "https://img.example/algebra.png",
 			curatorId: "curator-1",
 		});
 		await createCollection(db, {
@@ -108,17 +111,23 @@ describe("repository admin helpers", () => {
 		});
 		expect(filtered.total).toBe(1);
 		expect(filtered.data[0]?.slug).toContain("algebra-visual-");
+		expect(filtered.data[0]?.coverImageUrl).toBe("https://img.example/algebra.png");
 
 		await updateCollection(db, first.id, {
 			title: "Álgebra visual avanzada",
+			coverImageUrl: "https://img.example/algebra-2.png",
 			editorialStatus: "published",
 			isOrdered: 1,
 		});
 
 		const updated = await getCollectionById(db, first.id);
 		expect(updated?.title).toBe("Álgebra visual avanzada");
+		expect(updated?.coverImageUrl).toBe("https://img.example/algebra-2.png");
 		expect(updated?.editorialStatus).toBe("published");
 		expect(updated?.isOrdered).toBe(1);
+
+		const bySlug = await getCollectionBySlug(db, updated!.slug, { status: "published" });
+		expect(bySlug?.id).toBe(first.id);
 
 		await deleteCollection(db, first.id);
 		expect(await getCollectionById(db, first.id)).toBeNull();
@@ -211,6 +220,7 @@ describe("repository collection-resources", () => {
 	let db: ReturnType<typeof drizzle>;
 	let collectionId: string;
 	let resourceId: string;
+	let secondResourceId: string;
 
 	beforeEach(async () => {
 		const pglite = new PGlite();
@@ -230,6 +240,16 @@ describe("repository collection-resources", () => {
 			createdBy: "u1",
 		});
 		resourceId = res.id;
+
+		const res2 = await createResource(db, {
+			title: "Recurso dos",
+			description: "Desc 2",
+			language: "es",
+			license: "cc-by",
+			resourceType: "video",
+			createdBy: "u1",
+		});
+		secondResourceId = res2.id;
 	});
 
 	test("añade, lista y elimina recurso de colección", async () => {
@@ -250,5 +270,17 @@ describe("repository collection-resources", () => {
 		const items = await listCollectionResources(db, collectionId);
 		expect(items).toHaveLength(1);
 		expect(items[0].position).toBe(0);
+	});
+
+	test("reordena recursos intercambiando posiciones", async () => {
+		await addResourceToCollection(db, collectionId, resourceId, 0);
+		await addResourceToCollection(db, collectionId, secondResourceId, 1);
+
+		const reordered = await reorderCollectionResource(db, collectionId, secondResourceId, "up");
+		expect(reordered).toBe(true);
+
+		const items = await listCollectionResources(db, collectionId);
+		expect(items[0].resourceId).toBe(secondResourceId);
+		expect(items[1].resourceId).toBe(resourceId);
 	});
 });

@@ -24,32 +24,34 @@ export function CrudTable<T>({
 }: CrudTableProps<T>) {
 	return (
 		<div className="admin-table-wrap">
-			<table>
-				<thead>
-					<tr>
-						{columns.map((column) => (
-							<th key={column.id}>{column.header}</th>
-						))}
-					</tr>
-				</thead>
-				<tbody>
-					{rows.length === 0
-						? (
-							<tr className="admin-empty-row">
-								<td colSpan={colSpan}>{emptyMessage}</td>
-							</tr>
-						)
-						: rows.map((row) => (
-							<tr key={getRowKey(row)}>
-								{columns.map((column) => (
-									<td key={column.id} className={column.className}>
-										{column.cell(row)}
-									</td>
-								))}
-							</tr>
-						))}
-				</tbody>
-			</table>
+			<div className="admin-table-overflow">
+				<table className="admin-table">
+					<thead>
+						<tr>
+							{columns.map((column) => (
+								<th key={column.id}>{column.header}</th>
+							))}
+						</tr>
+					</thead>
+					<tbody>
+						{rows.length === 0
+							? (
+								<tr>
+									<td colSpan={colSpan} className="admin-table-empty">{emptyMessage}</td>
+								</tr>
+							)
+							: rows.map((row) => (
+								<tr key={getRowKey(row)}>
+									{columns.map((column) => (
+										<td key={column.id} className={column.className}>
+											{column.cell(row)}
+										</td>
+									))}
+								</tr>
+							))}
+					</tbody>
+				</table>
+			</div>
 		</div>
 	);
 }

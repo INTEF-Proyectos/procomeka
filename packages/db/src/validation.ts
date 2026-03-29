@@ -231,9 +231,18 @@ export function validateCollection(body: unknown): ValidationResult {
 	const b = body as Record<string, unknown>;
 	if (!isNonEmptyString(b.title)) {
 		errors.push({ field: "title", message: "El título es obligatorio" });
+	} else if (b.title.length > 500) {
+		errors.push({ field: "title", message: "El título no puede superar 500 caracteres" });
 	}
 	if (!isNonEmptyString(b.description)) {
 		errors.push({ field: "description", message: "La descripción es obligatoria" });
+	} else if (b.description.length > 5000) {
+		errors.push({ field: "description", message: "La descripción no puede superar 5000 caracteres" });
+	}
+	if (b.coverImageUrl !== undefined && b.coverImageUrl !== null && typeof b.coverImageUrl !== "string") {
+		errors.push({ field: "coverImageUrl", message: "La imagen de portada debe ser una URL en texto" });
+	} else if (typeof b.coverImageUrl === "string" && b.coverImageUrl.length > 2000) {
+		errors.push({ field: "coverImageUrl", message: "La URL de portada no puede superar 2000 caracteres" });
 	}
 	return { valid: errors.length === 0, errors };
 }

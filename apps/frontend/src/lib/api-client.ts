@@ -49,11 +49,32 @@ export interface CollectionRecord {
 	slug: string;
 	title: string;
 	description: string;
+	coverImageUrl?: string | null;
 	editorialStatus: string;
 	curatorId: string;
+	curatorName?: string | null;
+	resourceCount?: number;
 	isOrdered?: number;
 	createdAt?: string | number | Date | null;
 	updatedAt?: string | number | Date | null;
+}
+
+export interface CollectionResourceRecord {
+	resourceId: string;
+	position: number;
+	title: string;
+	slug: string;
+	description: string;
+	resourceType: string;
+	language: string;
+	license: string;
+	author: string | null;
+	createdByName?: string | null;
+	editorialStatus: string;
+}
+
+export interface CollectionDetailRecord extends CollectionRecord {
+	resources: CollectionResourceRecord[];
 }
 
 export interface TaxonomyRecord {
@@ -185,6 +206,8 @@ export interface ApiClient {
 		license?: string;
 	}): Promise<ResourceListResult>;
 	getResourceBySlug(slug: string): Promise<Resource | null>;
+	listPublicCollections(opts?: { q?: string; limit?: number; offset?: number }): Promise<PaginatedResult<CollectionRecord>>;
+	getPublicCollectionBySlug(slug: string): Promise<CollectionDetailRecord | null>;
 	getConfig(): Promise<AppConfig>;
 
 	// Auth
@@ -212,9 +235,13 @@ export interface ApiClient {
 
 	listCollections(opts?: { q?: string; limit?: number; offset?: number }): Promise<PaginatedResult<CollectionRecord>>;
 	getCollectionById(id: string): Promise<CollectionRecord | null>;
-	createCollection(data: { title: string; description: string; editorialStatus?: string; isOrdered?: boolean }): Promise<{ id: string; slug: string }>;
-	updateCollection(id: string, data: Partial<{ title: string; description: string; editorialStatus: string; isOrdered: boolean }>): Promise<{ ok: boolean; error?: string; details?: { field: string; message: string }[] }>;
+	listCollectionResources(collectionId: string): Promise<CollectionResourceRecord[]>;
+	createCollection(data: { title: string; description: string; coverImageUrl?: string | null; editorialStatus?: string; isOrdered?: boolean }): Promise<{ id: string; slug: string }>;
+	updateCollection(id: string, data: Partial<{ title: string; description: string; coverImageUrl: string | null; editorialStatus: string; isOrdered: boolean }>): Promise<{ ok: boolean; error?: string; details?: { field: string; message: string }[] }>;
 	deleteCollection(id: string): Promise<void>;
+	addResourceToCollection(collectionId: string, resourceId: string): Promise<{ ok: boolean }>;
+	removeResourceFromCollection(collectionId: string, resourceId: string): Promise<{ ok: boolean }>;
+	reorderCollectionResource(collectionId: string, resourceId: string, direction: "up" | "down"): Promise<{ ok: boolean; error?: string }>;
 
 	listTaxonomies(opts?: { q?: string; type?: string; limit?: number; offset?: number }): Promise<PaginatedResult<TaxonomyRecord>>;
 	getTaxonomyById(id: string): Promise<TaxonomyRecord | null>;

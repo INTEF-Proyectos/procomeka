@@ -216,6 +216,31 @@ export class PreviewApiClient implements ApiClient {
 		return enriched;
 	}
 
+	async listPublicCollections(opts?: { q?: string; limit?: number; offset?: number }) {
+		const { listCollections } = await import("@procomeka/db/repository");
+		return listCollections(this.db, {
+			limit: opts?.limit,
+			offset: opts?.offset,
+			search: opts?.q,
+			status: "published",
+			resourceStatus: "published",
+		});
+	}
+
+	async getPublicCollectionBySlug(slug: string) {
+		const { getCollectionBySlug, listCollectionResources } = await import("@procomeka/db/repository");
+		const collection = await getCollectionBySlug(this.db, slug, {
+			status: "published",
+			resourceStatus: "published",
+		});
+		if (!collection) return null;
+		const resources = await listCollectionResources(this.db, collection.id, {
+			limit: 100,
+			status: "published",
+		});
+		return { ...collection, resources };
+	}
+
 	async getConfig(): Promise<AppConfig> {
 		return { oidcEnabled: false, oidcEndSessionUrl: null };
 	}
@@ -427,6 +452,9 @@ export class PreviewApiClient implements ApiClient {
 	}
 
 	async listCollections(opts?: { q?: string; limit?: number; offset?: number }) {
+		if (!this.hasMinRole("curator")) {
+			return { data: [], total: 0, limit: opts?.limit ?? 20, offset: opts?.offset ?? 0 };
+		}
 		const { listCollections } = await import("@procomeka/db/repository");
 		return listCollections(this.db, {
 			limit: opts?.limit,
@@ -437,6 +465,7 @@ export class PreviewApiClient implements ApiClient {
 	}
 
 	async getCollectionById(id: string) {
+		if (!this.hasMinRole("curator")) return null;
 		const { getCollectionById } = await import("@procomeka/db/repository");
 		const found = await getCollectionById(this.db, id);
 		if (!found) return null;
@@ -444,24 +473,34 @@ export class PreviewApiClient implements ApiClient {
 		return found;
 	}
 
-	async createCollection(data: { title: string; description: string; editorialStatus?: string; isOrdered?: boolean }) {
+	async listCollectionResources(collectionId: string) {
+		const collection = await this.getCollectionById(collectionId);
+		if (!collection) return [];
+		const { listCollectionResources } = await import("@procomeka/db/repository");
+		return listCollectionResources(this.db, collectionId, { limit: 100 });
+	}
+
+	async createCollection(data: { title: string; description: string; coverImageUrl?: string | null; editorialStatus?: string; isOrdered?: boolean }) {
+		if (!this.hasMinRole("curator")) throw new Error("Permisos insuficientes");
 		const { createCollection } = await import("@procomeka/db/repository");
 		return createCollection(this.db, {
 			title: data.title,
 			description: data.description,
+			coverImageUrl: data.coverImageUrl ?? null,
 			curatorId: this.currentUser.id,
 			editorialStatus: data.editorialStatus,
 			isOrdered: data.isOrdered ? 1 : 0,
 		});
 	}
 
-	async updateCollection(id: string, data: Partial<{ title: string; description: string; editorialStatus: string; isOrdered: boolean }>) {
+	async updateCollection(id: string, data: Partial<{ title: string; description: string; coverImageUrl: string | null; editorialStatus: string; isOrdered: boolean }>) {
 		const existing = await this.getCollectionById(id);
 		if (!existing) return { ok: false, error: "Colección no encontrada" };
 		const { updateCollection } = await import("@procomeka/db/repository");
 		await updateCollection(this.db, id, {
 			title: data.title,
 			description: data.description,
+			coverImageUrl: data.coverImageUrl,
 			editorialStatus: data.editorialStatus,
 			isOrdered: typeof data.isOrdered === "boolean" ? (data.isOrdered ? 1 : 0) : undefined,
 		});
@@ -473,6 +512,32 @@ export class PreviewApiClient implements ApiClient {
 		if (!existing) throw new Error("Colección no encontrada");
 		const { deleteCollection } = await import("@procomeka/db/repository");
 		await deleteCollection(this.db, id);
+	}
+
+	async addResourceToCollection(collectionId: string, resourceId: string): Promise<{ ok: boolean }> {
+		const collection = await this.getCollectionById(collectionId);
+		if (!collection) throw new Error("Colección no encontrada");
+		const resource = await this.getResourceById(resourceId);
+		if (!resource) throw new Error("Recurso no encontrado");
+		const { addResourceToCollection } = await import("@procomeka/db/repository");
+		await addResourceToCollection(this.db, collectionId, resourceId);
+		return { ok: true };
+	}
+
+	async removeResourceFromCollection(collectionId: string, resourceId: string): Promise<{ ok: boolean }> {
+		const collection = await this.getCollectionById(collectionId);
+		if (!collection) throw new Error("Colección no encontrada");
+		const { removeResourceFromCollection } = await import("@procomeka/db/repository");
+		await removeResourceFromCollection(this.db, collectionId, resourceId);
+		return { ok: true };
+	}
+
+	async reorderCollectionResource(collectionId: string, resourceId: string, direction: "up" | "down"): Promise<{ ok: boolean; error?: string }> {
+		const collection = await this.getCollectionById(collectionId);
+		if (!collection) return { ok: false, error: "Colección no encontrada" };
+		const { reorderCollectionResource } = await import("@procomeka/db/repository");
+		const reordered = await reorderCollectionResource(this.db, collectionId, resourceId, direction);
+		return reordered ? { ok: true } : { ok: false, error: "No se pudo reordenar el recurso" };
 	}
 
 	async listTaxonomies(opts?: { q?: string; type?: string; limit?: number; offset?: number }) {

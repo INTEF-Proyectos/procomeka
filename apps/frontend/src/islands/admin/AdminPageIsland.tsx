@@ -77,6 +77,8 @@ export function AdminPageIsland() {
 	}
 
 	const userLevel = ROLE_LEVELS[userRole] ?? 0;
+	const canManageCollections = userLevel >= 2;
+	const canManageCategories = userLevel >= 2;
 
 	return (
 		<div className="admin-shell">
@@ -88,11 +90,15 @@ export function AdminPageIsland() {
 			/>
 			<main className="admin-content">
 				{section === "dashboard" && (
-					<AdminDashboardSection onNavigate={changeSection} />
+					<AdminDashboardSection
+						onNavigate={changeSection}
+						canManageCollections={canManageCollections}
+						canManageCategories={canManageCategories}
+					/>
 				)}
 				{section === "resources" && <AdminResourcesSection />}
-				{section === "collections" && <AdminCollectionsSection />}
-				{section === "categories" && userLevel >= 2 && (
+				{section === "collections" && canManageCollections && <AdminCollectionsSection />}
+				{section === "categories" && canManageCategories && (
 					<AdminCategoriesSection />
 				)}
 				{section === "users" && userLevel >= 3 && (
