@@ -16,12 +16,27 @@ export function isPreviewMode(): boolean {
 	return typeof window !== "undefined" && (window as Record<string, unknown>).__PREVIEW_MODE__ === true;
 }
 
+/** Returns the current locale from <html lang> (client) or "es" as fallback. */
+export function getCurrentLocale(): string {
+	if (typeof document !== "undefined") {
+		return document.documentElement.lang || "es";
+	}
+	return "es";
+}
+
 /**
  * Helper para construir URLs relativas al base path de la aplicación.
- * Necesario para que la navegación funcione bajo subpaths como /procomeka/pr-preview/pr-123/
+ * Locale-aware: inserta el prefijo de idioma cuando no es el default (es).
  *
  * Funciona tanto en SSR (import.meta.env.BASE_URL) como en cliente (window.__BASE_URL__).
  */
-export function url(path: string): string {
-	return getBaseUrl() + path.replace(/^\//, "");
+export function url(path: string, locale?: string): string {
+	const base = getBaseUrl();
+	const effectiveLocale = locale ?? getCurrentLocale();
+	const cleanPath = path.replace(/^\//, "");
+
+	if (!effectiveLocale || effectiveLocale === "es") {
+		return base + cleanPath;
+	}
+	return `${base}${effectiveLocale}/${cleanPath}`;
 }

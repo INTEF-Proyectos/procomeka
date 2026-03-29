@@ -22,6 +22,8 @@ import {
 	type FilterOption,
 } from "../../lib/resource-filters.ts";
 import { TYPE_ICONS } from "../../lib/resource-display.ts";
+import "../../lib/paraglide-client.ts";
+import * as m from "../../paraglide/messages.js";
 
 type ViewMode = "grid" | "list";
 type SortMode = "relevance" | "recent";
@@ -123,7 +125,7 @@ function ResourceCard({ resource, initialFavorited = false, isLoggedIn = false }
 						loading="lazy"
 						tabIndex={-1}
 						sandbox="allow-scripts allow-same-origin"
-						title="Vista previa"
+						title={m.catalog_preview()}
 					/>
 					<div className="card-preview-overlay" />
 				</div>
@@ -149,13 +151,13 @@ function ResourceCard({ resource, initialFavorited = false, isLoggedIn = false }
 					<div className="card-author">
 						<div className="card-author-avatar">{authorInitial}</div>
 						<span className="card-author-name">
-							{resource.createdByName || resource.author || "Anónimo"}
+							{resource.createdByName || resource.author || m.common_anonymous()}
 						</span>
 					</div>
 					<div className="card-actions">
 						<button
 							className={`card-action-btn${bookmarked ? " card-action-active" : ""}`}
-							aria-label={bookmarked ? "Quitar de favoritos" : "Guardar en favoritos"}
+							aria-label={bookmarked ? m.common_remove_favorite() : m.common_save_favorite()}
 							aria-pressed={bookmarked}
 							onClick={handleBookmark}
 							type="button"
@@ -164,7 +166,7 @@ function ResourceCard({ resource, initialFavorited = false, isLoggedIn = false }
 						</button>
 						<button
 							className={`card-action-btn${copied ? " card-action-copied" : ""}`}
-							aria-label={copied ? "Enlace copiado" : "Copiar enlace"}
+							aria-label={copied ? m.common_link_copied() : m.common_copy_link()}
 							onClick={handleShare}
 							type="button"
 						>
@@ -244,7 +246,7 @@ export function CatalogIsland() {
 			setResources([]);
 			setTotal(0);
 			setPagination(getPaginationState(0, DEFAULT_PAGE_SIZE, 0));
-			setError("Error al cargar recursos.");
+			setError(m.catalog_error());
 			setLoading(false);
 		}
 	}
@@ -280,9 +282,9 @@ export function CatalogIsland() {
 		dispatchCatalogQuerySync(nextState.query);
 
 		void Promise.all([
-			loadFilterOptions("resource-type", "Todos los tipos", RESOURCE_TYPE_OPTIONS),
-			loadFilterOptions("language", "Todos los idiomas", LANGUAGE_OPTIONS),
-			loadFilterOptions("license", "Todas las licencias", LICENSE_OPTIONS),
+			loadFilterOptions("resource-type", m.catalog_all_types(), RESOURCE_TYPE_OPTIONS),
+			loadFilterOptions("language", m.catalog_all_languages(), LANGUAGE_OPTIONS),
+			loadFilterOptions("license", m.catalog_all_licenses(), LICENSE_OPTIONS),
 		]).then(([types, languages, licenses]) => {
 			setResourceTypeOptions(types);
 			setLanguageOptions(languages);
@@ -343,15 +345,15 @@ export function CatalogIsland() {
 	const resourcesClassName = viewMode === "list" ? "resources-list-view" : "resources-grid";
 
 	/* Format total for display */
-	const formattedTotal = total.toLocaleString("es-ES");
+	const formattedTotal = total.toLocaleString();
 
 	return (
 		<div className="catalog">
 			<aside className={`sidebar${sidebarOpen ? " open" : ""}`} id="sidebar">
-				<h2 className="sidebar-title">Filtros Avanzados</h2>
+				<h2 className="sidebar-title">{m.catalog_advanced_filters()}</h2>
 
 				<div className="filter-group">
-					<label htmlFor="filter-resource-type">Tipo de Recurso</label>
+					<label htmlFor="filter-resource-type">{m.catalog_resource_type()}</label>
 					<select
 						id="filter-resource-type"
 						value={listingState.resourceType}
@@ -369,7 +371,7 @@ export function CatalogIsland() {
 				</div>
 
 				<div className="filter-group">
-					<label htmlFor="filter-language">Idioma</label>
+					<label htmlFor="filter-language">{m.catalog_language()}</label>
 					<select
 						id="filter-language"
 						value={listingState.language}
@@ -387,7 +389,7 @@ export function CatalogIsland() {
 				</div>
 
 				<div className="filter-group">
-					<label htmlFor="filter-license">Licencia</label>
+					<label htmlFor="filter-license">{m.catalog_license()}</label>
 					<select
 						id="filter-license"
 						value={listingState.license}
@@ -412,7 +414,7 @@ export function CatalogIsland() {
 						void applyListingState(DEFAULT_LISTING_STATE, "replace");
 					}}
 				>
-					Limpiar filtros
+					{m.catalog_clear_filters()}
 				</button>
 			</aside>
 
@@ -426,15 +428,15 @@ export function CatalogIsland() {
 							onClick={() => setSidebarOpen((current) => !current)}
 						>
 							<span className="material-symbols-outlined" style={{ fontSize: "1.125rem" }}>filter_list</span>
-							Filtros
+							{m.catalog_filters()}
 						</button>
 						{listingState.query ? (
 							<p className="results-summary-query" aria-live="polite">
-								Resultados para &ldquo;{listingState.query}&rdquo;
+								{m.catalog_results_for()} &ldquo;{listingState.query}&rdquo;
 							</p>
 						) : null}
 						<h1 className="results-summary-count" aria-live="polite">
-							{loading ? "Buscando..." : error ? "Sin resultados" : `${formattedTotal} Recursos`}
+							{loading ? m.catalog_searching() : error ? m.catalog_no_results() : m.catalog_resources_count({ count: formattedTotal })}
 						</h1>
 					</div>
 					<div className="toolbar-right">
@@ -443,8 +445,8 @@ export function CatalogIsland() {
 							<button
 								className={`view-toggle-btn${viewMode === "grid" ? " active" : ""}`}
 								type="button"
-								title="Vista en cuadrícula"
-								aria-label="Vista en cuadrícula"
+								title={m.catalog_grid_view()}
+								aria-label={m.catalog_grid_view()}
 								onClick={() => updateViewMode("grid")}
 							>
 								<span className="material-symbols-outlined">grid_view</span>
@@ -452,46 +454,46 @@ export function CatalogIsland() {
 							<button
 								className={`view-toggle-btn${viewMode === "list" ? " active" : ""}`}
 								type="button"
-								title="Vista en lista"
-								aria-label="Vista en lista"
+								title={m.catalog_list_view()}
+								aria-label={m.catalog_list_view()}
 								onClick={() => updateViewMode("list")}
 							>
 								<span className="material-symbols-outlined">view_list</span>
 							</button>
 						</div>
 						{/* Sort toggle: relevance / recent */}
-						<span className="toolbar-sort-label">Ordenar por:</span>
+						<span className="toolbar-sort-label">{m.catalog_sort_by()}</span>
 						<div className="sort-toggle">
 							<button
 								className={`sort-toggle-btn${sortMode === "relevance" ? " active" : ""}`}
 								type="button"
 								onClick={() => updateSortMode("relevance")}
 							>
-								Más relevantes
+								{m.catalog_sort_relevance()}
 							</button>
 							<button
 								className={`sort-toggle-btn${sortMode === "recent" ? " active" : ""}`}
 								type="button"
 								onClick={() => updateSortMode("recent")}
 							>
-								Recientes
+								{m.catalog_sort_recent()}
 							</button>
 						</div>
 					</div>
 				</div>
 
 				<div className={resourcesClassName} aria-live="polite">
-					{loading ? <p className="loading">Cargando recursos...</p> : null}
+					{loading ? <p className="loading">{m.catalog_loading()}</p> : null}
 					{!loading && error ? <p className="empty">{error}</p> : null}
 					{!loading && !error && resources.length === 0 ? (
-						<p className="empty">No se encontraron recursos.</p>
+						<p className="empty">{m.catalog_empty()}</p>
 					) : null}
 					{!loading && !error && resources.map((resource) => (
 						<ResourceCard key={resource.id} resource={resource} initialFavorited={favoritedSlugs.has(resource.slug)} isLoggedIn={isLoggedIn} />
 					))}
 				</div>
 
-				<nav className="pagination" aria-label="Paginacion" hidden={pagination.totalPages <= 1}>
+				<nav className="pagination" aria-label={m.pagination_label()} hidden={pagination.totalPages <= 1}>
 					<button
 						type="button"
 						className="pag-btn"

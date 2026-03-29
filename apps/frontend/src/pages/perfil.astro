@@ -2,12 +2,16 @@
 import PublicLayout from "../layouts/PublicLayout.astro";
 import { PublicDashboardIsland } from "../islands/dashboard/PublicDashboardIsland.tsx";
 import { Breadcrumb } from "../ui/Breadcrumb.tsx";
+import { setSsrLocale } from "../lib/i18n.ts";
+import * as m from "../paraglide/messages.js";
+const locale = Astro.currentLocale ?? "es";
+setSsrLocale(locale);
 ---
 
-<PublicLayout title="Mi panel" showNavSearch={true}>
+<PublicLayout title={m.profile_title()} showNavSearch={true}>
   <Breadcrumb items={[
-    { label: "Inicio", href: "/" },
-    { label: "Mi panel" },
+    { label: m.nav_home(), href: "/" },
+    { label: m.profile_title() },
   ]} />
   <PublicDashboardIsland client:load />
 </PublicLayout>

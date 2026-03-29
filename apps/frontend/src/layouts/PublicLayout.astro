@@ -21,6 +21,7 @@ const isPreview = import.meta.env.PUBLIC_PREVIEW_MODE === "true";
 const locale = Astro.currentLocale ?? "es";
 setSsrLocale(locale);
 
+/** Build a locale-aware URL relative to base. */
 function localUrl(path: string): string {
   const clean = path.replace(/^\//, "");
   if (locale === "es") return base + clean;

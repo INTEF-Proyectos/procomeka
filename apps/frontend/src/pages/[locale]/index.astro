@@ -1,10 +1,18 @@
 ---
-import PublicLayout from "../layouts/PublicLayout.astro";
-import { HeroIsland } from "../islands/home/HeroIsland.tsx";
-import { FeaturedResourcesIsland } from "../islands/home/FeaturedResourcesIsland.tsx";
-import { setSsrLocale } from "../lib/i18n.ts";
-import * as m from "../paraglide/messages.js";
-const locale = Astro.currentLocale ?? "es";
+import { locales, baseLocale } from "../../paraglide/runtime.js";
+import PublicLayout from "../../layouts/PublicLayout.astro";
+import { HeroIsland } from "../../islands/home/HeroIsland.tsx";
+import { FeaturedResourcesIsland } from "../../islands/home/FeaturedResourcesIsland.tsx";
+import { setSsrLocale } from "../../lib/i18n.ts";
+import * as m from "../../paraglide/messages.js";
+
+export function getStaticPaths() {
+  return locales
+    .filter((l) => l !== baseLocale)
+    .map((locale) => ({ params: { locale } }));
+}
+
+const { locale } = Astro.params;
 setSsrLocale(locale);
 ---
 
@@ -65,7 +73,7 @@ setSsrLocale(locale);
         </div>
       </div>
       <div class="collections-grid">
-        <a href="colecciones?slug=ia-en-el-aula" class="collection-card">
+        <a href="explorar?collection=ia-en-el-aula" class="collection-card">
           <div class="collection-image">
             <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuB0FIbUl9d_9m4ZjbvwtWE5h9_cjzSNFuk0ipVPTaz20KrYAjHVbP-IR7tqBTK3ukJv9OUT2xU1TJT36bx7-lytWIlcq-r3JOpC0aYKAWQnrYDsOjs3OTE-RP_VnmbIxXFf7YAFrVAgMoSd4TZlAbWufwuwyrCMany-wOgO-G8BzxeO3gkokpK2L1s7pfvfGL4MIGH4zqp1QnzGv8KZXqZb8_YHFbdZvyqC_Tf3t3HNUskExGZ3f1d5CAPBas8TDatYm3Di2AbppK8" alt="IA en el Aula" loading="lazy" />
             <div class="collection-image-overlay"></div>
@@ -79,7 +87,7 @@ setSsrLocale(locale);
             <div class="collection-avatar collection-avatar-count">+12</div>
           </div>
         </a>
-        <a href="colecciones?slug=ods-sostenibilidad" class="collection-card">
+        <a href="explorar?collection=ods-sostenibilidad" class="collection-card">
           <div class="collection-image">
             <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuAKTQKzJ-QNCWfPJ9H1I3BoWVuhGB_0qh37eRHB9xtwBUCcdE7HmMTSbB8BmkqG73HxJWnoYjmjZI-0NI4XFXnGItdomTexyCfA2UeZ8PUlvs1gcdZV9JSP23BHrm2qqTICp7qiSplUuAiBkDaPjn1muQ8DyJBowBwR0AMwHUVWJcGi8FYLXdN72g8RYyIRF110oCPMF5av3uGJibzUjrN9g4TIU6fvOHq4AsxkmYCLb9X90j3owroCzEiRoX-wejgL9TEuRHQM_jg" alt="ODS y Sostenibilidad" loading="lazy" />
             <div class="collection-image-overlay"></div>
@@ -92,7 +100,7 @@ setSsrLocale(locale);
             <div class="collection-avatar collection-avatar-count">+5</div>
           </div>
         </a>
-        <a href="colecciones?slug=gamificacion-musical" class="collection-card">
+        <a href="explorar?collection=gamificacion-musical" class="collection-card">
           <div class="collection-image">
             <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuA5wYjz8t4-gJ6QxVmto117raZ6G5JO6Eg4tuJJbzljhMzG1ceu2dnjxogaUU-z74n8UznQtuEt9hYiNznKP90WUpAH5L_G_prY3EU-oQ1w_GAwpHceGan9Gq0O7G4nTYz2241wITNJhWinqsxAF2Jhff7oLO9W8sgOhDhqzoWgsiDMTSI4neeOYR6gQj30YxpdF4ZMjdSBVKRN5lNmpFs_ZxvaW5eUN49W3tyhUBUKJK1_mgaDddXiGyE9zompL9-M2oASvfUcU4I" alt="Gamificación Musical" loading="lazy" />
             <div class="collection-image-overlay"></div>
@@ -104,7 +112,7 @@ setSsrLocale(locale);
             <div class="collection-avatar collection-avatar-count">+2</div>
           </div>
         </a>
-        <a href="colecciones?slug=abp-secundaria" class="collection-card">
+        <a href="explorar?collection=abp-secundaria" class="collection-card">
           <div class="collection-image">
             <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuCJghYk1Hpc4WjnkENQuH63VZ67vUIJy83KIuHo20UxT6XHDUSV7LbfToWXvo9-J1xKV1ryAG_620Yq1SVhSbi8ULwpWS8WlE6QRL-EnLEOXezBmoCg2BMVYiKyz0x8DrH0119US_GYEigYFP0UpwU7AZymvW1yoJb2K9ZCsmM-XiG6drGNDe1I7Gk0DdF92mbHVp4_dafxGak64jlbVlHN8j4xrPVBFO_JkZlKmnUFwUYH4tesmu_V1tOL2Kk2-jjzA8p6Zwe16_8" alt="ABP en Secundaria" loading="lazy" />
             <div class="collection-image-overlay"></div>

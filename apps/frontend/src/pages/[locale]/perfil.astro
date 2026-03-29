@@ -1,0 +1,25 @@
+---
+import { locales, baseLocale } from "../../paraglide/runtime.js";
+import PublicLayout from "../../layouts/PublicLayout.astro";
+import { PublicDashboardIsland } from "../../islands/dashboard/PublicDashboardIsland.tsx";
+import { Breadcrumb } from "../../ui/Breadcrumb.tsx";
+import { setSsrLocale } from "../../lib/i18n.ts";
+import * as m from "../../paraglide/messages.js";
+
+export function getStaticPaths() {
+  return locales
+    .filter((l) => l !== baseLocale)
+    .map((locale) => ({ params: { locale } }));
+}
+
+const { locale } = Astro.params;
+setSsrLocale(locale);
+---
+
+<PublicLayout title={m.profile_title()} showNavSearch={true}>
+  <Breadcrumb items={[
+    { label: m.nav_home(), href: "/" },
+    { label: m.profile_title() },
+  ]} />
+  <PublicDashboardIsland client:load />
+</PublicLayout>
