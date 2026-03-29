@@ -41,6 +41,9 @@ apps/api/static/exelearning-editor/
 # astro generated
 .astro/
 
+# paraglide generated
+apps/frontend/src/paraglide/
+
 # caches
 .eslintcache
 .cache

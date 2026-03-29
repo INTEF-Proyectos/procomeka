@@ -4,6 +4,8 @@ import PreviewBanner from "../components/PreviewBanner.astro";
 import "../styles/design-tokens.css";
 import "../styles/reset.css";
 import "../styles/utilities.css";
+import { setSsrLocale } from "../lib/i18n.ts";
+import * as m from "../paraglide/messages.js";
 
 interface Props {
 	title: string;
@@ -13,10 +15,12 @@ const { title } = Astro.props;
 const base = import.meta.env.BASE_URL;
 const isPreview = import.meta.env.PUBLIC_PREVIEW_MODE === "true";
 const hasHeaderCenter = Astro.slots.has("header-center");
+const locale = Astro.currentLocale ?? "es";
+setSsrLocale(locale);
 ---
 
 <!doctype html>
-<html lang="es">
+<html lang={locale}>
 	<head>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -24,15 +28,16 @@ const hasHeaderCenter = Astro.slots.has("header-center");
 		<link rel="preload" href="/fonts/inter-v18-latin-regular.woff2" as="font" type="font/woff2" crossorigin />
 		<link rel="preload" href="/fonts/plus-jakarta-sans-v8-latin-600.woff2" as="font" type="font/woff2" crossorigin />
 		<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" />
-		<script define:vars={{ base, isPreview }}>
+		<script define:vars={{ base, isPreview, locale }}>
 			window.__BASE_URL__ = base;
 			window.__PREVIEW_MODE__ = isPreview;
+			window.__LOCALE__ = locale;
 		</script>
 	</head>
 	<body class={isPreview ? "has-preview-banner" : ""}>
-		<a href="#main-content" class="sr-only">Saltar al contenido</a>
+		<a href="#main-content" class="sr-only">{m.skip_to_content()}</a>
 		<header class="site-header">
-			<nav class={`site-nav${hasHeaderCenter ? " nav-with-center" : ""}`} aria-label="Navegación principal">
+			<nav class={`site-nav${hasHeaderCenter ? " nav-with-center" : ""}`} aria-label={m.main_navigation()}>
 				<a href={base} class="brand">Procomeka</a>
 				{hasHeaderCenter && (
 					<div class="nav-center">
@@ -46,7 +51,7 @@ const hasHeaderCenter = Astro.slots.has("header-center");
 			<slot />
 		</main>
 		<footer class="site-footer" role="contentinfo">
-			<p>Plataforma de recursos educativos abiertos</p>
+			<p>{m.base_footer()}</p>
 		</footer>
 		<PreviewBanner />
 	</body>

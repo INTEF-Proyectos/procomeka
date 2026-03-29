@@ -11,6 +11,8 @@ import { getApiClient } from "../../lib/get-api-client.ts";
 import { url } from "../../lib/paths.ts";
 import { gravatarUrl } from "../../lib/shared-utils.ts";
 import "./PublicDashboardIsland.css";
+import "../../lib/paraglide-client.ts";
+import * as m from "../../paraglide/messages.js";
 
 function FavoritesTab({
   favorites,
@@ -42,9 +44,9 @@ function FavoritesTab({
       <div className="dashboard-tab-content">
         <EmptyState
           icon="bookmark_border"
-          title="Sin favoritos aún"
-          description="Guarda recursos para acceder a ellos más tarde."
-          action={<a href={url("explorar")} className="dashboard-create-btn">Explorar recursos</a>}
+          title={m.profile_no_favorites()}
+          description={m.profile_no_favorites_desc()}
+          action={<a href={url("explorar")} className="dashboard-create-btn">{m.profile_explore_resources()}</a>}
         />
       </div>
     );
@@ -52,7 +54,7 @@ function FavoritesTab({
 
   return (
     <div className="dashboard-tab-content">
-      <p className="dashboard-tab-count">{favoriteCount} recursos guardados</p>
+      <p className="dashboard-tab-count">{m.profile_saved_count({ count: String(favoriteCount) })}</p>
       <ResourceGrid>
         {favorites.map((resource) => (
           <div key={resource.id} className="dashboard-fav-card">
@@ -108,9 +110,9 @@ function RatingsTab() {
       <div className="dashboard-tab-content">
         <EmptyState
           icon="star_border"
-          title="Sin valoraciones aún"
-          description="Valora recursos para ayudar a otros docentes a descubrir los mejores contenidos."
-          action={<a href={url("explorar")} className="dashboard-create-btn">Explorar recursos</a>}
+          title={m.profile_no_ratings()}
+          description={m.profile_no_ratings_desc()}
+          action={<a href={url("explorar")} className="dashboard-create-btn">{m.profile_explore_resources()}</a>}
         />
       </div>
     );
@@ -118,7 +120,7 @@ function RatingsTab() {
 
   return (
     <div className="dashboard-tab-content">
-      <p className="dashboard-tab-count">{rated.length} recursos valorados</p>
+      <p className="dashboard-tab-count">{m.profile_rated_count({ count: String(rated.length) })}</p>
       <div className="dashboard-ratings-list">
         {rated.map((r) => (
           <a key={r.id} href={url(`recurso?slug=${r.slug}`)} className="dashboard-rating-item">
@@ -144,6 +146,24 @@ function RatingsTab() {
       </div>
     </div>
   );
+}
+
+function getActivityDescription(activity: ActivityItem): string {
+  const title = activity.resourceTitle || "?";
+  const score = String((activity.metadata as Record<string, unknown>)?.score ?? "");
+  switch (activity.type) {
+    case "resource_created": return m.activity_resource_created({ title });
+    case "resource_updated": return m.activity_resource_updated({ title });
+    case "resource_published": return m.activity_resource_published({ title });
+    case "resource_drafted": return m.activity_resource_drafted({ title });
+    case "resource_status_changed": return m.activity_resource_status_changed({ title });
+    case "rating_given": return m.activity_rating_given({ title, score });
+    case "favorite_added": return m.activity_favorite_added({ title });
+    case "favorite_removed": return m.activity_favorite_removed({ title });
+    case "file_uploaded": return m.activity_file_uploaded({ title });
+    case "resource_downloaded": return m.activity_resource_downloaded({ title });
+    default: return activity.description;
+  }
 }
 
 const ACTIVITY_ICONS: Record<string, string> = {
@@ -186,8 +206,8 @@ function ActivityTab() {
       <div className="dashboard-tab-content">
         <EmptyState
           icon="history"
-          title="Sin actividad reciente"
-          description="Tu actividad en la plataforma aparecera aqui."
+          title={m.profile_no_activity()}
+          description={m.profile_no_activity_desc()}
         />
       </div>
     );
@@ -202,7 +222,7 @@ function ActivityTab() {
               {ACTIVITY_ICONS[activity.type] ?? "history"}
             </span>
             <div className="activity-body">
-              <span className="activity-description">{activity.description}</span>
+              <span className="activity-description">{getActivityDescription(activity)}</span>
               {activity.resourceTitle && activity.resourceSlug && (
                 <a href={url(`recurso?slug=${activity.resourceSlug}`)} className="activity-resource">
                   {activity.resourceTitle}
@@ -210,7 +230,7 @@ function ActivityTab() {
               )}
             </div>
             <time className="activity-time" dateTime={activity.createdAt}>
-              {new Date(activity.createdAt).toLocaleDateString("es-ES", { day: "numeric", month: "short", year: "numeric" })}
+              {new Date(activity.createdAt).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}
             </time>
           </li>
         ))}
@@ -357,10 +377,10 @@ export function PublicDashboardIsland() {
         },
       });
       setEditing(false);
-      setSaveMessage("Perfil actualizado correctamente");
+      setSaveMessage(m.profile_saved_ok());
       setTimeout(() => setSaveMessage(""), 3000);
     } catch {
-      setSaveMessage("Error al guardar los cambios");
+      setSaveMessage(m.profile_save_error());
     } finally {
       setSaving(false);
     }
@@ -379,8 +399,8 @@ export function PublicDashboardIsland() {
     return (
       <EmptyState
         icon="error"
-        title="Error al cargar el panel"
-        description="No se pudo cargar la información del panel. Inténtalo de nuevo."
+        title={m.profile_load_error()}
+        description={m.profile_load_error_desc()}
       />
     );
   }
@@ -396,16 +416,16 @@ export function PublicDashboardIsland() {
   const tabs = [
     {
       id: "resources",
-      label: "Mis recursos",
+      label: m.profile_my_resources(),
       icon: "library_books",
       count: dashboard.publishedCount + dashboard.draftCount,
       content: (
         <div className="dashboard-tab-content">
           <div className="dashboard-tab-header">
-            <span>{dashboard.publishedCount + dashboard.draftCount} recursos</span>
+            <span>{m.profile_resources_count({ count: String(dashboard.publishedCount + dashboard.draftCount) })}</span>
             <a href={url("nuevo")} className="dashboard-create-btn">
               <span className="material-symbols-outlined" aria-hidden="true">add</span>
-              Nuevo recurso
+              {m.profile_new_resource()}
             </a>
           </div>
           {dashboard.recentResources.length > 0 ? (
@@ -416,7 +436,7 @@ export function PublicDashboardIsland() {
                     resource={resource}
                     href={url(`recurso?slug=${resource.slug}`)}
                   />
-                  <a href={url(`editar?id=${resource.id}`)} className="dashboard-edit-icon" aria-label={`Editar ${resource.title}`}>
+                  <a href={url(`editar?id=${resource.id}`)} className="dashboard-edit-icon" aria-label={m.profile_edit_resource({ title: resource.title })}>
                     <span className="material-symbols-outlined">edit</span>
                   </a>
                 </div>
@@ -425,11 +445,11 @@ export function PublicDashboardIsland() {
           ) : (
             <EmptyState
               icon="note_add"
-              title="Aún no tienes recursos"
-              description="Empieza publicando tu primer recurso educativo."
+              title={m.profile_no_resources()}
+              description={m.profile_no_resources_desc()}
               action={
                 <a href={url("nuevo")} className="dashboard-create-btn">
-                  Crear recurso
+                  {m.profile_create_resource()}
                 </a>
               }
             />
@@ -439,7 +459,7 @@ export function PublicDashboardIsland() {
     },
     {
       id: "favorites",
-      label: "Favoritos",
+      label: m.profile_favorites(),
       icon: "bookmark",
       count: dashboard.favoriteCount,
       content: <FavoritesTab
@@ -452,14 +472,14 @@ export function PublicDashboardIsland() {
     },
     {
       id: "ratings",
-      label: "Mis valoraciones",
+      label: m.profile_ratings(),
       icon: "star",
       count: ratingCount,
       content: <RatingsTab />,
     },
     {
       id: "activity",
-      label: "Actividad",
+      label: m.profile_activity(),
       icon: "history",
       content: <ActivityTab />,
     },
@@ -481,7 +501,7 @@ export function PublicDashboardIsland() {
               rel="noopener noreferrer"
               className="dashboard-gravatar-link"
             >
-              Cambiar foto en Gravatar
+              {m.profile_change_photo()}
             </a>
           )}
         </div>
@@ -496,24 +516,24 @@ export function PublicDashboardIsland() {
                   {user.bio ? (
                     <p className="dashboard-bio">{user.bio}</p>
                   ) : (
-                    <p className="dashboard-bio dashboard-bio-empty">Sin descripción. Pulsa editar para añadir una.</p>
+                    <p className="dashboard-bio dashboard-bio-empty">{m.profile_no_bio()}</p>
                   )}
                 </div>
                 <button className="dashboard-edit-btn" onClick={startEditing} type="button">
                   <span className="material-symbols-outlined" aria-hidden="true">edit</span>
-                  Editar perfil
+                  {m.profile_edit()}
                 </button>
               </div>
               <div className="dashboard-badges">
                 <Badge variant="primary">{user.role}</Badge>
                 <span className="dashboard-stat">
-                  <strong>{dashboard.publishedCount}</strong> publicados
+                  <strong>{dashboard.publishedCount}</strong> {m.profile_published()}
                 </span>
                 <span className="dashboard-stat">
-                  <strong>{dashboard.draftCount}</strong> borradores
+                  <strong>{dashboard.draftCount}</strong> {m.profile_drafts()}
                 </span>
                 <span className="dashboard-stat">
-                  <strong>{dashboard.favoriteCount}</strong> favoritos
+                  <strong>{dashboard.favoriteCount}</strong> {m.nav_favorites()}
                 </span>
               </div>
               {saveMessage && (
@@ -527,23 +547,23 @@ export function PublicDashboardIsland() {
             /* --- Edit mode --- */
             <div className="dashboard-edit-form">
               <div className="dashboard-edit-field">
-                <label htmlFor="profile-name">Nombre</label>
+                <label htmlFor="profile-name">{m.profile_name_label()}</label>
                 <input
                   id="profile-name"
                   type="text"
                   value={editForm.name}
                   onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                  placeholder="Tu nombre"
+                  placeholder={m.profile_name_placeholder()}
                   disabled={saving}
                 />
               </div>
               <div className="dashboard-edit-field">
-                <label htmlFor="profile-bio">Sobre mí</label>
+                <label htmlFor="profile-bio">{m.profile_bio_label()}</label>
                 <textarea
                   id="profile-bio"
                   value={editForm.bio}
                   onChange={(e) => setEditForm({ ...editForm, bio: e.target.value })}
-                  placeholder="Cuéntanos algo sobre ti: tu especialidad, intereses educativos..."
+                  placeholder={m.profile_bio_placeholder()}
                   rows={3}
                   disabled={saving}
                 />
@@ -555,7 +575,7 @@ export function PublicDashboardIsland() {
                   type="button"
                   disabled={saving}
                 >
-                  Cancelar
+                  {m.common_cancel()}
                 </button>
                 <button
                   className="dashboard-edit-save"
@@ -563,7 +583,7 @@ export function PublicDashboardIsland() {
                   type="button"
                   disabled={saving || !editForm.name.trim()}
                 >
-                  {saving ? "Guardando..." : "Guardar cambios"}
+                  {saving ? m.profile_saving() : m.profile_save_changes()}
                 </button>
               </div>
             </div>

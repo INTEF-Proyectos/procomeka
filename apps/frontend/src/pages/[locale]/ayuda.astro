@@ -1,0 +1,279 @@
+---
+import { locales, baseLocale } from "../../paraglide/runtime.js";
+import PublicLayout from "../../layouts/PublicLayout.astro";
+import { HELP_FOOTER_LINKS, HELP_SECTIONS } from "../../lib/help-content.ts";
+
+export function getStaticPaths() {
+  return locales
+    .filter((l) => l !== baseLocale)
+    .map((locale) => ({ params: { locale } }));
+}
+---
+
+<PublicLayout title="Ayuda" showNavSearch={true} activePage="ayuda">
+  <section class="help-hero">
+    <div class="help-hero-copy">
+      <p class="help-eyebrow">Centro de ayuda</p>
+      <h1>Manual de uso de Procomún</h1>
+      <p class="help-lead">
+        Esta guía resume cómo descubrir recursos, publicar materiales, organizar colecciones y entender el flujo editorial
+        de la plataforma.
+      </p>
+      <div class="help-hero-actions">
+        <a href="#indice-ayuda" class="help-primary-link">Ir al índice</a>
+        <a href="#contacto" class="help-secondary-link">Solicitar soporte</a>
+      </div>
+    </div>
+    <aside class="help-hero-card" aria-label="Accesos rápidos de ayuda">
+      <h2>Accesos rápidos</h2>
+      <ul>
+        {HELP_FOOTER_LINKS.map((link) => (
+          <li>
+            <a href={`#${link.sectionId}`}>{link.label}</a>
+          </li>
+        ))}
+      </ul>
+    </aside>
+  </section>
+
+  <section class="help-shell">
+    <nav id="indice-ayuda" class="help-index" aria-label="Índice de ayuda">
+      <h2>Índice</h2>
+      <ol>
+        {HELP_SECTIONS.map((section) => (
+          <li>
+            <a href={`#${section.id}`}>{section.title}</a>
+          </li>
+        ))}
+      </ol>
+    </nav>
+
+    <div class="help-sections">
+      {HELP_SECTIONS.map((section) => (
+        <article id={section.id} class="help-section" aria-labelledby={`${section.id}-title`}>
+          <div class="help-section-head">
+            <span class="material-symbols-outlined" aria-hidden="true">{section.icon}</span>
+            <div>
+              <p class="help-section-eyebrow">{section.eyebrow}</p>
+              <h2 id={`${section.id}-title`}>{section.title}</h2>
+            </div>
+          </div>
+          <p class="help-section-description">{section.description}</p>
+          <ul class="help-section-list">
+            {section.items.map((item) => (
+              <li>{item}</li>
+            ))}
+          </ul>
+        </article>
+      ))}
+    </div>
+  </section>
+</PublicLayout>
+
+<style>
+  .help-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1.8fr) minmax(18rem, 0.9fr);
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+  }
+
+  .help-hero-copy,
+  .help-hero-card,
+  .help-index,
+  .help-section {
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 1.5rem;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(239, 246, 255, 0.88));
+    box-shadow: 0 24px 48px rgba(15, 23, 42, 0.08);
+  }
+
+  .help-hero-copy {
+    padding: 2.5rem;
+  }
+
+  .help-eyebrow,
+  .help-section-eyebrow {
+    margin: 0 0 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #2563eb;
+  }
+
+  .help-hero-copy h1 {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: clamp(2rem, 4vw, 3.5rem);
+    line-height: 1.05;
+    letter-spacing: -0.04em;
+    color: #0f172a;
+  }
+
+  .help-lead {
+    max-width: 62ch;
+    margin: 1rem 0 0;
+    font-size: 1rem;
+    line-height: 1.7;
+    color: #334155;
+  }
+
+  .help-hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+  }
+
+  .help-primary-link,
+  .help-secondary-link,
+  .help-hero-card a,
+  .help-index a {
+    text-decoration: none;
+  }
+
+  .help-primary-link,
+  .help-secondary-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2.75rem;
+    padding: 0.75rem 1.1rem;
+    border-radius: 9999px;
+    font-weight: 600;
+  }
+
+  .help-primary-link {
+    background: #0f4ccf;
+    color: white;
+  }
+
+  .help-secondary-link {
+    border: 1px solid rgba(37, 99, 235, 0.25);
+    color: #0f4ccf;
+    background: rgba(255, 255, 255, 0.72);
+  }
+
+  .help-hero-card {
+    padding: 1.5rem;
+    align-self: stretch;
+  }
+
+  .help-hero-card h2,
+  .help-index h2,
+  .help-section h2 {
+    margin: 0;
+    font-family: var(--font-display);
+    color: #0f172a;
+  }
+
+  .help-hero-card ul,
+  .help-index ol,
+  .help-section-list {
+    margin: 1rem 0 0;
+    padding-left: 1.25rem;
+  }
+
+  .help-hero-card li,
+  .help-index li,
+  .help-section-list li {
+    margin-bottom: 0.75rem;
+    line-height: 1.6;
+    color: #334155;
+  }
+
+  .help-hero-card a,
+  .help-index a {
+    color: #0f4ccf;
+    font-weight: 600;
+  }
+
+  .help-shell {
+    display: grid;
+    grid-template-columns: minmax(16rem, 20rem) minmax(0, 1fr);
+    gap: 1.5rem;
+    align-items: start;
+  }
+
+  .help-index {
+    position: sticky;
+    top: 5.5rem;
+    padding: 1.5rem;
+  }
+
+  .help-sections {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .help-section {
+    padding: 1.75rem;
+    scroll-margin-top: 6rem;
+  }
+
+  .help-section-head {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+  }
+
+  .help-section-head .material-symbols-outlined {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 3rem;
+    height: 3rem;
+    border-radius: 1rem;
+    background: rgba(37, 99, 235, 0.12);
+    color: #0f4ccf;
+    font-size: 1.5rem;
+  }
+
+  .help-section-description {
+    margin: 1rem 0 0;
+    color: #334155;
+    line-height: 1.7;
+  }
+
+  .help-section-list {
+    margin-top: 1rem;
+  }
+
+  .help-primary-link:hover,
+  .help-secondary-link:hover,
+  .help-hero-card a:hover,
+  .help-index a:hover {
+    text-decoration: underline;
+  }
+
+  @media (max-width: 960px) {
+    .help-hero,
+    .help-shell {
+      grid-template-columns: 1fr;
+    }
+
+    .help-index {
+      position: static;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .help-hero-copy,
+    .help-hero-card,
+    .help-index,
+    .help-section {
+      padding: 1.25rem;
+      border-radius: 1.25rem;
+    }
+
+    .help-hero-actions {
+      flex-direction: column;
+    }
+
+    .help-primary-link,
+    .help-secondary-link {
+      width: 100%;
+    }
+  }
+</style>
