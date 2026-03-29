@@ -81,14 +81,15 @@ export class PreviewApiClient implements ApiClient {
 	}
 
 	private userForRole(role: string): SessionUser {
-		const users: Record<string, SessionUser> = {
-			admin: { id: "demo-admin", email: "admin@example.com", name: "Admin", role: "admin" },
-			curator: { id: "demo-curator", email: "curator@example.com", name: "Curator", role: "curator" },
-			author: { id: "demo-author", email: "author@example.com", name: "Author", role: "author" },
-			reader: { id: "demo-reader", email: "reader@example.com", name: "Reader", role: "reader" },
-		};
-		return users[role] ?? users.admin!;
+		return PreviewApiClient.DEMO_USERS.find(u => u.role === role) ?? PreviewApiClient.DEMO_USERS[0]!;
 	}
+
+	private static readonly DEMO_USERS: SessionUser[] = [
+		{ id: "demo-admin", email: "admin@example.com", name: "Admin", role: "admin" },
+		{ id: "demo-curator", email: "curator@example.com", name: "Curator", role: "curator" },
+		{ id: "demo-author", email: "author@example.com", name: "Author", role: "author" },
+		{ id: "demo-reader", email: "reader@example.com", name: "Reader", role: "reader" },
+	];
 
 	private async init() {
 		const { PGlite } = await import("@electric-sql/pglite");
@@ -100,6 +101,15 @@ export class PreviewApiClient implements ApiClient {
 
 		const { createTables } = await import("@procomeka/db/setup");
 		await createTables(this.pglite);
+
+		// Ensure demo users exist (needed for FK constraints on social tables)
+		const now = new Date().toISOString();
+		for (const u of PreviewApiClient.DEMO_USERS) {
+			await this.pglite.query(
+				`INSERT INTO "user" (id, email, email_verified, name, role, is_active, created_at, updated_at) VALUES ($1, $2, true, $3, $4, true, $5, $6) ON CONFLICT (id) DO NOTHING`,
+				[u.id, u.email, u.name, u.role, now, now],
+			);
+		}
 
 		// Verificar si ya tiene datos
 		const check = await this.pglite.query(`SELECT count(*) as c FROM "resources"`);
