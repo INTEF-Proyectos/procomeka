@@ -502,6 +502,67 @@ export class PreviewApiClient implements ApiClient {
 		await deleteTaxonomy(this.db, id);
 	}
 
+	// --- Social stubs (preview mode) ---
+
+	async getResourceRatings(_slug: string) {
+		return { resourceId: "", averageScore: 0, totalRatings: 0, distribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }, userScore: null };
+	}
+
+	async submitRating(_slug: string, score: number) {
+		return { resourceId: "", userId: this.currentUser.id, score, createdAt: new Date().toISOString() };
+	}
+
+	async getResourceComments(_slug: string, _opts?: { limit?: number; offset?: number }) {
+		return { data: [], total: 0, limit: 20, offset: 0 };
+	}
+
+	async createComment(_slug: string, body: string, parentId?: string) {
+		return { id: crypto.randomUUID(), resourceId: "", userId: this.currentUser.id, userName: this.currentUser.name, parentId: parentId ?? null, body, status: "visible", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
+	}
+
+	async editComment(_id: string, body: string) {
+		return { id: _id, body, updatedAt: new Date().toISOString() };
+	}
+
+	async deleteComment(_id: string) {}
+
+	async voteComment(_id: string) {
+		return { voted: true };
+	}
+
+	async toggleFavorite(_slug: string) {
+		return { favorited: true, count: 1 };
+	}
+
+	async getUserFavorites(_opts?: { limit?: number; offset?: number }) {
+		return { data: [] as Resource[], total: 0, limit: 50, offset: 0 };
+	}
+
+	async getUserRatings(_opts?: { limit?: number; offset?: number }) {
+		return { data: [] as Resource[], total: 0, limit: 50, offset: 0 };
+	}
+
+	async getUserDashboard() {
+		const resources = await this.listAdminResources({ limit: 5 });
+		const drafts = await this.listAdminResources({ limit: 1, status: "draft" });
+		const published = await this.listAdminResources({ limit: 1, status: "published" });
+		return {
+			draftCount: drafts.total,
+			publishedCount: published.total,
+			favoriteCount: 0,
+			ratingCount: 0,
+			recentResources: resources.data,
+		};
+	}
+
+	async trackDownload(_slug: string) {
+		return { count: 0 };
+	}
+
+	async getResourceStats(_slug: string) {
+		return { downloadCount: 0, favoriteCount: 0, ratingAvg: 0, ratingCount: 0, commentCount: 0 };
+	}
+
 	async seedResources(count: number, clean?: boolean): Promise<{ count: number; durationMs: number }> {
 		const { seedRandomResources } = await import("@procomeka/db/seed-random");
 		return seedRandomResources(this.db, count, { clean });

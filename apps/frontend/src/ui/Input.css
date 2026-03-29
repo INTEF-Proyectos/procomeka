@@ -1,0 +1,74 @@
+/* Input.css */
+.input-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.input-label {
+  font-size: var(--text-label-lg);
+  font-weight: var(--weight-medium);
+  color: var(--color-text);
+}
+
+.input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: var(--color-surface-container-highest);
+  border-radius: var(--radius-md);
+  transition: background-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.input-wrapper:focus-within {
+  background: var(--color-surface-container-lowest);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary) 40%, transparent);
+}
+
+.input-field-error .input-wrapper {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-error) 40%, transparent);
+}
+
+.input-leading-icon {
+  color: var(--color-text-secondary);
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.input-trailing {
+  flex-shrink: 0;
+}
+
+.input-control {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--color-text);
+}
+
+.input-control::placeholder {
+  color: var(--color-outline);
+}
+
+/* Sizes */
+.input-field-sm .input-wrapper { padding: var(--space-1) var(--space-3); }
+.input-field-sm .input-control { font-size: var(--text-body-sm); }
+
+.input-field-md .input-wrapper { padding: var(--space-2) var(--space-3); }
+.input-field-md .input-control { font-size: var(--text-body-md); }
+
+.input-field-lg .input-wrapper { padding: var(--space-3) var(--space-4); }
+.input-field-lg .input-control { font-size: var(--text-body-lg); }
+
+.input-description {
+  font-size: var(--text-body-sm);
+  color: var(--color-text-secondary);
+}
+
+.input-error {
+  font-size: var(--text-body-sm);
+  color: var(--color-error);
+  font-weight: var(--weight-medium);
+}

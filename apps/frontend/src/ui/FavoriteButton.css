@@ -1,0 +1,55 @@
+.favorite-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-body-md);
+  font-weight: var(--weight-medium);
+  color: var(--color-text-secondary);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.favorite-btn:hover:not(:disabled) {
+  background: var(--color-surface-container);
+  color: var(--color-text);
+}
+
+.favorite-btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.favorite-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.favorite-btn-active {
+  color: var(--color-primary);
+}
+
+.favorite-btn-active:hover:not(:disabled) {
+  color: var(--color-primary-container);
+}
+
+.favorite-btn-icon {
+  font-size: 22px;
+  transition: transform var(--transition-fast);
+}
+
+.favorite-btn-active .favorite-btn-icon {
+  font-variation-settings: "FILL" 1;
+  animation: favorite-pop 0.3s ease;
+}
+
+@keyframes favorite-pop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.3); }
+  100% { transform: scale(1); }
+}
+
+.favorite-btn-count {
+  font-size: var(--text-body-sm);
+}

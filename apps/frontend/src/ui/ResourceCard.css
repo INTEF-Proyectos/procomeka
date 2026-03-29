@@ -1,0 +1,217 @@
+/* ResourceCard.css — Stitch design */
+.rc-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--color-surface-container-lowest);
+  border-radius: 0.75rem;
+  overflow: hidden;
+  text-decoration: none;
+  color: inherit;
+  transition: all 300ms ease;
+}
+.rc-card:hover {
+  box-shadow: 0 20px 40px rgba(18, 28, 40, 0.06);
+  text-decoration: none;
+}
+.rc-card:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.rc-image {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+}
+.rc-image-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 500ms ease;
+}
+.rc-card:hover .rc-image-img {
+  transform: scale(1.05);
+}
+
+.rc-image-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-surface-container-highest);
+}
+.rc-image-placeholder .material-symbols-outlined {
+  font-size: 3rem;
+  color: var(--color-outline);
+}
+
+.rc-image-badges {
+  position: absolute;
+  top: 0.75rem;
+  left: 0.75rem;
+  display: flex;
+  gap: 0.5rem;
+}
+.rc-overlay-badge {
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.rc-overlay-badge-primary {
+  background: rgba(0, 63, 177, 0.9);
+  color: white;
+}
+.rc-overlay-badge-tertiary {
+  background: rgba(124, 52, 0, 0.9);
+  color: white;
+}
+
+.rc-body {
+  padding: 1.25rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.rc-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+.rc-level-badge {
+  background: var(--color-secondary-fixed);
+  color: var(--color-on-secondary-fixed);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 0 0.5rem;
+  border-radius: 0.125rem;
+  text-transform: uppercase;
+  line-height: 1.375rem;
+}
+.rc-type-label {
+  font-size: 10px;
+  color: var(--color-outline);
+  font-weight: 500;
+}
+
+.rc-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.125rem;
+  line-height: 1.25;
+  margin-bottom: 0.5rem;
+  transition: color 200ms ease;
+}
+.rc-card:hover .rc-title {
+  color: var(--color-primary);
+}
+
+.rc-desc {
+  font-size: 0.875rem;
+  color: var(--color-on-surface-variant);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin-bottom: 1rem;
+}
+
+/* Social stats */
+.rc-stats {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+.rc-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-on-surface);
+}
+.rc-stat .material-symbols-outlined {
+  font-size: 14px;
+  color: var(--color-outline);
+}
+.rc-stat-star {
+  color: var(--color-tertiary) !important;
+}
+.rc-stat-count {
+  font-weight: 400;
+  color: var(--color-outline);
+}
+
+.rc-footer {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-surface-container);
+}
+
+.rc-author {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.rc-author-avatar {
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 9999px;
+  background: var(--color-surface-container-high);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.rc-author-avatar .material-symbols-outlined {
+  font-size: 14px;
+  color: var(--color-outline);
+}
+.rc-author-name {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-on-surface-variant);
+}
+
+.rc-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+.rc-action-btn {
+  padding: 0.5rem;
+  border-radius: 9999px;
+  color: var(--color-on-surface-variant);
+  transition: background-color 200ms ease;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.rc-action-btn:hover {
+  background: var(--color-surface-container-high);
+}
+.rc-action-btn:active {
+  transform: scale(0.9);
+}
+.rc-action-btn .material-symbols-outlined {
+  font-size: 20px;
+}
+.rc-action-btn-active {
+  color: var(--color-primary);
+}
+.rc-action-btn-copied {
+  color: var(--color-secondary);
+}

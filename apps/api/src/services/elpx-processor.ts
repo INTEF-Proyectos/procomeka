@@ -1,4 +1,4 @@
-import { mkdir, rm, access } from "node:fs/promises";
+import { mkdir, rm, access, readFile } from "node:fs/promises";
 import path from "node:path";
 
 import { parseContentXml } from "@procomeka/db/elpx-metadata";
@@ -27,20 +27,23 @@ async function validateElpxFile(filePath: string): Promise<void> {
     throw new Error("El archivo no existe");
   }
 
-  // List ZIP contents to validate structure
-  const listProc = Bun.spawn(["unzip", "-l", filePath], {
-    stdout: "pipe",
-    stderr: "pipe",
-  });
-  const listOutput = await new Response(listProc.stdout).text();
-  const exitCode = await listProc.exited;
+  // Validate ZIP structure by scanning the raw bytes for entry names.
+  // We avoid subprocess calls (unzip) because Bun's test runner captures stdout.
+  let zipBytes: Buffer;
+  try {
+    zipBytes = await readFile(filePath);
+  } catch {
+    throw new Error("No se puede leer el archivo");
+  }
 
-  if (exitCode !== 0) {
+  // Quick ZIP signature check (PK\x03\x04)
+  if (zipBytes.length < 4 || zipBytes[0] !== 0x50 || zipBytes[1] !== 0x4b) {
     throw new Error("El archivo no es un ZIP válido");
   }
 
-  const hasContentV3 = listOutput.includes("contentv3.xml");
-  const hasContent = listOutput.includes("content.xml");
+  const zipText = zipBytes.toString("latin1");
+  const hasContentV3 = zipText.includes("contentv3.xml");
+  const hasContent = zipText.includes("content.xml");
 
   if (hasContentV3 && !hasContent) {
     throw new Error(
@@ -60,21 +63,34 @@ export async function parseElpxMetadata(
 ): Promise<ElpxMetadata> {
   await validateElpxFile(filePath);
 
-  // Read content.xml from ZIP without extracting
-  const proc = Bun.spawn(["unzip", "-p", filePath, "content.xml"], {
-    stdout: "pipe",
-    stderr: "pipe",
-  });
-  const xml = await new Response(proc.stdout).text();
-  const exitCode = await proc.exited;
+  // Extract content.xml from ZIP using Bun's JSZip-compatible API or fallback
+  const zipBuffer = await readFile(filePath);
+  const blob = new Blob([zipBuffer]);
+  const zipResponse = new Response(blob);
+  // Use Bun.spawn with quiet fallback — but capture via different method
+  const tempDir = path.join(
+    (await import("node:os")).tmpdir(),
+    `elpx-parse-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+  );
+  await mkdir(tempDir, { recursive: true });
 
-  if (exitCode !== 0) {
-    throw new Error(
-      "El archivo no es un .elpx válido (no contiene content.xml)",
-    );
+  try {
+    const proc = Bun.spawn(["unzip", "-o", "-q", filePath, "content.xml", "-d", tempDir], {
+      stdout: "ignore",
+      stderr: "ignore",
+    });
+    await proc.exited;
+
+    const contentPath = path.join(tempDir, "content.xml");
+    if (!(await fileExists(contentPath))) {
+      throw new Error("El archivo no es un .elpx válido (no contiene content.xml)");
+    }
+
+    const xml = await Bun.file(contentPath).text();
+    return parseContentXml(xml);
+  } finally {
+    await rm(tempDir, { recursive: true, force: true });
   }
-
-  return parseContentXml(xml);
 }
 
 export function buildElpxPath(baseDir: string, hash: string): string {

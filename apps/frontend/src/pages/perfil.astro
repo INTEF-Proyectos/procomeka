@@ -1,0 +1,13 @@
+---
+import PublicLayout from "../layouts/PublicLayout.astro";
+import { PublicDashboardIsland } from "../islands/dashboard/PublicDashboardIsland.tsx";
+import { Breadcrumb } from "../ui/Breadcrumb.tsx";
+---
+
+<PublicLayout title="Mi panel" showNavSearch={true}>
+  <Breadcrumb items={[
+    { label: "Inicio", href: "/" },
+    { label: "Mi panel" },
+  ]} />
+  <PublicDashboardIsland client:load />
+</PublicLayout>

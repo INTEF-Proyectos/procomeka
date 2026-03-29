@@ -1,0 +1,1140 @@
+---
+import PublicLayout from "../layouts/PublicLayout.astro";
+---
+
+<PublicLayout title="Editar recurso" showNavSearch={true}>
+  <div id="edit-page" class="edit-page">
+    <div id="edit-loading" class="edit-loading">Cargando recurso...</div>
+    <div id="edit-auth" class="edit-auth" style="display:none;">
+      <span class="material-symbols-outlined" aria-hidden="true">lock</span>
+      <p>Necesitas <a id="login-link" href="#">iniciar sesión</a> para editar recursos.</p>
+    </div>
+    <div id="edit-notfound" class="edit-auth" style="display:none;">
+      <span class="material-symbols-outlined" aria-hidden="true">search_off</span>
+      <p>Recurso no encontrado. <a href="/">Volver al inicio</a></p>
+    </div>
+    <div id="edit-content" style="display:none;"></div>
+  </div>
+
+  <!-- eXeLearning editor modal (fullscreen) -->
+  <div id="exe-editor-modal" class="exe-modal" style="display:none;">
+    <div class="exe-modal-bar">
+      <div class="exe-modal-bar-left">
+        <span class="material-symbols-outlined" aria-hidden="true">edit_note</span>
+        <span class="exe-modal-title">Editor eXeLearning</span>
+        <span id="exe-status" class="exe-modal-status">Cargando...</span>
+      </div>
+      <div class="exe-modal-bar-right">
+        <button type="button" id="exe-save-btn" class="exe-save-btn" disabled>
+          <span class="material-symbols-outlined">save</span>
+          Guardar
+        </button>
+        <button type="button" id="exe-close-btn" class="exe-close-btn">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+    </div>
+    <iframe id="exe-iframe" class="exe-modal-iframe" src="about:blank" title="Editor eXeLearning"></iframe>
+    <div id="exe-saving-overlay" class="exe-saving-overlay" style="display:none;">
+      <span>Guardando cambios...</span>
+    </div>
+  </div>
+</PublicLayout>
+
+<script>
+  import { getApiClient } from "../lib/get-api-client.ts";
+  import { url } from "../lib/paths.ts";
+  import type { Resource } from "../lib/api-client.ts";
+
+  const loadingEl = document.getElementById("edit-loading")!;
+  const authEl = document.getElementById("edit-auth")!;
+  const notFoundEl = document.getElementById("edit-notfound")!;
+  const contentEl = document.getElementById("edit-content")!;
+  const loginLink = document.getElementById("login-link") as HTMLAnchorElement;
+  if (loginLink) loginLink.href = url("login");
+
+  const STATUS_LABELS: Record<string, { label: string; cssClass: string }> = {
+    draft: { label: "Borrador", cssClass: "edit-badge-draft" },
+    review: { label: "En revisión", cssClass: "edit-badge-review" },
+    published: { label: "Publicado", cssClass: "edit-badge-published" },
+    archived: { label: "Archivado", cssClass: "edit-badge-archived" },
+  };
+
+  const TRANSITION_RULES: Record<string, { to: string; label: string; icon: string; cssClass: string; minRole: string }[]> = {
+    draft: [{ to: "review", label: "Enviar a revisión", icon: "rate_review", cssClass: "edit-wf-btn-gold", minRole: "author" }],
+    review: [
+      { to: "draft", label: "Devolver a borrador", icon: "undo", cssClass: "edit-wf-btn-outline", minRole: "curator" },
+      { to: "published", label: "Publicar", icon: "check_circle", cssClass: "edit-wf-btn-green", minRole: "curator" },
+    ],
+    published: [{ to: "archived", label: "Archivar", icon: "archive", cssClass: "edit-wf-btn-outline", minRole: "curator" }],
+    archived: [{ to: "draft", label: "Restaurar a borrador", icon: "restore", cssClass: "edit-wf-btn-outline", minRole: "curator" }],
+  };
+
+  const ROLE_LEVELS: Record<string, number> = { reader: 0, author: 1, curator: 2, admin: 3 };
+
+  function esc(s: string) { const d = document.createElement("div"); d.textContent = s; return d.innerHTML; }
+
+  function formatFileSize(bytes: number): string {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  function formatDate(d: string | number | Date | null | undefined) {
+    if (!d) return "";
+    return new Date(d).toLocaleDateString("es-ES", { year: "numeric", month: "long", day: "numeric" });
+  }
+
+  async function init() {
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get("id");
+    if (!id) { loadingEl.style.display = "none"; notFoundEl.style.display = "flex"; return; }
+
+    try {
+      const api = await getApiClient();
+      const [session, resource] = await Promise.all([
+        api.getSession().catch(() => null),
+        api.getResourceById(id).catch(() => null),
+      ]);
+
+      loadingEl.style.display = "none";
+
+      if (!session?.user) { authEl.style.display = "flex"; return; }
+      if (!resource) { notFoundEl.style.display = "flex"; return; }
+
+      const userRole = session.user.role ?? "reader";
+      const userLevel = ROLE_LEVELS[userRole] ?? 0;
+      if (userLevel < 1) { authEl.style.display = "flex"; return; }
+
+      // Load elpx project info to get preview URL
+      const elpx = await api.getElpxProject(id).catch(() => null);
+      if (elpx?.hasPreview && elpx.previewUrl) {
+        (resource as Record<string, unknown>).elpxPreview = { hash: elpx.hash, previewUrl: elpx.previewUrl };
+      }
+
+      renderEditor(resource, userRole, elpx);
+      contentEl.style.display = "block";
+    } catch {
+      loadingEl.style.display = "none";
+      notFoundEl.style.display = "flex";
+    }
+  }
+
+  function renderEditor(resource: Resource, userRole: string, elpx: { hash: string; elpxFileUrl: string | null; originalFilename: string; hasPreview: boolean | number; previewUrl: string | null; metadata: { title: string; description: string; author: string; license: string; language: string } | null } | null) {
+    const st = STATUS_LABELS[resource.editorialStatus] ?? STATUS_LABELS.draft;
+    const date = formatDate(resource.updatedAt || resource.createdAt);
+    const previewUrl = resource.elpxPreview?.previewUrl ?? "";
+    const userLevel = ROLE_LEVELS[userRole] ?? 0;
+
+    // Workflow buttons
+    const transitions = TRANSITION_RULES[resource.editorialStatus] ?? [];
+    const wfButtons = transitions
+      .filter((t) => userLevel >= (ROLE_LEVELS[t.minRole] ?? 99))
+      .map((t) => `<button type="button" class="edit-wf-btn ${t.cssClass}" data-status="${t.to}"><span class="material-symbols-outlined">${t.icon}</span>${esc(t.label)}</button>`)
+      .join("");
+
+    contentEl.innerHTML = `
+      <!-- Header -->
+      <div class="edit-header">
+        <div class="edit-header-top">
+          <span class="edit-badge ${st.cssClass}">${esc(st.label)}</span>
+          ${date ? `<span class="edit-date"><span class="material-symbols-outlined">calendar_today</span>${esc(date)}</span>` : ""}
+        </div>
+        <a href="${url(`recurso?slug=${resource.slug}`)}" class="edit-view-link">
+          <span class="material-symbols-outlined">visibility</span>
+          Ver ficha pública
+        </a>
+      </div>
+
+      <div id="edit-error" class="edit-msg edit-msg-error" role="alert" style="display:none;"></div>
+      <div id="edit-success" class="edit-msg edit-msg-success" role="status" style="display:none;"></div>
+
+      <!-- Form as detail-style layout -->
+      <form id="edit-form" class="edit-grid" novalidate>
+        <!-- Left column -->
+        <div class="edit-main">
+          <div class="edit-field edit-field-title">
+            <label for="ed-title">Título</label>
+            <input type="text" id="ed-title" value="${esc(resource.title)}" required placeholder="Título del recurso" />
+            <span id="ed-title-error" class="edit-field-error"></span>
+          </div>
+
+          ${previewUrl ? `
+          <div class="edit-preview-section">
+            <div class="edit-preview-header">
+              <h3>Previsualización</h3>
+              <button type="button" class="edit-exe-btn" id="open-exe-editor">
+                <span class="material-symbols-outlined">edit_note</span>
+                Editar en eXeLearning
+              </button>
+            </div>
+            <div class="edit-preview-wrapper">
+              <iframe src="${previewUrl}" class="edit-preview-iframe" sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox" loading="lazy" title="Vista previa"></iframe>
+            </div>
+          </div>` : ""}
+
+          <!-- Upload .elpx section -->
+          <div class="edit-upload-section">
+            <h3>${previewUrl ? "Actualizar archivo .elpx" : "Subir archivo .elpx"}</h3>
+            <div id="edit-dropzone" class="edit-dropzone" tabindex="0">
+              <label class="edit-file-label">
+                <span class="material-symbols-outlined">upload_file</span>
+                <span>Seleccionar archivo .elpx</span>
+                <input type="file" id="edit-file-input" accept=".elpx,.elp" />
+              </label>
+              <p class="edit-drop-hint">o arrastra aquí</p>
+            </div>
+            <div id="edit-upload-status" class="edit-upload-status" style="display:none;"></div>
+          </div>
+
+          <!-- Attached files -->
+          ${resource.mediaItems?.length ? `
+          <div class="edit-files-section">
+            <h3>Archivos adjuntos</h3>
+            <div class="edit-files-list">
+              ${resource.mediaItems.map((m: Record<string, unknown>) => `
+                <div class="edit-file-item">
+                  <span class="material-symbols-outlined">description</span>
+                  <span class="edit-file-name">${esc(String(m.filename || "Archivo"))}</span>
+                  ${m.fileSize ? `<span class="edit-file-size">${formatFileSize(m.fileSize as number)}</span>` : ""}
+                </div>
+              `).join("")}
+            </div>
+          </div>` : ""}
+
+          <div class="edit-field">
+            <label for="ed-description">Descripción</label>
+            <textarea id="ed-description" rows="6" required placeholder="Describe el contenido, objetivos y destinatarios...">${esc(resource.description)}</textarea>
+            <span id="ed-description-error" class="edit-field-error"></span>
+          </div>
+
+          <div class="edit-field">
+            <label for="ed-author">Autor</label>
+            <input type="text" id="ed-author" value="${esc(resource.author ?? "")}" placeholder="Nombre del autor" />
+          </div>
+
+          <div class="edit-field">
+            <label for="ed-keywords">Palabras clave (separadas por comas)</label>
+            <input type="text" id="ed-keywords" value="${esc(resource.keywords ?? "")}" placeholder="matemáticas, fracciones, visual" />
+          </div>
+        </div>
+
+        <!-- Right sidebar -->
+        <aside class="edit-sidebar">
+          <!-- Actions card -->
+          <div class="edit-sidebar-card">
+            <h3 class="edit-sidebar-title">Acciones</h3>
+            <button type="submit" class="edit-save-btn">
+              <span class="material-symbols-outlined">save</span>
+              Guardar cambios
+            </button>
+            ${wfButtons ? `<div class="edit-wf-actions">${wfButtons}</div>` : ""}
+            ${elpx?.metadata && (elpx.metadata.title || elpx.metadata.description) ? `
+            <button type="button" id="apply-elpx-meta" class="edit-wf-btn edit-wf-btn-outline">
+              <span class="material-symbols-outlined">auto_awesome</span>
+              Aplicar metadatos del .elpx
+            </button>` : ""}
+          </div>
+
+          <!-- Metadata card -->
+          <div class="edit-sidebar-card">
+            <h3 class="edit-sidebar-title">Metadatos</h3>
+
+            <div class="edit-field">
+              <label for="ed-language">Idioma</label>
+              <select id="ed-language">
+                <option value="es" ${resource.language === "es" ? "selected" : ""}>Español</option>
+                <option value="en" ${resource.language === "en" ? "selected" : ""}>Inglés</option>
+                <option value="ca" ${resource.language === "ca" ? "selected" : ""}>Catalán</option>
+                <option value="eu" ${resource.language === "eu" ? "selected" : ""}>Euskera</option>
+                <option value="gl" ${resource.language === "gl" ? "selected" : ""}>Gallego</option>
+              </select>
+            </div>
+
+            <div class="edit-field">
+              <label for="ed-license">Licencia</label>
+              <select id="ed-license">
+                <option value="cc-by" ${resource.license === "cc-by" ? "selected" : ""}>CC BY</option>
+                <option value="cc-by-sa" ${resource.license === "cc-by-sa" ? "selected" : ""}>CC BY-SA</option>
+                <option value="cc-by-nc" ${resource.license === "cc-by-nc" ? "selected" : ""}>CC BY-NC</option>
+                <option value="cc-by-nc-sa" ${resource.license === "cc-by-nc-sa" ? "selected" : ""}>CC BY-NC-SA</option>
+                <option value="cc0" ${resource.license === "cc0" ? "selected" : ""}>CC0</option>
+              </select>
+            </div>
+
+            <div class="edit-field">
+              <label for="ed-resourceType">Tipo de recurso</label>
+              <select id="ed-resourceType">
+                <option value="documento" ${resource.resourceType === "documento" ? "selected" : ""}>Documento</option>
+                <option value="presentacion" ${resource.resourceType === "presentacion" ? "selected" : ""}>Presentación</option>
+                <option value="video" ${resource.resourceType === "video" ? "selected" : ""}>Vídeo</option>
+                <option value="audio" ${resource.resourceType === "audio" ? "selected" : ""}>Audio</option>
+                <option value="imagen" ${resource.resourceType === "imagen" ? "selected" : ""}>Imagen</option>
+                <option value="actividad-interactiva" ${resource.resourceType === "actividad-interactiva" ? "selected" : ""}>Actividad interactiva</option>
+                <option value="secuencia-didactica" ${resource.resourceType === "secuencia-didactica" ? "selected" : ""}>Secuencia didáctica</option>
+                <option value="ejercicio" ${resource.resourceType === "ejercicio" ? "selected" : ""}>Ejercicio</option>
+                <option value="evaluacion" ${resource.resourceType === "evaluacion" ? "selected" : ""}>Evaluación</option>
+                <option value="proyecto" ${resource.resourceType === "proyecto" ? "selected" : ""}>Proyecto</option>
+              </select>
+            </div>
+          </div>
+        </aside>
+      </form>
+    `;
+
+    // Wire form submission
+    const form = document.getElementById("edit-form") as HTMLFormElement;
+    const errorDiv = document.getElementById("edit-error")!;
+    const successDiv = document.getElementById("edit-success")!;
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      errorDiv.style.display = "none";
+      successDiv.style.display = "none";
+
+      const saveBtn = form.querySelector(".edit-save-btn") as HTMLButtonElement;
+      saveBtn.disabled = true;
+      saveBtn.innerHTML = `<span class="material-symbols-outlined">hourglass_empty</span>Guardando...`;
+
+      try {
+        const api = await getApiClient();
+        const result = await api.updateResource(resource.id, {
+          title: (document.getElementById("ed-title") as HTMLInputElement).value,
+          description: (document.getElementById("ed-description") as HTMLTextAreaElement).value,
+          language: (document.getElementById("ed-language") as HTMLSelectElement).value,
+          license: (document.getElementById("ed-license") as HTMLSelectElement).value,
+          resourceType: (document.getElementById("ed-resourceType") as HTMLSelectElement).value,
+          author: (document.getElementById("ed-author") as HTMLInputElement).value || undefined,
+          keywords: (document.getElementById("ed-keywords") as HTMLInputElement).value || undefined,
+        });
+
+        if (result.ok) {
+          successDiv.textContent = "Cambios guardados correctamente";
+          successDiv.style.display = "block";
+          setTimeout(() => { successDiv.style.display = "none"; }, 3000);
+        } else {
+          if (result.details) {
+            result.details.forEach((d: { field: string; message: string }) => {
+              const errEl = document.getElementById(`ed-${d.field}-error`);
+              if (errEl) errEl.textContent = d.message;
+              const input = document.getElementById(`ed-${d.field}`);
+              if (input) input.setAttribute("aria-invalid", "true");
+            });
+          }
+          errorDiv.textContent = result.error ?? "Error al guardar";
+          errorDiv.style.display = "block";
+        }
+      } catch {
+        errorDiv.textContent = "Error de conexión";
+        errorDiv.style.display = "block";
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = `<span class="material-symbols-outlined">save</span>Guardar cambios`;
+      }
+    });
+
+    // Wire workflow buttons
+    contentEl.querySelectorAll(".edit-wf-btn").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const newStatus = (btn as HTMLElement).dataset.status!;
+        errorDiv.style.display = "none";
+        successDiv.style.display = "none";
+
+        try {
+          const api = await getApiClient();
+          await api.updateResourceStatus(resource.id, newStatus);
+          successDiv.textContent = `Estado actualizado a "${STATUS_LABELS[newStatus]?.label ?? newStatus}"`;
+          successDiv.style.display = "block";
+          // Reload to reflect new status
+          setTimeout(() => window.location.reload(), 800);
+        } catch {
+          errorDiv.textContent = "Error al cambiar el estado";
+          errorDiv.style.display = "block";
+        }
+      });
+    });
+
+    // Wire "Aplicar metadatos del .elpx" button
+    const applyMetaBtn = document.getElementById("apply-elpx-meta");
+    if (applyMetaBtn && elpx?.metadata) {
+      applyMetaBtn.addEventListener("click", () => {
+        const m = elpx.metadata!;
+        if (m.title) (document.getElementById("ed-title") as HTMLInputElement).value = m.title;
+        if (m.description) (document.getElementById("ed-description") as HTMLTextAreaElement).value = m.description;
+        if (m.author) (document.getElementById("ed-author") as HTMLInputElement).value = m.author;
+        if (m.language) {
+          const sel = document.getElementById("ed-language") as HTMLSelectElement;
+          if (sel.querySelector(`option[value="${m.language}"]`)) sel.value = m.language;
+        }
+        if (m.license) {
+          const sel = document.getElementById("ed-license") as HTMLSelectElement;
+          if (sel.querySelector(`option[value="${m.license}"]`)) sel.value = m.license;
+        }
+        applyMetaBtn.innerHTML = `<span class="material-symbols-outlined">check</span>Metadatos aplicados`;
+        (applyMetaBtn as HTMLButtonElement).disabled = true;
+      });
+    }
+
+    // Wire "Editar en eXeLearning" button
+    const openExeBtn = document.getElementById("open-exe-editor");
+    if (openExeBtn) {
+      // Load elpx project info for the editor
+      (async () => {
+        try {
+          const api = await getApiClient();
+          const elpx = await api.getElpxProject(resource.id);
+          if (elpx) {
+            openExeBtn.addEventListener("click", () => {
+              openExeEditor(resource.id, elpx.hash, elpx.elpxFileUrl, elpx.originalFilename);
+            });
+          } else {
+            openExeBtn.setAttribute("disabled", "true");
+            (openExeBtn as HTMLButtonElement).title = "No hay archivo .elpx asociado";
+          }
+        } catch {
+          openExeBtn.setAttribute("disabled", "true");
+        }
+      })();
+    }
+
+    // Wire file upload
+    const dropzone = document.getElementById("edit-dropzone");
+    const fileInput = document.getElementById("edit-file-input") as HTMLInputElement | null;
+    const uploadStatus = document.getElementById("edit-upload-status");
+
+    if (dropzone && fileInput && uploadStatus) {
+      fileInput.addEventListener("change", () => {
+        const f = fileInput.files?.[0];
+        if (f) handleFileUpload(f, resource.id, uploadStatus);
+      });
+
+      dropzone.addEventListener("dragover", (e) => { e.preventDefault(); dropzone.classList.add("is-dragover"); });
+      dropzone.addEventListener("dragleave", () => { dropzone.classList.remove("is-dragover"); });
+      dropzone.addEventListener("drop", (e) => {
+        e.preventDefault();
+        dropzone.classList.remove("is-dragover");
+        const f = e.dataTransfer?.files[0];
+        if (f) handleFileUpload(f, resource.id, uploadStatus);
+      });
+    }
+  }
+
+  async function handleFileUpload(file: File, resourceId: string, statusEl: HTMLElement) {
+    statusEl.textContent = "Subiendo archivo...";
+    statusEl.className = "edit-upload-status edit-upload-loading";
+    statusEl.style.display = "block";
+
+    try {
+      const isPreview = (window as Record<string, unknown>).__PREVIEW_MODE__;
+
+      if (isPreview) {
+        const { saveElpxInPreview } = await import("../lib/elpx-preview-service.ts");
+        await saveElpxInPreview({ resourceId, blob: file, filename: file.name });
+      } else {
+        const formData = new FormData();
+        formData.append("file", file);
+        const res = await fetch(url(`api/admin/elpx/upload/${resourceId}`), {
+          method: "POST",
+          credentials: "include",
+          body: formData,
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error((err as Record<string, string>).error || "Error al subir");
+        }
+      }
+
+      statusEl.textContent = `Archivo "${file.name}" subido correctamente. Recargando...`;
+      statusEl.className = "edit-upload-status edit-upload-success";
+      setTimeout(() => window.location.reload(), 1000);
+    } catch (err) {
+      statusEl.textContent = `Error: ${(err as Error).message || "No se pudo subir el archivo"}`;
+      statusEl.className = "edit-upload-status edit-upload-error";
+    }
+  }
+
+  // --- eXeLearning integrated editor ---
+  let exeReady = false;
+  let exeSaving = false;
+  let exeHasChanges = false;
+  let exeElpxHash: string | null = null;
+  let exeElpxFileUrl: string | null = null;
+  let exeElpxFilename: string | null = null;
+  let exeResourceId: string | null = null;
+  let reqCounter = 0;
+
+  const exeModal = document.getElementById("exe-editor-modal")!;
+  const exeIframe = document.getElementById("exe-iframe") as HTMLIFrameElement;
+  const exeStatus = document.getElementById("exe-status")!;
+  const exeSaveBtn = document.getElementById("exe-save-btn") as HTMLButtonElement;
+  const exeCloseBtn = document.getElementById("exe-close-btn")!;
+  const exeSavingOverlay = document.getElementById("exe-saving-overlay")!;
+  const isPreviewMode = !!(window as Record<string, unknown>).__PREVIEW_MODE__;
+
+  function nextReqId(p: string) { return `${p}-${Date.now()}-${++reqCounter}`; }
+  function postToExe(msg: Record<string, unknown>, transferables?: Transferable[]) {
+    exeIframe.contentWindow?.postMessage(msg, "*", transferables ?? []);
+  }
+
+  function openExeEditor(resourceId: string, elpxHash: string | null, elpxFileUrl: string | null, elpxFilename: string | null) {
+    exeResourceId = resourceId;
+    exeElpxHash = elpxHash;
+    exeElpxFileUrl = elpxFileUrl;
+    exeElpxFilename = elpxFilename;
+    exeReady = false; exeSaving = false; exeHasChanges = false;
+    exeSaveBtn.disabled = true;
+    exeStatus.textContent = "Cargando editor...";
+    exeModal.style.display = "flex";
+    document.body.style.overflow = "hidden";
+
+    if (isPreviewMode) {
+      exeIframe.src = url("exelearning-editor-loader.html") + `?resourceId=${resourceId}`;
+    } else {
+      const editorPage = url("api/v1/exelearning-editor/index.html");
+      const elpxParam = elpxFileUrl ? encodeURIComponent(elpxFileUrl) : "";
+      exeIframe.src = `${editorPage}?elpxUrl=${elpxParam}&resourceId=${resourceId}`;
+    }
+  }
+
+  function closeExeEditor(force = false) {
+    if (exeHasChanges && !force && !confirm("Hay cambios sin guardar. ¿Cerrar?")) return;
+    exeModal.style.display = "none";
+    exeIframe.src = "about:blank";
+    document.body.style.overflow = "";
+  }
+
+  async function handleExeSave(payload: { bytes: ArrayBuffer; filename: string; mimeType: string }) {
+    exeSaving = true; exeSaveBtn.disabled = true;
+    exeStatus.textContent = "Guardando...";
+    exeSavingOverlay.style.display = "flex";
+    try {
+      const blob = new Blob([payload.bytes], { type: payload.mimeType || "application/zip" });
+      if (isPreviewMode) {
+        const { saveElpxInPreview } = await import("../lib/elpx-preview-service.ts");
+        const result = await saveElpxInPreview({ resourceId: exeResourceId!, blob, filename: payload.filename || "project.elpx", existingHash: exeElpxHash || undefined });
+        exeElpxHash = result.hash;
+        postToExe({ type: "WP_SAVE_CONFIRMED", requestId: nextReqId("confirmed") });
+      } else {
+        const fd = new FormData();
+        fd.append("file", blob, payload.filename || "project.elpx");
+        const res = await fetch(url(`api/admin/elpx/save/${exeResourceId}`), { method: "POST", credentials: "include", body: fd });
+        if (!res.ok) throw new Error("Error al guardar");
+        postToExe({ type: "WP_SAVE_CONFIRMED", requestId: nextReqId("confirmed") });
+      }
+      exeHasChanges = false;
+      exeStatus.textContent = "Guardado";
+      exeSavingOverlay.style.display = "none";
+      setTimeout(() => { closeExeEditor(true); window.location.reload(); }, 800);
+    } catch (err) {
+      exeStatus.textContent = `Error: ${(err as Error).message}`;
+      exeSaveBtn.disabled = false;
+      exeSavingOverlay.style.display = "none";
+    } finally { exeSaving = false; }
+  }
+
+  async function sendElpxToExeEditor() {
+    if (!isPreviewMode) return;
+    const { loadElpxBlob } = await import("../lib/elpx-preview-service.ts");
+    const blob = exeElpxHash ? await loadElpxBlob(exeElpxHash, exeElpxFileUrl) : null;
+    if (blob) {
+      const bytes = await blob.arrayBuffer();
+      postToExe({ type: "OPEN_FILE", data: { bytes, filename: exeElpxFilename || "project.elpx" } }, [bytes]);
+    }
+  }
+
+  window.addEventListener("message", (event) => {
+    if (!event.data?.type || event.source !== exeIframe.contentWindow) return;
+    switch (event.data.type) {
+      case "EXELEARNING_READY":
+        exeReady = true; exeStatus.textContent = "Editor listo";
+        postToExe({ type: "CONFIGURE", requestId: nextReqId("cfg"), data: { hideUI: { fileMenu: true, saveButton: true, userMenu: true } } });
+        if (isPreviewMode) sendElpxToExeEditor();
+        break;
+      case "DOCUMENT_LOADED": exeStatus.textContent = "Documento cargado"; exeSaveBtn.disabled = false; break;
+      case "DOCUMENT_CHANGED": exeHasChanges = true; exeStatus.textContent = "Cambios sin guardar"; exeSaveBtn.disabled = false; break;
+      case "WP_SAVE_FILE": if (event.data.bytes) handleExeSave(event.data); break;
+      case "WP_REQUEST_SAVE_ERROR": exeStatus.textContent = `Error: ${event.data.error}`; exeSaveBtn.disabled = false; exeSaving = false; exeSavingOverlay.style.display = "none"; break;
+    }
+  });
+
+  exeSaveBtn.addEventListener("click", () => {
+    if (exeSaving || !exeReady) return;
+    exeSaving = true; exeSaveBtn.disabled = true; exeStatus.textContent = "Exportando...";
+    exeSavingOverlay.style.display = "flex";
+    postToExe({ type: "WP_REQUEST_SAVE", requestId: nextReqId("export") });
+  });
+
+  exeCloseBtn.addEventListener("click", () => closeExeEditor());
+  window.addEventListener("beforeunload", (e) => { if (exeHasChanges && exeModal.style.display !== "none") e.preventDefault(); });
+
+  init();
+</script>
+
+<style is:global>
+  .edit-page {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: var(--space-6) 0;
+  }
+
+  .edit-loading {
+    text-align: center;
+    padding: var(--space-12);
+    color: var(--color-on-surface-variant);
+  }
+
+  .edit-auth {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1.5rem;
+    background: var(--color-surface-container-low);
+    border-radius: 1rem;
+    color: var(--color-on-surface-variant);
+  }
+
+  .edit-auth .material-symbols-outlined {
+    font-size: 1.5rem;
+    color: var(--color-outline);
+  }
+
+  .edit-auth a {
+    color: var(--color-primary);
+    font-weight: 600;
+  }
+
+  /* Header */
+  .edit-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--space-4);
+  }
+
+  .edit-header-top {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .edit-badge {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.25rem 0.625rem;
+    border-radius: 0.125rem;
+  }
+
+  .edit-badge-draft { background: var(--color-tertiary-fixed); color: var(--color-on-tertiary-fixed); }
+  .edit-badge-review { background: var(--color-primary-fixed); color: var(--color-on-primary-fixed); }
+  .edit-badge-published { background: var(--color-secondary-fixed); color: var(--color-on-secondary-fixed); }
+  .edit-badge-archived { background: var(--color-surface-container-high); color: var(--color-on-surface-variant); }
+
+  .edit-date {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.875rem;
+    color: var(--color-on-surface-variant);
+  }
+
+  .edit-date .material-symbols-outlined {
+    font-size: 0.875rem;
+  }
+
+  .edit-view-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--color-primary);
+    text-decoration: none;
+  }
+
+  .edit-view-link:hover {
+    text-decoration: underline;
+  }
+
+  .edit-view-link .material-symbols-outlined {
+    font-size: 18px;
+  }
+
+  /* Messages */
+  .edit-msg {
+    padding: 0.75rem 1rem;
+    border-radius: 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    margin-bottom: var(--space-4);
+  }
+
+  .edit-msg-error {
+    background: var(--color-error-container);
+    color: var(--color-on-error-container);
+  }
+
+  .edit-msg-success {
+    background: var(--color-secondary-fixed);
+    color: var(--color-on-secondary-fixed);
+  }
+
+  /* Grid: main + sidebar */
+  .edit-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--space-6);
+    align-items: start;
+  }
+
+  @media (min-width: 768px) {
+    .edit-grid {
+      grid-template-columns: 1fr 300px;
+    }
+  }
+
+  .edit-main {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  /* Fields */
+  .edit-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+  }
+
+  .edit-field label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--color-on-surface);
+  }
+
+  .edit-field input,
+  .edit-field textarea,
+  .edit-field select {
+    padding: 0.75rem 1rem;
+    background: var(--color-surface-container-highest);
+    border: none;
+    border-radius: 0.75rem;
+    font-size: 0.9375rem;
+    font-family: var(--font-body);
+    color: var(--color-on-surface);
+    transition: background-color 200ms ease, box-shadow 200ms ease;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .edit-field input:focus,
+  .edit-field textarea:focus,
+  .edit-field select:focus {
+    outline: none;
+    background: var(--color-surface-container-lowest);
+    box-shadow: 0 0 0 2px rgba(0, 63, 177, 0.3);
+  }
+
+  .edit-field input::placeholder,
+  .edit-field textarea::placeholder {
+    color: var(--color-outline);
+  }
+
+  .edit-field textarea {
+    resize: vertical;
+  }
+
+  .edit-field input[aria-invalid="true"],
+  .edit-field textarea[aria-invalid="true"] {
+    box-shadow: 0 0 0 2px rgba(186, 26, 26, 0.4);
+  }
+
+  .edit-field-error {
+    font-size: 0.75rem;
+    color: var(--color-error);
+    font-weight: 500;
+    min-height: 1rem;
+  }
+
+  /* Title field — larger */
+  .edit-field-title input {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    padding: 1rem 1.25rem;
+  }
+
+  /* Preview */
+  .edit-preview-section h3 {
+    font-family: var(--font-display);
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+    color: var(--color-on-surface-variant);
+  }
+
+  .edit-preview-wrapper {
+    border-radius: 1rem;
+    overflow: hidden;
+    background: var(--color-surface-container-highest);
+  }
+
+  .edit-preview-iframe {
+    width: 100%;
+    height: 450px;
+    border: none;
+    display: block;
+  }
+
+  /* Preview header with eXeLearning button */
+  .edit-preview-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+  }
+
+  .edit-preview-header h3 {
+    font-family: var(--font-display);
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--color-on-surface-variant);
+    margin: 0;
+  }
+
+  .edit-exe-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.5rem 1rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    font-family: var(--font-display);
+    color: var(--color-primary);
+    background: transparent;
+    border: 1px solid var(--color-outline-variant);
+    border-radius: 9999px;
+    text-decoration: none;
+    transition: all 200ms ease;
+  }
+
+  .edit-exe-btn:hover {
+    background: var(--color-surface-container-low);
+    border-color: var(--color-primary);
+    text-decoration: none;
+  }
+
+  .edit-exe-btn .material-symbols-outlined {
+    font-size: 18px;
+  }
+
+  /* Upload section */
+  .edit-upload-section h3,
+  .edit-files-section h3 {
+    font-family: var(--font-display);
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+    color: var(--color-on-surface-variant);
+  }
+
+  .edit-dropzone {
+    border: 2px dashed var(--color-outline-variant);
+    border-radius: 1rem;
+    padding: 1.5rem;
+    background: var(--color-surface-container-lowest);
+    text-align: center;
+    transition: border-color 200ms ease, background-color 200ms ease;
+  }
+
+  .edit-dropzone.is-dragover {
+    border-color: var(--color-primary);
+    background: rgba(0, 63, 177, 0.03);
+  }
+
+  .edit-file-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1.25rem;
+    background: var(--color-primary);
+    color: var(--color-on-primary);
+    border-radius: 9999px;
+    font-weight: 700;
+    cursor: pointer;
+    font-size: 0.875rem;
+    transition: background-color 200ms ease;
+  }
+
+  .edit-file-label:hover { background: var(--color-primary-container); }
+  .edit-file-label .material-symbols-outlined { font-size: 20px; }
+  .edit-file-label input { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
+
+  .edit-drop-hint {
+    color: var(--color-outline);
+    font-size: 0.8125rem;
+    margin-top: 0.5rem;
+  }
+
+  .edit-upload-status {
+    padding: 0.75rem 1rem;
+    border-radius: 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    margin-top: 0.75rem;
+  }
+
+  .edit-upload-loading { background: var(--color-primary-fixed); color: var(--color-on-primary-fixed); }
+  .edit-upload-success { background: var(--color-secondary-fixed); color: var(--color-on-secondary-fixed); }
+  .edit-upload-error { background: var(--color-error-container); color: var(--color-on-error-container); }
+
+  /* Attached files */
+  .edit-files-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .edit-file-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    background: var(--color-surface-container-lowest);
+    border-radius: 0.75rem;
+  }
+
+  .edit-file-item .material-symbols-outlined {
+    font-size: 20px;
+    color: var(--color-primary);
+  }
+
+  .edit-file-name {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--color-on-surface);
+    flex: 1;
+  }
+
+  .edit-file-size {
+    font-size: 0.75rem;
+    color: var(--color-outline);
+  }
+
+  /* Sidebar */
+  .edit-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+
+  @media (min-width: 768px) {
+    .edit-sidebar {
+      position: sticky;
+      top: 5rem;
+    }
+  }
+
+  .edit-sidebar-card {
+    background: var(--color-surface-container-low);
+    border-radius: 1.25rem;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .edit-sidebar-title {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-on-surface-variant);
+    opacity: 0.7;
+  }
+
+  /* Save button */
+  .edit-save-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.75rem;
+    background: var(--color-primary);
+    color: var(--color-on-primary);
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 0.9375rem;
+    border-radius: 9999px;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 10px 15px -3px rgba(0, 63, 177, 0.2);
+    transition: all 200ms ease-in-out;
+  }
+
+  .edit-save-btn:hover:not(:disabled) { background: var(--color-primary-container); }
+  .edit-save-btn:active:not(:disabled) { transform: scale(0.97); }
+  .edit-save-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .edit-save-btn .material-symbols-outlined { font-size: 20px; }
+
+  /* Workflow action buttons */
+  .edit-wf-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .edit-wf-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.625rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    font-family: var(--font-display);
+    border-radius: 9999px;
+    border: none;
+    cursor: pointer;
+    transition: all 200ms ease;
+  }
+
+  .edit-wf-btn .material-symbols-outlined { font-size: 18px; }
+
+  .edit-wf-btn-gold {
+    background: var(--color-tertiary-fixed);
+    color: var(--color-on-tertiary-fixed);
+  }
+  .edit-wf-btn-gold:hover { opacity: 0.9; }
+
+  .edit-wf-btn-green {
+    background: var(--color-secondary-fixed);
+    color: var(--color-on-secondary-fixed);
+  }
+  .edit-wf-btn-green:hover { opacity: 0.9; }
+
+  .edit-wf-btn-outline {
+    background: transparent;
+    border: 1px solid var(--color-outline-variant);
+    color: var(--color-on-surface-variant);
+  }
+  .edit-wf-btn-outline:hover { background: var(--color-surface-container-lowest); }
+
+  .edit-exe-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  /* eXeLearning editor modal */
+  .exe-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    background: var(--color-background);
+    flex-direction: column;
+  }
+
+  .exe-modal-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.625rem 1rem;
+    background: var(--color-surface-container-lowest);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    z-index: 1;
+  }
+
+  .exe-modal-bar-left {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .exe-modal-bar-left .material-symbols-outlined {
+    color: var(--color-primary);
+    font-size: 22px;
+  }
+
+  .exe-modal-title {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 0.9375rem;
+  }
+
+  .exe-modal-status {
+    font-size: 0.75rem;
+    color: var(--color-outline);
+    font-weight: 500;
+  }
+
+  .exe-modal-bar-right {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .exe-save-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.5rem 1rem;
+    background: var(--color-primary);
+    color: var(--color-on-primary);
+    font-weight: 700;
+    font-size: 0.8125rem;
+    border: none;
+    border-radius: 9999px;
+    cursor: pointer;
+    transition: all 200ms ease;
+  }
+
+  .exe-save-btn:hover:not(:disabled) { background: var(--color-primary-container); }
+  .exe-save-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .exe-save-btn .material-symbols-outlined { font-size: 18px; }
+
+  .exe-close-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 9999px;
+    border: none;
+    background: transparent;
+    color: var(--color-on-surface-variant);
+    cursor: pointer;
+    transition: background-color 200ms ease;
+  }
+
+  .exe-close-btn:hover { background: var(--color-surface-container); }
+
+  .exe-modal-iframe {
+    flex: 1;
+    width: 100%;
+    border: none;
+  }
+
+  .exe-saving-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.85);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-display);
+    font-weight: 700;
+    color: var(--color-primary);
+    font-size: 1.125rem;
+    z-index: 2;
+  }
+
+  @media (max-width: 767px) {
+    .edit-sidebar {
+      order: -1;
+    }
+  }
+</style>

@@ -1,0 +1,400 @@
+---
+import "../styles/design-tokens.css";
+import "../styles/reset.css";
+import "../styles/utilities.css";
+import PreviewBanner from "../components/PreviewBanner.astro";
+import { PublicNavIsland } from "../islands/layout/PublicNavIsland.tsx";
+
+interface Props {
+  title: string;
+  fullWidth?: boolean;
+  showNavSearch?: boolean;
+  activePage?: "inicio" | "explorar" | "articulos" | "itinerarios" | "";
+}
+
+const { title, fullWidth = false, showNavSearch = false, activePage = "" } = Astro.props;
+const base = import.meta.env.BASE_URL;
+const isPreview = import.meta.env.PUBLIC_PREVIEW_MODE === "true";
+---
+
+<!doctype html>
+<html class="light" lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title} — Procomeka</title>
+    <link rel="preload" href="/fonts/inter-v18-latin-regular.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/plus-jakarta-sans-v8-latin-600.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" />
+    <script define:vars={{ base, isPreview }}>
+      window.__BASE_URL__ = base;
+      window.__PREVIEW_MODE__ = isPreview;
+    </script>
+  </head>
+  <body class={`bg-background text-on-surface font-body${isPreview ? " has-preview-banner" : ""}${showNavSearch ? " nav-search-visible" : ""}`}>
+    <a href="#main-content" class="sr-only">Saltar al contenido</a>
+
+    <!-- TopNavBar — exact Stitch pattern -->
+    <nav class="public-nav-bar" aria-label="Navegación principal">
+      <div class="public-nav-inner">
+        <div class="public-nav-left">
+          <a href={base} class="public-brand">Procomún</a>
+          <div class="public-nav-links">
+            <a href={base} class={`public-nav-link${activePage === "inicio" ? " public-nav-link-active" : ""}`}>Inicio</a>
+            <a href={`${base}explorar`} class={`public-nav-link${activePage === "explorar" ? " public-nav-link-active" : ""}`}>Explorar</a>
+            <a href="#" class={`public-nav-link${activePage === "articulos" ? " public-nav-link-active" : ""}`}>Artículos</a>
+            <a href="#" class={`public-nav-link${activePage === "itinerarios" ? " public-nav-link-active" : ""}`}>Itinerarios</a>
+          </div>
+        </div>
+        <!-- Compact nav search — visible when hero search scrolls out of view -->
+        <div class="public-nav-search" id="nav-search">
+          <form action={`${base}explorar`} method="get" class="public-nav-search-form" role="search">
+            <span class="material-symbols-outlined public-nav-search-icon" aria-hidden="true">search</span>
+            <input
+              type="search"
+              name="q"
+              class="public-nav-search-input"
+              placeholder="Buscar recursos educativos..."
+              aria-label="Buscar recursos"
+            />
+          </form>
+        </div>
+        <!-- Auth-aware nav actions (avatar + dropdown when logged in) -->
+        <PublicNavIsland client:load />
+      </div>
+      <div class="public-nav-separator"></div>
+    </nav>
+
+    <main id="main-content" class={fullWidth ? "public-main-full" : "public-main"}>
+      <slot />
+    </main>
+
+    <!-- Footer — exact Stitch pattern -->
+    <footer class="public-footer" role="contentinfo">
+      <div class="public-footer-grid">
+        <div class="public-footer-brand">
+          <span class="public-footer-logo">Procomún</span>
+          <p class="public-footer-desc">
+            Red de recursos educativos en abierto del Ministerio de Educación, Formación Profesional y Deportes.
+          </p>
+          <div class="public-footer-social">
+            <a href="#" class="public-footer-social-icon" aria-label="Compartir"><span class="material-symbols-outlined">share</span></a>
+            <a href="#" class="public-footer-social-icon" aria-label="Web"><span class="material-symbols-outlined">public</span></a>
+            <a href="#" class="public-footer-social-icon" aria-label="Correo"><span class="material-symbols-outlined">mail</span></a>
+          </div>
+        </div>
+        <div class="public-footer-col">
+          <h4>Explorar</h4>
+          <a href={`${base}explorar`}>Recursos</a>
+          <a href="#">Colecciones</a>
+          <a href="#">Comunidades</a>
+          <a href="#">Usuarios</a>
+        </div>
+        <div class="public-footer-col">
+          <h4>Legal</h4>
+          <a href="#">Aviso Legal</a>
+          <a href="#">Protección de Datos</a>
+          <a href="#">Accesibilidad</a>
+        </div>
+        <div class="public-footer-col">
+          <h4>Ayuda</h4>
+          <a href="#">Contacto</a>
+          <a href="#">Mapa Web</a>
+          <a href="#">Preguntas Frecuentes</a>
+        </div>
+      </div>
+      <div class="public-footer-bottom">
+        <p>&copy; Ministerio de Educación, Formación Profesional y Deportes - INTEF</p>
+      </div>
+    </footer>
+    <PreviewBanner />
+  </body>
+</html>
+
+<style is:global>
+  body.has-preview-banner {
+    padding-bottom: 2.5rem;
+  }
+
+  .bg-background { background-color: var(--color-background); }
+  .text-on-surface { color: var(--color-on-surface); }
+  .font-body { font-family: var(--font-body); }
+
+  .material-symbols-outlined {
+    font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+    vertical-align: middle;
+  }
+
+  /* ===== TopNavBar — exact Stitch: fixed, glass, ambient shadow ===== */
+  .public-nav-bar {
+    position: fixed;
+    top: 0;
+    width: 100%;
+    z-index: 50;
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    box-shadow: 0 20px 40px rgba(18, 28, 40, 0.06);
+  }
+
+  .public-nav-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1.5rem;
+    max-width: 1536px;
+    margin: 0 auto;
+    width: 100%;
+  }
+
+  .public-nav-left {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+  }
+
+  /* Brand — Stitch: text-xl font-bold tracking-tighter text-blue-800 font-headline */
+  .public-brand {
+    font-family: var(--font-display);
+    font-size: 1.25rem;
+    font-weight: 700;
+    letter-spacing: -0.05em;
+    color: #1e40af;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+
+  .public-brand:hover {
+    text-decoration: none;
+  }
+
+  /* Nav links — Stitch: font-headline font-medium text-sm tracking-tight */
+  .public-nav-links {
+    display: none;
+    align-items: center;
+    gap: 1.5rem;
+  }
+
+  .public-nav-link {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: 0.875rem;
+    letter-spacing: -0.025em;
+    color: #475569;
+    text-decoration: none;
+    transition: color 200ms ease;
+  }
+
+  .public-nav-link:hover {
+    color: #2563eb;
+    text-decoration: none;
+  }
+
+  /* Active link — Stitch: font-bold border-b-2 border-blue-700 pb-1 */
+  .public-nav-link-active {
+    font-weight: 700;
+    color: #1d4ed8;
+    border-bottom: 2px solid #1d4ed8;
+    padding-bottom: 0.25rem;
+  }
+
+  /* ===== Compact nav search bar ===== */
+  .public-nav-search {
+    flex: 1;
+    max-width: 480px;
+    margin: 0 1.5rem;
+    visibility: hidden;
+    opacity: 0;
+    width: 0;
+    overflow: hidden;
+    transition: opacity 200ms ease, width 200ms ease, visibility 200ms ease;
+  }
+
+  /* Show when body has the class (set by hero scroll observer or showNavSearch prop) */
+  body.nav-search-visible .public-nav-search {
+    visibility: visible;
+    opacity: 1;
+    width: auto;
+    overflow: visible;
+  }
+
+  .public-nav-search-form {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  .public-nav-search-icon {
+    position: absolute;
+    left: 0.875rem;
+    color: var(--color-primary);
+    font-size: 20px;
+    pointer-events: none;
+  }
+
+  .public-nav-search-input {
+    width: 100%;
+    padding: 0.5rem 1rem 0.5rem 2.75rem;
+    background: var(--color-surface-container-highest);
+    border: none;
+    border-radius: 9999px;
+    font-size: 0.875rem;
+    font-family: var(--font-body);
+    color: var(--color-on-surface);
+    transition: background-color 200ms ease, box-shadow 200ms ease;
+  }
+
+  .public-nav-search-input:focus {
+    outline: none;
+    background: var(--color-surface-container-lowest);
+    box-shadow: 0 0 0 2px rgba(0, 63, 177, 0.3);
+  }
+
+  .public-nav-search-input::placeholder {
+    color: var(--color-outline);
+  }
+
+  /* Hide search input clear button */
+  .public-nav-search-input::-webkit-search-cancel-button {
+    display: none;
+  }
+
+  /* Separator line — Stitch: bg-slate-100 h-[1px] */
+  .public-nav-separator {
+    background: #f1f5f9;
+    height: 1px;
+    width: 100%;
+  }
+
+  /* ===== Main content ===== */
+  .public-main {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 1.5rem;
+    padding-top: 5rem; /* account for fixed nav */
+  }
+
+  .public-main-full {
+    padding-top: 4rem; /* account for fixed nav */
+  }
+
+  /* ===== Footer — exact Stitch: bg-slate-50 ===== */
+  .public-footer {
+    background: #f8fafc;
+    width: 100%;
+    margin-top: auto;
+  }
+
+  .public-footer-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2rem;
+    padding: 3rem 2rem;
+    max-width: 1280px;
+    margin: 0 auto;
+  }
+
+  .public-footer-brand {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .public-footer-logo {
+    font-weight: 900;
+    font-size: 1.125rem;
+    color: #0f172a;
+  }
+
+  .public-footer-desc {
+    font-family: var(--font-body);
+    font-size: 0.75rem;
+    line-height: 1.6;
+    color: #64748b;
+  }
+
+  .public-footer-social {
+    display: flex;
+    gap: 1rem;
+    margin-top: 0.5rem;
+  }
+
+  .public-footer-social-icon {
+    color: #94a3b8;
+    text-decoration: none;
+    transition: color 200ms ease;
+  }
+
+  .public-footer-social-icon:hover {
+    color: var(--color-primary);
+    text-decoration: none;
+  }
+
+  /* Footer columns — Stitch: h4 font-bold text-sm text-blue-900, links text-xs text-slate-500 */
+  .public-footer-col {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .public-footer-col h4 {
+    font-weight: 700;
+    font-size: 0.875rem;
+    color: #1e3a5f;
+  }
+
+  .public-footer-col a {
+    font-family: var(--font-body);
+    font-size: 0.75rem;
+    line-height: 1.6;
+    color: #64748b;
+    text-decoration: none;
+    transition: color 200ms ease;
+  }
+
+  .public-footer-col a:hover {
+    color: #1d4ed8;
+  }
+
+  /* Footer bottom — Stitch: border-t border-slate-200 py-6, text-[10px] text-slate-400 */
+  .public-footer-bottom {
+    border-top: 1px solid #e2e8f0;
+    padding: 1.5rem;
+    text-align: center;
+  }
+
+  .public-footer-bottom p {
+    font-family: var(--font-body);
+    font-size: 10px;
+    color: #94a3b8;
+    letter-spacing: 0.05em;
+  }
+
+  /* ===== Responsive ===== */
+  @media (min-width: 768px) {
+    .public-nav-links {
+      display: flex;
+    }
+
+    .public-footer-grid {
+      grid-template-columns: 1fr 1fr 1fr 1fr;
+    }
+  }
+
+  @media (max-width: 767px) {
+    .public-main {
+      padding: 1rem;
+      padding-top: 4.5rem;
+    }
+
+    .public-footer-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .public-footer-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

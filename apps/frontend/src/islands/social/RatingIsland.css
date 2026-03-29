@@ -1,0 +1,31 @@
+.rating-island {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.rating-island-title {
+  font-family: var(--font-display);
+  font-size: var(--text-title-lg);
+  font-weight: var(--weight-semibold);
+}
+
+.rating-island-user {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  background: var(--color-surface-container-low);
+  border-radius: var(--radius-lg);
+}
+
+.rating-island-label {
+  font-size: var(--text-body-md);
+  color: var(--color-text-secondary);
+  font-weight: var(--weight-medium);
+}
+
+.rating-loading {
+  color: var(--color-text-secondary);
+  padding: var(--space-4);
+}

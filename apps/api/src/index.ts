@@ -8,6 +8,7 @@ import { devRoutes } from "./routes/dev.ts";
 import { uploadRoutes } from "./routes/uploads.ts";
 import { elpxContentRoutes } from "./routes/elpx-content.ts";
 import { exelearningEditorRoutes } from "./routes/exelearning-editor.ts";
+import { socialRoutes } from "./routes/social.ts";
 
 const app = new Hono<AuthEnv>();
 
@@ -46,6 +47,15 @@ app.get("/api/v1/config", (c) =>
 );
 
 app.route("/api/v1", publicRoutes);
+// Social routes need session context for user-specific data (userScore, userFavorited)
+app.use("/api/v1/resources/*/ratings", sessionMiddleware);
+app.use("/api/v1/resources/*/comments", sessionMiddleware);
+app.use("/api/v1/resources/*/favorite", sessionMiddleware);
+app.use("/api/v1/resources/*/download", sessionMiddleware);
+app.use("/api/v1/resources/*/stats", sessionMiddleware);
+app.use("/api/v1/users/*", sessionMiddleware);
+app.use("/api/v1/comments/*", sessionMiddleware);
+app.route("/api/v1", socialRoutes);
 app.route("/api/v1/elpx", elpxContentRoutes);
 app.route("/api/v1/exelearning-editor", exelearningEditorRoutes);
 app.route("/api/admin", adminRoutes);

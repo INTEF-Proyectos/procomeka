@@ -1,0 +1,302 @@
+/* LoginIsland — Stitch-aligned auth card */
+
+.login-page {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 3rem 1.5rem;
+  min-height: 60vh;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 420px;
+  background: var(--color-surface-container-lowest);
+  border-radius: 1.5rem;
+  padding: 2.5rem;
+  box-shadow: 0 20px 40px rgba(18, 28, 40, 0.06);
+}
+
+/* Header */
+.login-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.login-icon-circle {
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 9999px;
+  background: var(--color-primary-fixed);
+  color: var(--color-on-primary-fixed-variant);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1rem;
+}
+
+.login-icon-circle .material-symbols-outlined {
+  font-size: 1.5rem;
+}
+
+.login-title {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--color-on-surface);
+  letter-spacing: -0.02em;
+}
+
+.login-subtitle {
+  font-size: 0.875rem;
+  color: var(--color-on-surface-variant);
+  margin-top: 0.5rem;
+  line-height: 1.5;
+}
+
+/* Error */
+.login-error {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: var(--color-error-container);
+  color: var(--color-on-error-container);
+  border-radius: 0.75rem;
+  font-size: 0.875rem;
+  margin-bottom: 1.5rem;
+}
+
+.login-error .material-symbols-outlined {
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+/* Form */
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.login-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.login-field label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-on-surface);
+}
+
+.login-field input {
+  padding: 0.75rem 1rem;
+  background: var(--color-surface-container-highest);
+  border: none;
+  border-radius: 0.75rem;
+  font-size: 0.9375rem;
+  font-family: var(--font-body);
+  color: var(--color-on-surface);
+  transition: background-color 200ms ease, box-shadow 200ms ease;
+}
+
+.login-field input:focus {
+  outline: none;
+  background: var(--color-surface-container-lowest);
+  box-shadow: 0 0 0 2px rgba(0, 63, 177, 0.3);
+}
+
+.login-field input::placeholder {
+  color: var(--color-outline);
+}
+
+.login-field input:disabled {
+  opacity: 0.6;
+}
+
+/* Submit */
+.login-submit {
+  padding: 0.875rem;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1rem;
+  border-radius: 9999px;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 10px 15px -3px rgba(0, 63, 177, 0.2);
+  transition: all 200ms ease-in-out;
+  margin-top: 0.5rem;
+}
+
+.login-submit:hover:not(:disabled) {
+  background: var(--color-primary-container);
+}
+
+.login-submit:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.login-submit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.login-submit:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Separator */
+.login-separator {
+  display: flex;
+  align-items: center;
+  margin: 1.75rem 0;
+  color: var(--color-outline);
+  font-size: 0.8125rem;
+}
+
+.login-separator::before,
+.login-separator::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--color-surface-container-high);
+}
+
+.login-separator span {
+  padding: 0 0.75rem;
+}
+
+/* OIDC button */
+.login-oidc-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.75rem;
+  background: var(--color-surface-container-lowest);
+  color: var(--color-on-surface);
+  border: 1px solid var(--color-outline-variant);
+  border-radius: 9999px;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 200ms ease-in-out;
+}
+
+.login-oidc-btn:hover:not(:disabled) {
+  background: var(--color-surface-container-low);
+  border-color: var(--color-primary);
+}
+
+.login-oidc-btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.login-oidc-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.login-oidc-btn .material-symbols-outlined {
+  font-size: 20px;
+  color: var(--color-primary);
+}
+
+/* Footer link */
+.login-footer {
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--color-on-surface-variant);
+  margin-top: 1.75rem;
+}
+
+.login-footer a {
+  color: var(--color-primary);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.login-footer a:hover {
+  text-decoration: underline;
+}
+
+/* Dev / test credentials */
+.login-dev-info {
+  margin-top: 1.75rem;
+  padding: 1rem 1.25rem;
+  background: var(--color-surface-container-low);
+  border-radius: 0.75rem;
+}
+
+.login-dev-title {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-outline);
+  margin-bottom: 0.75rem;
+}
+
+.login-dev-title .material-symbols-outlined {
+  font-size: 16px;
+}
+
+.login-dev-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.login-dev-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  background: var(--color-surface-container-lowest);
+  border: none;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  font-family: var(--font-body);
+  text-align: left;
+  transition: background-color 150ms ease, box-shadow 150ms ease;
+}
+
+.login-dev-btn:hover {
+  background: var(--color-surface-container);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.login-dev-btn:active {
+  transform: scale(0.98);
+}
+
+.login-dev-role {
+  display: inline-block;
+  min-width: 3.5rem;
+  padding: 0.125rem 0.5rem;
+  background: var(--color-primary-fixed);
+  color: var(--color-on-primary-fixed);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-radius: 0.25rem;
+  text-align: center;
+}
+
+.login-dev-email {
+  font-size: 0.8125rem;
+  color: var(--color-on-surface-variant);
+  font-family: monospace;
+}

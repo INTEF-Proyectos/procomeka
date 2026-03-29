@@ -1,0 +1,76 @@
+.dialog-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  background: rgba(18, 28, 40, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+  animation: dialog-fade-in 0.15s ease;
+}
+
+@keyframes dialog-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.dialog {
+  background: var(--color-surface-container-lowest);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-xl);
+  max-height: calc(100vh - var(--space-8));
+  display: flex;
+  flex-direction: column;
+  animation: dialog-scale-in 0.2s ease;
+}
+
+@keyframes dialog-scale-in {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.dialog-sm { width: min(400px, 100%); }
+.dialog-md { width: min(560px, 100%); }
+.dialog-lg { width: min(720px, 100%); }
+
+.dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-5) var(--space-6);
+  flex-shrink: 0;
+}
+
+.dialog-title {
+  font-family: var(--font-display);
+  font-size: var(--text-title-lg);
+  font-weight: var(--weight-semibold);
+}
+
+.dialog-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  color: var(--color-text-secondary);
+  transition: background-color var(--transition-fast);
+}
+
+.dialog-close:hover {
+  background: var(--color-surface-container);
+}
+
+.dialog-close:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.dialog-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 var(--space-6) var(--space-6);
+}
