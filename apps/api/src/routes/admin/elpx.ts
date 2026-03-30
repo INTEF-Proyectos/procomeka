@@ -105,6 +105,13 @@ elpxAdminRoutes.post("/upload/:resourceId", requireRole("author"), async (c) => 
 		finalChecksum: checksum,
 	});
 
+	// Remove existing elpx project if the resource already had one
+	const existingElpx = await repo.getElpxProjectByResourceId(getDb().db, resourceId);
+	if (existingElpx) {
+		await removeElpxExtraction(existingElpx.extractPath).catch(() => {});
+		await repo.deleteElpxProject(getDb().db, existingElpx.id);
+	}
+
 	// Process the .elpx (extract + metadata)
 	const result = await processElpxUpload(storagePath, config.storageDir);
 	await repo.createElpxProject(getDb().db, {
