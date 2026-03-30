@@ -17,7 +17,7 @@ RUN bun install --frozen-lockfile
 FROM base AS frontend-build
 
 COPY --from=install /app/node_modules ./node_modules
-COPY package.json ./
+COPY package.json tsconfig.json ./
 COPY apps/frontend/ apps/frontend/
 COPY packages/db/ packages/db/
 
@@ -28,7 +28,7 @@ RUN cd apps/frontend && bun run build
 FROM base AS api
 
 COPY --from=install /app/node_modules ./node_modules
-COPY package.json ./
+COPY package.json tsconfig.json ./
 COPY apps/api/ apps/api/
 COPY apps/cli/ apps/cli/
 COPY packages/db/ packages/db/
@@ -42,7 +42,7 @@ CMD ["bun", "run", "apps/api/src/index.ts"]
 FROM base AS seed
 
 COPY --from=install /app/node_modules ./node_modules
-COPY package.json ./
+COPY package.json tsconfig.json ./
 COPY apps/api/ apps/api/
 COPY apps/cli/ apps/cli/
 COPY packages/db/ packages/db/
