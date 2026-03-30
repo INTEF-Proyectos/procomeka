@@ -15,46 +15,19 @@ services:
       timeout: 3s
       retries: 5
 
-  api:
+  app:
     build:
       context: .
-      target: api
+      target: app
     ports:
       - "3000:3000"
     environment:
       DATABASE_URL: postgres://procomeka:procomeka@db:5432/procomeka
-      BETTER_AUTH_URL: http://localhost:4321
+      BETTER_AUTH_URL: http://localhost:3000
       BETTER_AUTH_SECRET: docker-local-dev-secret-change-in-production
-      FRONTEND_URL: http://localhost:4321
+      FRONTEND_URL: http://localhost:3000
     depends_on:
       db:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "bun -e \"fetch('http://localhost:3000/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))\""]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-      start_period: 15s
-
-  seed:
-    build:
-      context: .
-      target: seed
-    environment:
-      DATABASE_URL: postgres://procomeka:procomeka@db:5432/procomeka
-    depends_on:
-      api:
-        condition: service_healthy
-    restart: "no"
-
-  frontend:
-    build:
-      context: .
-      target: frontend
-    ports:
-      - "4321:80"
-    depends_on:
-      api:
         condition: service_healthy
 
 volumes:
