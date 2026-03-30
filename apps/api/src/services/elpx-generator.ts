@@ -24,16 +24,89 @@ function escapeHtml(str: string): string {
 		.replace(/"/g, "&quot;");
 }
 
-function buildContentXml(title: string, author: string, language: string, license: string): string {
+function generateId(): string {
+	const now = new Date();
+	const ts = [
+		now.getUTCFullYear(),
+		String(now.getUTCMonth() + 1).padStart(2, "0"),
+		String(now.getUTCDate()).padStart(2, "0"),
+		String(now.getUTCHours()).padStart(2, "0"),
+		String(now.getUTCMinutes()).padStart(2, "0"),
+		String(now.getUTCSeconds()).padStart(2, "0"),
+	].join("");
+	const rand = Math.random().toString(36).slice(2, 8).toUpperCase();
+	return `${ts}${rand}`;
+}
+
+function buildContentXml(title: string, author: string, language: string, license: string, files: GeneratorFileEntry[]): string {
+	const pageId = generateId();
+	const blockId = generateId();
+	const ideviceId = generateId();
+
+	const linksHtml = files
+		.map((f) => `<li><a href="${escapeHtml(f.filename)}">${escapeHtml(f.filename)}</a></li>`)
+		.join("");
+	const listHtml = `<ul>${linksHtml}</ul>`;
+
+	// JSON-encode the HTML for the jsonProperties CDATA block
+	const textTextarea = JSON.stringify(listHtml);
+
+	const htmlViewContent = `<div class="exe-text-template"><div class="textIdeviceContent"><div class="exe-text-activity"><div>${listHtml}</div></div></div></div>`;
+
 	return `<?xml version="1.0" encoding="utf-8"?>
-<node>
-  <odeProperty><key>pp_title</key><value>${escapeXml(title)}</value></odeProperty>
-  <odeProperty><key>pp_description</key><value></value></odeProperty>
-  <odeProperty><key>pp_author</key><value>${escapeXml(author)}</value></odeProperty>
-  <odeProperty><key>license</key><value>${escapeXml(license)}</value></odeProperty>
-  <odeProperty><key>lom_general_language</key><value>${escapeXml(language)}</value></odeProperty>
-  <odeProperty><key>pp_learningResourceType</key><value></value></odeProperty>
-</node>`;
+<!DOCTYPE ode SYSTEM "content.dtd">
+<ode xmlns="http://www.intef.es/xsd/ode" version="2.0">
+  <odeProperties>
+    <odeProperty><key>pp_title</key><value>${escapeXml(title)}</value></odeProperty>
+    <odeProperty><key>pp_description</key><value></value></odeProperty>
+    <odeProperty><key>pp_author</key><value>${escapeXml(author)}</value></odeProperty>
+    <odeProperty><key>license</key><value>${escapeXml(license)}</value></odeProperty>
+    <odeProperty><key>lom_general_language</key><value>${escapeXml(language)}</value></odeProperty>
+    <odeProperty><key>pp_learningResourceType</key><value></value></odeProperty>
+  </odeProperties>
+  <odeNavStructures>
+    <odeNavStructure>
+      <odePageId>${pageId}</odePageId>
+      <odeParentPageId/>
+      <pageName>${escapeXml(title)}</pageName>
+      <odeNavStructureOrder>1</odeNavStructureOrder>
+      <odeNavStructureProperties>
+        <odeNavStructureProperty><key>titleNode</key><value>${escapeXml(title)}</value></odeNavStructureProperty>
+        <odeNavStructureProperty><key>visibility</key><value>true</value></odeNavStructureProperty>
+      </odeNavStructureProperties>
+      <odePagStructures>
+        <odePagStructure>
+          <odePageId>${pageId}</odePageId>
+          <odeBlockId>${blockId}</odeBlockId>
+          <blockName>Texto</blockName>
+          <iconName/>
+          <odePagStructureOrder>1</odePagStructureOrder>
+          <odePagStructureProperties>
+            <odePagStructureProperty><key>visibility</key><value>true</value></odePagStructureProperty>
+            <odePagStructureProperty><key>teacherOnly</key><value>false</value></odePagStructureProperty>
+          </odePagStructureProperties>
+          <odeComponents>
+            <odeComponent>
+              <odePageId>${pageId}</odePageId>
+              <odeBlockId>${blockId}</odeBlockId>
+              <odeIdeviceId>${ideviceId}</odeIdeviceId>
+              <odeIdeviceTypeName>text</odeIdeviceTypeName>
+              <htmlView><![CDATA[${htmlViewContent}]]></htmlView>
+              <jsonProperties><![CDATA[{"ideviceId":${JSON.stringify(ideviceId)},"textInfoDurationInput":"","textInfoDurationTextInput":"Duración","textInfoParticipantsInput":"","textInfoParticipantsTextInput":"Agrupamiento","textTextarea":${textTextarea},"textFeedbackInput":"Show Feedback","textFeedbackTextarea":""}]]></jsonProperties>
+              <odeComponentsOrder>1</odeComponentsOrder>
+              <odeComponentsProperties>
+                <odeComponentsProperty><key>visibility</key><value>true</value></odeComponentsProperty>
+                <odeComponentsProperty><key>teacherOnly</key><value>false</value></odeComponentsProperty>
+                <odeComponentsProperty><key>identifier</key><value/></odeComponentsProperty>
+                <odeComponentsProperty><key>cssClass</key><value/></odeComponentsProperty>
+              </odeComponentsProperties>
+            </odeComponent>
+          </odeComponents>
+        </odePagStructure>
+      </odePagStructures>
+    </odeNavStructure>
+  </odeNavStructures>
+</ode>`;
 }
 
 function buildIndexHtml(title: string, files: GeneratorFileEntry[]): string {
@@ -116,7 +189,7 @@ export async function generateElpxFromFiles(opts: {
 
 	try {
 		// Write generated files to workdir
-		await writeFile(path.join(workDir, "content.xml"), buildContentXml(title, author, language, license), "utf8");
+		await writeFile(path.join(workDir, "content.xml"), buildContentXml(title, author, language, license, files), "utf8");
 		await writeFile(path.join(workDir, "index.html"), buildIndexHtml(title, files), "utf8");
 
 		// Copy media files to workdir
