@@ -52,6 +52,19 @@ const seedJson = {
 		originalFilename: `demo-${r.slug}.elpx`,
 		hasPreview: 1,
 	})),
+	// mediaItems: cada recurso publicado tiene su .elpx como archivo descargable
+	mediaItems: DEMO_RESOURCES
+		.filter((r) => r.editorialStatus === "published")
+		.map((r) => ({
+			id: `media-${r.id}`,
+			resourceId: r.id,
+			type: "elpx",
+			mimeType: "application/zip",
+			url: `api/v1/elpx-raw/${deterministicHash(r.id)}.elpx`,
+			fileSize: null,
+			filename: `demo-${r.slug}.elpx`,
+			isPrimary: 1,
+		})),
 	collections: DEMO_COLLECTIONS.map((c) => ({
 		id: c.id,
 		slug: c.slug,

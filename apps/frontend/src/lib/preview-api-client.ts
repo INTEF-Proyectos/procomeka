@@ -210,6 +210,19 @@ export class PreviewApiClient implements ApiClient {
 			}
 		}
 
+		// Media items (downloadable files)
+		if (seed.mediaItems) {
+			const { getBaseUrl } = await import("./paths.ts");
+			const base = getBaseUrl();
+			for (const m of seed.mediaItems) {
+				const fullUrl = m.url.startsWith("http") ? m.url : `${base}${m.url}`;
+				await this.pglite.query(
+					`INSERT INTO "media_items" (id, resource_id, type, mime_type, url, file_size, filename, is_primary) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) ON CONFLICT DO NOTHING`,
+					[m.id, m.resourceId, m.type, m.mimeType, fullUrl, m.fileSize ?? null, m.filename, m.isPrimary ?? 0],
+				);
+			}
+		}
+
 		// Collections
 		if (seed.collections) {
 			for (const col of seed.collections) {

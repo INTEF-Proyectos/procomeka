@@ -61,3 +61,4 @@ test-results/
 apps/api/src/test-fixtures/elpx/demo/
 # Elpx extraídos para estática (regenerar con extract-elpx-for-static.ts)
 apps/frontend/public/api/v1/elpx/
+.omc/

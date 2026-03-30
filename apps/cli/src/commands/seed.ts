@@ -50,7 +50,8 @@ export function formatPostgresSeedTarget(databaseUrl: string) {
 async function loadElpxSupport(log: SeedLog) {
 	try {
 		const repoRoot = path.resolve(import.meta.dir, "../../../..");
-		const storageDir = process.env.UPLOAD_STORAGE_DIR ?? path.join(repoRoot, "apps/api/local-data/uploads");
+		const { getUploadConfig } = await import("../../../api/src/uploads/config.ts");
+		const storageDir = getUploadConfig().storageDir;
 		const { mkdir } = await import("node:fs/promises");
 		await mkdir(storageDir, { recursive: true });
 
