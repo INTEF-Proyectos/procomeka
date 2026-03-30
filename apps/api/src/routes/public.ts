@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { sql } from "drizzle-orm";
 import { readUploadContent } from "./uploads.ts";
+import { contentDisposition } from "../uploads/config.ts";
 import { buildElpxMap, buildElpxPreview, parsePagination } from "../helpers.ts";
 import { getDb } from "../db.ts";
 import * as repo from "@procomeka/db/repository";
@@ -99,7 +100,7 @@ publicRoutes.get("/uploads/:id/content", async (c) => {
 		status: 200,
 		headers: {
 			"Content-Type": session.mimeType ?? "application/octet-stream",
-			"Content-Disposition": `attachment; filename="${session.originalFilename}"`,
+			"Content-Disposition": contentDisposition("attachment", session.originalFilename),
 		},
 	});
 });

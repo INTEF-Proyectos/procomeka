@@ -523,6 +523,10 @@ export class PreviewApiClient implements ApiClient {
 		};
 	}
 
+	async generateElpx(_resourceId: string): Promise<{ ok: boolean; elpxHash: string; hasPreview: boolean; previewUrl: string | null; elpxFileUrl: string | null }> {
+		throw new Error("La generación automática de .elpx no está disponible en modo preview");
+	}
+
 	async listUsers(opts?: { q?: string; role?: string; limit?: number; offset?: number }) {
 		const { listUsers } = await import("@procomeka/db/repository");
 		const scope = this.currentUser.role === "admin" ? {} : { id: this.currentUser.id };

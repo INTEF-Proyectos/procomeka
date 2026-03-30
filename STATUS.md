@@ -26,6 +26,7 @@ Antes de escribir código de negocio, se deben resolver las siguientes decisione
 |-------|--------|---------------------|--------|
 | - | `Director de Producto` | Definición de visión y mapa de capacidades | Completado |
 | - | `Project Manager` | Revisión de estructura y setup de entorno de agentes | Completado |
+| 2026-03-30 | `Backend-API` + `Frontend-UX` | Issue #70 — Generar .elpx automático desde adjuntos (RF-001..RF-008): servicio `elpx-generator.ts`, endpoint `POST /api/admin/elpx/generate/:resourceId`, botón en editor, 7 tests nuevos, 286 tests pasan | Completado |
 
 ## Reglas de Actualización de este Tablero
 

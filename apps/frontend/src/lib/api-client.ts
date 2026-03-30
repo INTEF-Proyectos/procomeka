@@ -241,6 +241,7 @@ export interface ApiClient {
 	getUploadConfig(): Promise<UploadConfig>;
 	cancelUpload(id: string): Promise<{ id: string; cancelled: boolean }>;
 	getElpxProject(resourceId: string): Promise<ElpxProjectInfo | null>;
+	generateElpx(resourceId: string): Promise<{ ok: boolean; elpxHash: string; hasPreview: boolean; previewUrl: string | null; elpxFileUrl: string | null }>;
 
 	listUsers(opts?: { q?: string; role?: string; limit?: number; offset?: number }): Promise<PaginatedResult<UserRecord>>;
 	getUserById(id: string): Promise<UserRecord | null>;

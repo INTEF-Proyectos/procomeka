@@ -121,6 +121,13 @@ export function getStaticPaths() {
 
       renderEditor(resource, userRole, elpx);
       contentEl.style.display = "block";
+
+      // Initialise the multi-file uploader after the DOM is rendered
+      const uploadPanel = document.getElementById("edit-multiupload-panel");
+      if (uploadPanel) {
+        const { initResourceUploader } = await import("../../lib/resource-uploader.ts");
+        await initResourceUploader({ resourceId: resource.id, root: uploadPanel, api });
+      }
     } catch {
       loadingEl.style.display = "none";
       notFoundEl.style.display = "flex";
@@ -180,9 +187,43 @@ export function getStaticPaths() {
             </div>
           </div>` : ""}
 
-          <!-- Upload .elpx section -->
+          <!-- Multi-file uploader (all formats) -->
+          <div id="edit-multiupload-panel" class="edit-files-section">
+            <h3>Archivos adjuntos</h3>
+            <div data-upload-dropzone class="edit-dropzone" id="edit-multi-dropzone" tabindex="0">
+              <label class="edit-file-label">
+                <span class="material-symbols-outlined">upload_file</span>
+                <span>Seleccionar archivos</span>
+                <input data-upload-input type="file" multiple />
+              </label>
+              <p class="edit-drop-hint">o arrastra aquí (PDF, DOCX, imágenes, vídeo…)</p>
+            </div>
+            <div data-upload-feedback class="edit-upload-status" aria-live="polite"></div>
+            <div class="edit-upload-progress-row">
+              <progress data-global-progress max="100" value="0" style="width:100%;"></progress>
+              <span data-global-progress-label style="font-size:0.85rem;color:#555;">Sin subidas activas</span>
+            </div>
+            <ul data-upload-queue class="edit-upload-queue"><li style="color:#888;font-size:0.9rem;">No hay archivos en cola.</li></ul>
+            <ul data-persisted-uploads style="display:none;"></ul>
+            <div class="edit-files-list-header">
+              <span>Archivos del recurso</span>
+            </div>
+            <ul data-media-list class="edit-media-list"><li style="color:#888;font-size:0.9rem;">No hay archivos adjuntos todavía.</li></ul>
+
+            <!-- Generar .elpx automático -->
+            <div class="edit-generate-section">
+              <p class="edit-generate-hint">Genera un paquete .elpx con todos los archivos adjuntos para abrirlo y editarlo en eXeLearning.</p>
+              <button type="button" id="generate-elpx-btn" class="edit-wf-btn edit-wf-btn-outline">
+                <span class="material-symbols-outlined">auto_awesome</span>
+                Generar .elpx automático
+              </button>
+              <div id="generate-elpx-status" class="edit-upload-status" style="display:none;"></div>
+            </div>
+          </div>
+
+          <!-- Upload .elpx section (direct single .elpx) -->
           <div class="edit-upload-section">
-            <h3>${previewUrl ? "Actualizar archivo .elpx" : "Subir archivo .elpx"}</h3>
+            <h3>${previewUrl ? "Actualizar archivo .elpx" : "Subir archivo .elpx directamente"}</h3>
             <div id="edit-dropzone" class="edit-dropzone" tabindex="0">
               <label class="edit-file-label">
                 <span class="material-symbols-outlined">upload_file</span>
@@ -193,21 +234,6 @@ export function getStaticPaths() {
             </div>
             <div id="edit-upload-status" class="edit-upload-status" style="display:none;"></div>
           </div>
-
-          <!-- Attached files -->
-          ${resource.mediaItems?.length ? `
-          <div class="edit-files-section">
-            <h3>Archivos adjuntos</h3>
-            <div class="edit-files-list">
-              ${resource.mediaItems.map((m: Record<string, unknown>) => `
-                <div class="edit-file-item">
-                  <span class="material-symbols-outlined">description</span>
-                  <span class="edit-file-name">${esc(String(m.filename || "Archivo"))}</span>
-                  ${m.fileSize ? `<span class="edit-file-size">${formatFileSize(m.fileSize as number)}</span>` : ""}
-                </div>
-              `).join("")}
-            </div>
-          </div>` : ""}
 
           <div class="edit-field">
             <label for="ed-description">Descripción</label>
@@ -379,6 +405,39 @@ export function getStaticPaths() {
         }
         applyMetaBtn.innerHTML = `<span class="material-symbols-outlined">check</span>Metadatos aplicados`;
         (applyMetaBtn as HTMLButtonElement).disabled = true;
+      });
+    }
+
+    // Wire "Generar .elpx automático" button
+    const generateElpxBtn = document.getElementById("generate-elpx-btn") as HTMLButtonElement | null;
+    const generateElpxStatus = document.getElementById("generate-elpx-status");
+
+    if (generateElpxBtn && generateElpxStatus) {
+      generateElpxBtn.addEventListener("click", async () => {
+        const hasElpx = !!(elpx?.hasPreview || elpx?.hash);
+        if (hasElpx) {
+          const confirmed = window.confirm(
+            "Este recurso ya tiene un proyecto .elpx. ¿Deseas reemplazarlo con uno generado automáticamente a partir de los archivos adjuntos?"
+          );
+          if (!confirmed) return;
+        }
+
+        generateElpxBtn.disabled = true;
+        generateElpxStatus.textContent = "Generando paquete .elpx...";
+        generateElpxStatus.className = "edit-upload-status edit-upload-loading";
+        generateElpxStatus.style.display = "block";
+
+        try {
+          const api = await getApiClient();
+          await api.generateElpx(resource.id);
+          generateElpxStatus.textContent = "Paquete .elpx generado correctamente. Recargando...";
+          generateElpxStatus.className = "edit-upload-status edit-upload-success";
+          setTimeout(() => window.location.reload(), 1000);
+        } catch (err) {
+          generateElpxStatus.textContent = `Error: ${(err as Error).message || "No se pudo generar el paquete .elpx"}`;
+          generateElpxStatus.className = "edit-upload-status edit-upload-error";
+          generateElpxBtn.disabled = false;
+        }
       });
     }
 

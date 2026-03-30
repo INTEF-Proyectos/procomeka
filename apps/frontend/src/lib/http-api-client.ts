@@ -221,6 +221,18 @@ export class HttpApiClient implements ApiClient {
 		return res.json();
 	}
 
+	async generateElpx(resourceId: string) {
+		const res = await fetch(`/api/admin/elpx/generate/${resourceId}`, {
+			method: "POST",
+			credentials: "include",
+		});
+		if (!res.ok) {
+			const err = await res.json().catch(() => ({}));
+			throw new Error((err as Record<string, string>).error ?? "Error al generar el .elpx");
+		}
+		return res.json();
+	}
+
 	async listUsers(opts?: { q?: string; role?: string; limit?: number; offset?: number }): Promise<PaginatedResult<UserRecord>> {
 		const params = new URLSearchParams();
 		if (opts?.q) params.set("q", opts.q);

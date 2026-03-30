@@ -11,7 +11,7 @@ import {
 } from "@procomeka/db/validation";
 import { getDb } from "../../db.ts";
 import * as repo from "@procomeka/db/repository";
-import { getUploadConfig } from "../../uploads/config.ts";
+import { getUploadConfig, contentDisposition } from "../../uploads/config.ts";
 import { readUploadContent, terminateUpload } from "../uploads.ts";
 
 const db = () => getDb().db;
@@ -51,7 +51,7 @@ adminUploadRoutes.get("/:id/content", async (c) => {
 	const body = await readUploadContent(id);
 	return c.body(body, 200, {
 		"Content-Type": session.mimeType ?? "application/octet-stream",
-		"Content-Disposition": `inline; filename="${session.originalFilename}"`,
+		"Content-Disposition": contentDisposition("inline", session.originalFilename),
 	});
 });
 
@@ -124,7 +124,14 @@ resourceRoutes.get("/:id/media", async (c) => {
 	const resource = await repo.getResourceById(db(), id);
 	if (!resource) return c.json({ error: "Recurso no encontrado" }, 404);
 	if (!canManageResource(user, resource)) return c.json({ error: "Permisos insuficientes" }, 403);
-	return c.json(await repo.listMediaItemsForResource(db(), id));
+	const items = await repo.listMediaItemsForResource(db(), id);
+	// Rewrite URLs to the admin endpoint so authenticated users can download
+	// files regardless of the resource's editorial status.
+	const adminItems = items.map((item) => ({
+		...item,
+		url: item.url.replace(/^\/api\/v1\/uploads\//, "/api/admin/uploads/"),
+	}));
+	return c.json(adminItems);
 });
 
 resourceRoutes.get("/:id/uploads", async (c) => {

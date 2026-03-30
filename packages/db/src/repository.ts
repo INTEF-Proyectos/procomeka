@@ -3,7 +3,7 @@
  * Aceptan una instancia Drizzle como parámetro para funcionar
  * tanto en el servidor (API) como en el navegador (preview).
  */
-import { eq, sql, desc, isNull, and, or, asc } from "drizzle-orm";
+import { eq, sql, desc, isNull, and, or, asc, notInArray } from "drizzle-orm";
 import {
 	resources,
 	resourceSubjects,
@@ -382,6 +382,7 @@ export async function listMediaItemsForResource(db: DrizzleDB, resourceId: strin
 		fileSize: row.fileSize,
 		filename: row.filename,
 		isPrimary: row.isPrimary,
+		uploadId: row.uploadId as string | null,
 	}));
 }
 
@@ -509,6 +510,9 @@ export async function updateUploadSessionProgress(
 	id: string,
 	data: { receivedBytes: number; status?: string },
 ) {
+	// Do not overwrite terminal states (completed, cancelled, failed) to avoid
+	// a race condition where POST_RECEIVE fires after onUploadFinish and resets
+	// a completed session back to 'uploading'.
 	await db
 		.update(uploadSessions)
 		.set({
@@ -516,7 +520,12 @@ export async function updateUploadSessionProgress(
 			status: data.status ?? "uploading",
 			updatedAt: new Date(),
 		})
-		.where(eq(uploadSessions.id, id));
+		.where(
+			and(
+				eq(uploadSessions.id, id),
+				notInArray(uploadSessions.status, ["completed", "cancelled", "failed"]),
+			),
+		);
 }
 
 export async function completeUploadSession(
