@@ -150,7 +150,7 @@ download-exelearning-editor:
 	rm /tmp/exelearning-static.zip; \
 	echo "Editor eXeLearning descargado en $(EXELEARNING_EDITOR_DIR)/"
 
-# Docker
+# Docker — levanta sistema completo (db + api + frontend + seed)
 up-docker:
 	docker compose up --build -d
 
@@ -158,4 +158,4 @@ down-docker:
 	docker compose down
 
 seed-docker:
-	docker compose run --rm seed
+	docker compose up --build seed
