@@ -61,6 +61,9 @@
 
   // Forward postMessages from parent to editor iframe
   // OPEN_FILE messages contain ArrayBuffer that must be transferred
+  // For WP_REQUEST_SAVE: forward to editor, but if no response in 5s,
+  // perform the export directly from the loader as a fallback.
+  var pendingSaveTimer = null;
   window.addEventListener('message', function(event) {
     if (event.source === window.parent) {
       var frame = document.getElementById('editor-frame');
@@ -70,6 +73,48 @@
           transferables.push(event.data.data.bytes);
         }
         frame.contentWindow.postMessage(event.data, '*', transferables);
+
+        // Fallback: if bridge doesn't respond to WP_REQUEST_SAVE within 5s,
+        // perform export directly from the loader context
+        if (event.data && event.data.type === 'WP_REQUEST_SAVE') {
+          var reqId = event.data.requestId;
+          pendingSaveTimer = setTimeout(function() {
+            pendingSaveTimer = null;
+            var editorWin = frame.contentWindow;
+            if (!editorWin) return;
+            var proj = editorWin.eXeLearning && editorWin.eXeLearning.app && editorWin.eXeLearning.app.project;
+            var yb = proj && proj._yjsBridge;
+            var dm = yb && yb.documentManager;
+            var SE = editorWin.SharedExporters;
+            if (SE && SE.createExporter && dm) {
+              var exporter = SE.createExporter('elpx', dm, yb.assetCache || null, yb.resourceFetcher || null, yb.assetManager || null);
+              exporter.export({}).then(function(result) {
+                if (!result || !result.success || !result.data) {
+                  window.parent.postMessage({ type: 'WP_REQUEST_SAVE_ERROR', requestId: reqId, error: result && result.error || 'Export failed' }, '*');
+                  return;
+                }
+                var blob = new Blob([result.data], { type: 'application/zip' });
+                blob.arrayBuffer().then(function(bytes) {
+                  window.parent.postMessage({ type: 'WP_SAVE_FILE', requestId: reqId, bytes: bytes, filename: result.filename || 'project.elpx', mimeType: 'application/zip', size: bytes.byteLength }, '*');
+                });
+              }).catch(function(err) {
+                window.parent.postMessage({ type: 'WP_REQUEST_SAVE_ERROR', requestId: reqId, error: err.message || 'Export error' }, '*');
+              });
+            } else {
+              window.parent.postMessage({ type: 'WP_REQUEST_SAVE_ERROR', requestId: reqId, error: 'Export not available' }, '*');
+            }
+          }, 5000);
+        }
+      }
+    }
+  });
+
+  // Cancel fallback timer when bridge responds normally
+  window.addEventListener('message', function(event) {
+    if (event.source === document.getElementById('editor-frame').contentWindow) {
+      if (event.data && (event.data.type === 'WP_SAVE_FILE' || event.data.type === 'WP_REQUEST_SAVE_ERROR') && pendingSaveTimer) {
+        clearTimeout(pendingSaveTimer);
+        pendingSaveTimer = null;
       }
     }
   });
