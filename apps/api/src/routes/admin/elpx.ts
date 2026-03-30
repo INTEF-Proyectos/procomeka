@@ -276,6 +276,19 @@ elpxAdminRoutes.post("/generate/:resourceId", requireRole("author"), async (c) =
 		await repo.deleteElpxProject(getDb().db, existingElpx.id);
 	}
 
+	// Remove any previously generated recurso-generado.elpx media items
+	// (file on disk + upload session + media item record)
+	const prevGenerated = mediaRows.filter((m) => m.filename === "recurso-generado.elpx");
+	await Promise.all(
+		prevGenerated.map(async (m) => {
+			if (m.uploadId) {
+				await unlink(resolveStoredFilePath(config, m.uploadId)).catch(() => {});
+				await repo.cancelUploadSession(getDb().db, m.uploadId).catch(() => {});
+			}
+			await repo.deleteMediaItem(getDb().db, m.id).catch(() => {});
+		}),
+	);
+
 	// Save file to upload storage (so download endpoints work)
 	const uploadId = crypto.randomUUID();
 	const storagePath = path.join(config.storageDir, uploadId);
