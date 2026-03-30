@@ -1,5 +1,5 @@
 FROM oven/bun:latest AS base
-RUN apt-get update && apt-get install -y unzip && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y unzip curl && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 
 # --- Dependencias ---
@@ -13,6 +13,21 @@ COPY apps/frontend/package.json apps/frontend/package.json
 COPY packages/db/package.json packages/db/package.json
 
 RUN bun install --frozen-lockfile
+
+# --- Descargar editor eXeLearning ---
+FROM base AS exelearning-editor
+RUN RELEASE_URL=$(curl -s "https://api.github.com/repos/exelearning/exelearning/releases/latest" \
+      | grep -o '"browser_download_url": *"[^"]*exelearning-static[^"]*\.zip"' \
+      | head -1 | cut -d'"' -f4) && \
+    if [ -z "$RELEASE_URL" ]; then \
+      RELEASE_URL=$(curl -s "https://api.github.com/repos/exelearning/exelearning/releases/latest" \
+        | grep -o '"browser_download_url": *"[^"]*\.zip"' \
+        | head -1 | cut -d'"' -f4); \
+    fi && \
+    curl -L -o /tmp/exelearning-static.zip "$RELEASE_URL" && \
+    mkdir -p /exelearning-editor && \
+    unzip -o -q /tmp/exelearning-static.zip -d /exelearning-editor && \
+    rm /tmp/exelearning-static.zip
 
 # --- Build frontend (Astro static) ---
 FROM base AS frontend-build
@@ -33,6 +48,7 @@ COPY package.json tsconfig.json ./
 COPY apps/api/ apps/api/
 COPY apps/cli/ apps/cli/
 COPY packages/db/ packages/db/
+COPY --from=exelearning-editor /exelearning-editor ./apps/api/static/exelearning-editor
 
 ENV NODE_ENV=production
 EXPOSE 3000/tcp
@@ -68,6 +84,7 @@ COPY package.json tsconfig.json ./
 COPY apps/api/ apps/api/
 COPY apps/cli/ apps/cli/
 COPY packages/db/ packages/db/
+COPY --from=exelearning-editor /exelearning-editor ./apps/api/static/exelearning-editor
 COPY --from=frontend-build /app/apps/frontend/dist ./frontend-dist
 COPY docker-entrypoint.sh ./
 
