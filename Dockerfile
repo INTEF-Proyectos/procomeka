@@ -58,3 +58,20 @@ COPY --from=frontend-build /app/apps/frontend/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 80/tcp
+
+# --- All-in-one (API + frontend + seed) ---
+FROM base AS app
+
+COPY --from=install /app/node_modules ./node_modules
+COPY package.json tsconfig.json ./
+COPY apps/api/ apps/api/
+COPY apps/cli/ apps/cli/
+COPY packages/db/ packages/db/
+COPY --from=frontend-build /app/apps/frontend/dist ./frontend-dist
+COPY docker-entrypoint.sh ./
+
+ENV NODE_ENV=production
+ENV SERVE_FRONTEND=./frontend-dist
+EXPOSE 3000/tcp
+
+ENTRYPOINT ["./docker-entrypoint.sh"]
