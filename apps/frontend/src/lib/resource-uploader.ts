@@ -196,6 +196,11 @@ export async function initResourceUploader(args: {
 						resourceId,
 						filename: file.name,
 						mimeType: file.type,
+						// Include resourceId in relativePath so the tus fingerprint is
+						// resource-specific. Without this, uploading the same file to
+						// different resources reuses the cached tus URL and skips
+						// onUploadFinish on the server (no media_item created).
+						relativePath: `${resourceId}/${file.name}`,
 					},
 				});
 			} catch (error) {
