@@ -131,7 +131,9 @@ import PublicLayout from "../layouts/PublicLayout.astro";
             statusEl.style.display = "block";
             try {
               await api.generateElpx(resource.id);
-              statusEl.textContent = `${count} archivo${count !== 1 ? "s" : ""} subido${count !== 1 ? "s" : ""}. Paquete .elpx actualizado.`;
+              statusEl.textContent = count > 0
+                ? `${count} archivo${count !== 1 ? "s" : ""} subido${count !== 1 ? "s" : ""}. Paquete .elpx actualizado.`
+                : "Paquete .elpx actualizado.";
               statusEl.className = "edit-upload-status edit-upload-success";
               setTimeout(() => { statusEl.style.display = "none"; }, 5000);
             } catch (err) {
@@ -977,6 +979,32 @@ import PublicLayout from "../layouts/PublicLayout.astro";
     padding: 0.5rem 0.75rem;
     background: var(--color-surface-container-lowest);
     border-radius: 0.625rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .edit-media-list li a {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .upload-delete-btn {
+    flex-shrink: 0;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--color-error, #b91c1c);
+    padding: 0.125rem 0.25rem;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    line-height: 1;
+  }
+
+  .upload-delete-btn:hover {
+    background: var(--color-error-container, #fecaca);
   }
 
   .edit-upload-progress-row {

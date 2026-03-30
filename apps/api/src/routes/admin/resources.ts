@@ -11,8 +11,9 @@ import {
 } from "@procomeka/db/validation";
 import { getDb } from "../../db.ts";
 import * as repo from "@procomeka/db/repository";
-import { getUploadConfig, contentDisposition } from "../../uploads/config.ts";
+import { getUploadConfig, contentDisposition, resolveStoredFilePath } from "../../uploads/config.ts";
 import { readUploadContent, terminateUpload } from "../uploads.ts";
+import { unlink } from "node:fs/promises";
 
 const db = () => getDb().db;
 
@@ -132,6 +133,28 @@ resourceRoutes.get("/:id/media", async (c) => {
 		url: item.url.replace(/^\/api\/v1\/uploads\//, "/api/admin/uploads/"),
 	}));
 	return c.json(adminItems);
+});
+
+resourceRoutes.delete("/:id/media/:mediaItemId", async (c) => {
+	const user = getCurrentUser(c);
+	const { id, mediaItemId } = c.req.param();
+
+	const resource = await repo.getResourceById(db(), id);
+	if (!resource) return c.json({ error: "Recurso no encontrado" }, 404);
+	if (!canManageResource(user, resource)) return c.json({ error: "Permisos insuficientes" }, 403);
+
+	const items = await repo.listMediaItemsForResource(db(), id);
+	const item = items.find((m) => m.id === mediaItemId);
+	if (!item) return c.json({ error: "Archivo no encontrado" }, 404);
+
+	const config = getUploadConfig();
+	if (item.uploadId) {
+		await unlink(resolveStoredFilePath(config, item.uploadId)).catch(() => {});
+		await repo.cancelUploadSession(db(), item.uploadId).catch(() => {});
+	}
+	await repo.deleteMediaItem(db(), mediaItemId);
+
+	return c.json({ id: mediaItemId, deleted: true });
 });
 
 resourceRoutes.get("/:id/uploads", async (c) => {

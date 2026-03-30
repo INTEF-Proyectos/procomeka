@@ -240,6 +240,7 @@ export interface ApiClient {
 	deleteResource(id: string): Promise<void>;
 	getUploadConfig(): Promise<UploadConfig>;
 	cancelUpload(id: string): Promise<{ id: string; cancelled: boolean }>;
+	deleteMediaItem(resourceId: string, mediaItemId: string): Promise<{ id: string; deleted: boolean }>;
 	getElpxProject(resourceId: string): Promise<ElpxProjectInfo | null>;
 	generateElpx(resourceId: string): Promise<{ ok: boolean; elpxHash: string; hasPreview: boolean; previewUrl: string | null; elpxFileUrl: string | null }>;
 

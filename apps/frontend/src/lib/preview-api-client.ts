@@ -497,6 +497,10 @@ export class PreviewApiClient implements ApiClient {
 		return { id, cancelled: true };
 	}
 
+	async deleteMediaItem(_resourceId: string, mediaItemId: string): Promise<{ id: string; deleted: boolean }> {
+		return { id: mediaItemId, deleted: true };
+	}
+
 	async getElpxProject(resourceId: string): Promise<import("./api-client.ts").ElpxProjectInfo | null> {
 		const { getElpxProjectByResourceId } = await import("@procomeka/db/repository");
 		const elpx = await getElpxProjectByResourceId(this.db, resourceId);

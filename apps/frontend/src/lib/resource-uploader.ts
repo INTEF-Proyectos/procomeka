@@ -22,7 +22,15 @@ export function renderPersistedUploadItem(upload: UploadSessionRecord) {
 }
 
 export function renderMediaItem(item: MediaItemRecord) {
-	return `<li><a href="${escapeHtml(item.url)}" target="_blank" rel="noreferrer">${escapeHtml(item.filename ?? item.id)}</a> <span>${formatBytes(item.fileSize ?? null)}</span></li>`;
+	const isGenerated = item.filename === "recurso-generado.elpx";
+	const deleteBtn = isGenerated
+		? ""
+		: `<button type="button" class="upload-delete-btn" data-delete-media="${escapeHtml(item.id)}" title="Eliminar archivo">✕</button>`;
+	return `<li>
+		<a href="${escapeHtml(item.url)}" target="_blank" rel="noreferrer">${escapeHtml(item.filename ?? item.id)}</a>
+		<span>${formatBytes(item.fileSize ?? null)}</span>
+		${deleteBtn}
+	</li>`;
 }
 
 export function renderQueueItem(file: {
@@ -251,6 +259,21 @@ export async function initResourceUploader(args: {
 		if (!uploadId) return;
 		await api.cancelUpload(uploadId);
 		await refreshPersisted();
+	});
+
+	mediaList.addEventListener("click", async (event) => {
+		const target = event.target as HTMLElement | null;
+		const mediaItemId = target?.getAttribute("data-delete-media");
+		if (!mediaItemId) return;
+		if (!window.confirm("¿Eliminar este archivo del recurso?")) return;
+		try {
+			await api.deleteMediaItem(resourceId, mediaItemId);
+			await refreshPersisted();
+			if (args.onUploadComplete) await args.onUploadComplete(0);
+		} catch (err) {
+			feedback.textContent = err instanceof Error ? err.message : "Error al eliminar el archivo";
+			feedback.className = "upload-feedback error";
+		}
 	});
 
 	uppy.on("file-added", renderLocalQueue);
