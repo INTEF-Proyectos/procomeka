@@ -119,7 +119,27 @@ import PublicLayout from "../layouts/PublicLayout.astro";
       const uploadPanel = document.getElementById("edit-multiupload-panel");
       if (uploadPanel) {
         const { initResourceUploader } = await import("../lib/resource-uploader.ts");
-        await initResourceUploader({ resourceId: resource.id, root: uploadPanel, api });
+        await initResourceUploader({
+          resourceId: resource.id,
+          root: uploadPanel,
+          api,
+          onUploadComplete: async (count) => {
+            const statusEl = document.getElementById("elpx-auto-status");
+            if (!statusEl) return;
+            statusEl.textContent = "Generando paquete .elpx...";
+            statusEl.className = "edit-upload-status edit-upload-loading";
+            statusEl.style.display = "block";
+            try {
+              await api.generateElpx(resource.id);
+              statusEl.textContent = `${count} archivo${count !== 1 ? "s" : ""} subido${count !== 1 ? "s" : ""}. Paquete .elpx actualizado.`;
+              statusEl.className = "edit-upload-status edit-upload-success";
+              setTimeout(() => { statusEl.style.display = "none"; }, 5000);
+            } catch (err) {
+              statusEl.textContent = `Error al generar .elpx: ${(err as Error).message || "Error desconocido"}`;
+              statusEl.className = "edit-upload-status edit-upload-error";
+            }
+          },
+        });
       }
     } catch {
       loadingEl.style.display = "none";
@@ -202,16 +222,7 @@ import PublicLayout from "../layouts/PublicLayout.astro";
               <span>Archivos del recurso</span>
             </div>
             <ul data-media-list class="edit-media-list"><li style="color:#888;font-size:0.9rem;">No hay archivos adjuntos todavía.</li></ul>
-
-            <!-- Generar .elpx automático -->
-            <div class="edit-generate-section">
-              <p class="edit-generate-hint">Genera un paquete .elpx con todos los archivos adjuntos para abrirlo y editarlo en eXeLearning.</p>
-              <button type="button" id="generate-elpx-btn" class="edit-wf-btn edit-wf-btn-outline">
-                <span class="material-symbols-outlined">auto_awesome</span>
-                Generar .elpx automático
-              </button>
-              <div id="generate-elpx-status" class="edit-upload-status" style="display:none;"></div>
-            </div>
+            <div id="elpx-auto-status" class="edit-upload-status" style="display:none;" aria-live="polite"></div>
           </div>
 
           <!-- Upload .elpx section (direct single .elpx) -->
@@ -398,39 +409,6 @@ import PublicLayout from "../layouts/PublicLayout.astro";
         }
         applyMetaBtn.innerHTML = `<span class="material-symbols-outlined">check</span>Metadatos aplicados`;
         (applyMetaBtn as HTMLButtonElement).disabled = true;
-      });
-    }
-
-    // Wire "Generar .elpx automático" button
-    const generateElpxBtn = document.getElementById("generate-elpx-btn") as HTMLButtonElement | null;
-    const generateElpxStatus = document.getElementById("generate-elpx-status");
-
-    if (generateElpxBtn && generateElpxStatus) {
-      generateElpxBtn.addEventListener("click", async () => {
-        const hasElpx = !!(elpx?.hasPreview || elpx?.hash);
-        if (hasElpx) {
-          const confirmed = window.confirm(
-            "Este recurso ya tiene un proyecto .elpx. ¿Deseas reemplazarlo con uno generado automáticamente a partir de los archivos adjuntos?"
-          );
-          if (!confirmed) return;
-        }
-
-        generateElpxBtn.disabled = true;
-        generateElpxStatus.textContent = "Generando paquete .elpx...";
-        generateElpxStatus.className = "edit-upload-status edit-upload-loading";
-        generateElpxStatus.style.display = "block";
-
-        try {
-          const api = await getApiClient();
-          await api.generateElpx(resource.id);
-          generateElpxStatus.textContent = "Paquete .elpx generado correctamente. Recargando...";
-          generateElpxStatus.className = "edit-upload-status edit-upload-success";
-          setTimeout(() => window.location.reload(), 1000);
-        } catch (err) {
-          generateElpxStatus.textContent = `Error: ${(err as Error).message || "No se pudo generar el paquete .elpx"}`;
-          generateElpxStatus.className = "edit-upload-status edit-upload-error";
-          generateElpxBtn.disabled = false;
-        }
       });
     }
 
@@ -1015,22 +993,6 @@ import PublicLayout from "../layouts/PublicLayout.astro";
     margin-top: 0.75rem;
     padding-bottom: 0.25rem;
     border-bottom: 1px solid var(--color-outline-variant);
-  }
-
-  /* Generate .elpx section */
-  .edit-generate-section {
-    margin-top: 1rem;
-    padding-top: 1rem;
-    border-top: 1px solid var(--color-outline-variant);
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-
-  .edit-generate-hint {
-    font-size: 0.8125rem;
-    color: var(--color-on-surface-variant);
-    margin: 0;
   }
 
   /* Sidebar */

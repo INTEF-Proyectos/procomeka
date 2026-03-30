@@ -51,6 +51,7 @@ export async function initResourceUploader(args: {
 	resourceId: string;
 	root: HTMLElement;
 	api: ApiClient;
+	onUploadComplete?: (successCount: number) => Promise<void>;
 }) {
 	const { resourceId, root, api } = args;
 	const config = await api.getUploadConfig();
@@ -266,6 +267,12 @@ export async function initResourceUploader(args: {
 		renderLocalQueue();
 	});
 	uppy.on("file-removed", renderLocalQueue);
+	uppy.on("complete", async (result) => {
+		const count = result.successful?.length ?? 0;
+		if (count > 0 && args.onUploadComplete) {
+			await args.onUploadComplete(count);
+		}
+	});
 
 	window.addEventListener("beforeunload", (event) => {
 		const hasActiveUploads = uppy.getFiles().some((file) => (file.progress?.uploadComplete ?? false) === false);
