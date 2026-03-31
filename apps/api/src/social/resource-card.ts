@@ -1,24 +1,41 @@
-import { and, eq, inArray, isNull, sql } from "drizzle-orm";
+import { inArray, sql } from "drizzle-orm";
 import * as repo from "@procomeka/db/repository";
-import {
-	favorites,
-	ratings,
-	resources,
-} from "@procomeka/db/schema";
+import { favorites, ratings } from "@procomeka/db/schema";
 import { getDb } from "../db.ts";
 import { buildElpxMap, buildElpxPreview } from "../elpx/preview.ts";
 
 type ResourceWithId = { id: string };
 
-export async function enrichResources<T extends ResourceWithId>(rows: T[]) {
+type ResourceCardSignals = {
+	elpxPreview: { hash: string; previewUrl: string } | null;
+	favoriteCount: number;
+	rating: { average: number; count: number };
+};
+
+export type EnrichedResourceCard<T extends ResourceWithId> = T & ResourceCardSignals;
+
+export function roundRatingAverage(value: unknown) {
+	return Math.round(Number(value ?? 0) * 100) / 100;
+}
+
+export function buildResourceCard<T extends ResourceWithId>(
+	row: T,
+	signals: Partial<ResourceCardSignals>,
+): EnrichedResourceCard<T> {
+	return {
+		...row,
+		elpxPreview: signals.elpxPreview ?? null,
+		favoriteCount: Number(signals.favoriteCount ?? 0),
+		rating: {
+			average: roundRatingAverage(signals.rating?.average),
+			count: Number(signals.rating?.count ?? 0),
+		},
+	};
+}
+
+export async function enrichResourceCards<T extends ResourceWithId>(rows: T[]) {
 	if (rows.length === 0) {
-		return [] as Array<
-			T & {
-				elpxPreview: { hash: string; previewUrl: string } | null;
-				favoriteCount: number;
-				rating: { average: number; count: number };
-			}
-		>;
+		return [] as Array<EnrichedResourceCard<T>>;
 	}
 
 	const db = getDb().db;
@@ -52,31 +69,11 @@ export async function enrichResources<T extends ResourceWithId>(rows: T[]) {
 		]),
 	);
 
-	return rows.map((row) => {
-		const rating = ratingMap.get(row.id);
-		return {
-			...row,
+	return rows.map((row) =>
+		buildResourceCard(row, {
 			elpxPreview: buildElpxPreview(elpxMap.get(row.id)),
 			favoriteCount: favoriteMap.get(row.id) ?? 0,
-			rating: {
-				average: Math.round((rating?.average ?? 0) * 100) / 100,
-				count: rating?.count ?? 0,
-			},
-		};
-	});
-}
-
-export async function resolveResourceBySlug(slug: string) {
-	const db = getDb().db;
-	const rows = await db
-		.select({
-			id: resources.id,
-			title: resources.title,
-			slug: resources.slug,
-			editorialStatus: resources.editorialStatus,
-		})
-		.from(resources)
-		.where(and(eq(resources.slug, slug), isNull(resources.deletedAt)))
-		.limit(1);
-	return rows[0] ?? null;
+			rating: ratingMap.get(row.id) ?? { average: 0, count: 0 },
+		}),
+	);
 }

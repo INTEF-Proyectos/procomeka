@@ -1,19 +1,22 @@
 import { Hono } from "hono";
 import { type AuthEnv, sessionMiddleware, requireAuth } from "../auth/middleware.ts";
 import { getDb } from "../db.ts";
-import { eq, and, sql, desc, isNull, inArray } from "drizzle-orm";
+import { eq, and, sql, desc, isNull } from "drizzle-orm";
 import {
-	ratings,
 	favorites,
-	downloads,
-	activityEvents,
+	ratings,
 	resources,
-	user,
 } from "@procomeka/db/schema";
 import * as repo from "@procomeka/db/repository";
 import { logActivity } from "../activity/log.ts";
 import { parsePagination } from "../http/pagination.ts";
-import { enrichResources, resolveResourceBySlug } from "../social/service.ts";
+import { listUserActivity } from "../social/activity-service.ts";
+import { getUserDashboardSummary } from "../social/dashboard-service.ts";
+import { toggleResourceFavorite } from "../social/favorites-service.ts";
+import { enrichResourceCards } from "../social/resource-card.ts";
+import { resolveResourceBySlug } from "../social/resource-resolver.ts";
+import { getResourceRatingsSummary, upsertResourceRating } from "../social/ratings-service.ts";
+import { incrementDownload, getResourceSocialStats } from "../social/resource-stats-service.ts";
 
 const socialRoutes = new Hono<AuthEnv>();
 
@@ -29,44 +32,11 @@ socialRoutes.get("/resources/:slug/ratings", async (c) => {
 		return c.json({ error: "Recurso no encontrado" }, 404);
 	}
 
-	const db = getDb().db;
-	const rows = await db
-		.select({
-			score: ratings.score,
-			count: sql<number>`count(*)`,
-		})
-		.from(ratings)
-		.where(eq(ratings.resourceId, resource.id))
-		.groupBy(ratings.score);
-
-	let totalRatings = 0;
-	let totalScore = 0;
-	const distribution: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
-	for (const row of rows) {
-		const count = Number(row.count);
-		distribution[row.score] = count;
-		totalRatings += count;
-		totalScore += row.score * count;
-	}
-
-	// Check if current user has rated this resource
-	let userScore: number | null = null;
 	const currentUser = c.get("user");
-	if (currentUser) {
-		const userRating = await db
-			.select({ score: ratings.score })
-			.from(ratings)
-			.where(and(eq(ratings.resourceId, resource.id), eq(ratings.userId, currentUser.id)))
-			.limit(1);
-		if (userRating[0]) userScore = userRating[0].score;
-	}
-
+	const summary = await getResourceRatingsSummary(resource.id, currentUser?.id);
 	return c.json({
 		resourceId: resource.id,
-		averageScore: totalRatings > 0 ? Math.round((totalScore / totalRatings) * 100) / 100 : 0,
-		totalRatings,
-		distribution,
-		userScore,
+		...summary,
 	});
 });
 
@@ -87,31 +57,11 @@ socialRoutes.post("/resources/:slug/ratings", requireAuth, async (c) => {
 		return c.json({ error: "Recurso no encontrado" }, 404);
 	}
 
-	const db = getDb().db;
-	const now = new Date();
-
-	// Check if rating already exists (upsert)
-	const existing = await db
-		.select({ id: ratings.id })
-		.from(ratings)
-		.where(and(eq(ratings.resourceId, resource.id), eq(ratings.userId, currentUser.id)))
-		.limit(1);
-
-	if (existing[0]) {
-		await db
-			.update(ratings)
-			.set({ score: body.score, updatedAt: now })
-			.where(eq(ratings.id, existing[0].id));
-	} else {
-		await db.insert(ratings).values({
-			id: crypto.randomUUID(),
-			resourceId: resource.id,
-			userId: currentUser.id,
-			score: body.score,
-			createdAt: now,
-			updatedAt: now,
-		});
-	}
+	const result = await upsertResourceRating({
+		resourceId: resource.id,
+		userId: currentUser.id,
+		score: body.score,
+	});
 
 	await logActivity({
 		userId: currentUser.id,
@@ -123,12 +73,7 @@ socialRoutes.post("/resources/:slug/ratings", requireAuth, async (c) => {
 		metadata: { score: body.score },
 	});
 
-	return c.json({
-		resourceId: resource.id,
-		userId: currentUser.id,
-		score: body.score,
-		createdAt: now.toISOString(),
-	});
+	return c.json(result);
 });
 
 // ---------------------------------------------------------------------------
@@ -143,46 +88,23 @@ socialRoutes.post("/resources/:slug/favorite", requireAuth, async (c) => {
 		return c.json({ error: "Recurso no encontrado" }, 404);
 	}
 
-	const db = getDb().db;
-
-	const existing = await db
-		.select({ id: favorites.id })
-		.from(favorites)
-		.where(and(eq(favorites.resourceId, resource.id), eq(favorites.userId, currentUser.id)))
-		.limit(1);
-
-	let favorited: boolean;
-	if (existing[0]) {
-		await db.delete(favorites).where(eq(favorites.id, existing[0].id));
-		favorited = false;
-	} else {
-		await db.insert(favorites).values({
-			id: crypto.randomUUID(),
-			resourceId: resource.id,
-			userId: currentUser.id,
-			createdAt: new Date(),
-		});
-		favorited = true;
-	}
+	const result = await toggleResourceFavorite({
+		resourceId: resource.id,
+		userId: currentUser.id,
+	});
 
 	await logActivity({
 		userId: currentUser.id,
-		type: favorited ? "favorite_added" : "favorite_removed",
+		type: result.favorited ? "favorite_added" : "favorite_removed",
 		resourceId: resource.id,
 		resourceTitle: resource.title,
 		resourceSlug: resource.slug,
-		description: favorited
+		description: result.favorited
 			? `Marcaste como favorito «${resource.title}»`
 			: `Quitaste de favoritos «${resource.title}»`,
 	});
 
-	// Return current count
-	const countResult = await db
-		.select({ count: sql<number>`count(*)` })
-		.from(favorites)
-		.where(eq(favorites.resourceId, resource.id));
-
-	return c.json({ favorited, count: Number(countResult[0]?.count ?? 0) });
+	return c.json(result);
 });
 
 // ---------------------------------------------------------------------------
@@ -224,7 +146,7 @@ socialRoutes.get("/users/me/favorites", requireAuth, async (c) => {
 		.innerJoin(resources, eq(favorites.resourceId, resources.id))
 		.where(and(eq(favorites.userId, currentUser.id), isNull(resources.deletedAt)));
 
-	const enriched = await enrichResources(rows);
+	const enriched = await enrichResourceCards(rows);
 	return c.json({
 		data: enriched,
 		total: Number(countResult[0]?.count ?? 0),
@@ -269,7 +191,7 @@ socialRoutes.get("/users/me/ratings", requireAuth, async (c) => {
 		.innerJoin(resources, eq(ratings.resourceId, resources.id))
 		.where(and(eq(ratings.userId, currentUser.id), isNull(resources.deletedAt)));
 
-	const enrichedRatings = await enrichResources(rows);
+	const enrichedRatings = await enrichResourceCards(rows);
 	return c.json({
 		data: enrichedRatings,
 		total: Number(countResult[0]?.count ?? 0),
@@ -283,38 +205,7 @@ socialRoutes.get("/users/me/ratings", requireAuth, async (c) => {
 // ---------------------------------------------------------------------------
 socialRoutes.get("/users/me/dashboard", requireAuth, async (c) => {
 	const currentUser = c.get("user")!;
-	const db = getDb().db;
-
-	// Run count queries in parallel
-	const [draftResult, publishedResult, favResult, ratingCountResult, recentResources] = await Promise.all([
-		db.select({ count: sql<number>`count(*)` }).from(resources)
-			.where(and(eq(resources.createdBy, currentUser.id), eq(resources.editorialStatus, "draft"), isNull(resources.deletedAt))),
-		db.select({ count: sql<number>`count(*)` }).from(resources)
-			.where(and(eq(resources.createdBy, currentUser.id), eq(resources.editorialStatus, "published"), isNull(resources.deletedAt))),
-		db.select({ count: sql<number>`count(*)` }).from(favorites)
-			.where(eq(favorites.userId, currentUser.id)),
-		db.select({ count: sql<number>`count(*)` }).from(ratings)
-			.where(eq(ratings.userId, currentUser.id)),
-		db.select({
-			id: resources.id, slug: resources.slug, title: resources.title, description: resources.description,
-			language: resources.language, license: resources.license, resourceType: resources.resourceType,
-			keywords: resources.keywords, author: resources.author, publisher: resources.publisher,
-			editorialStatus: resources.editorialStatus, createdBy: resources.createdBy,
-			createdAt: resources.createdAt, updatedAt: resources.updatedAt,
-		}).from(resources)
-			.where(and(eq(resources.createdBy, currentUser.id), isNull(resources.deletedAt)))
-			.orderBy(desc(resources.updatedAt))
-			.limit(5),
-	]);
-
-	const enrichedRecent = await enrichResources(recentResources);
-	return c.json({
-		draftCount: Number(draftResult[0]?.count ?? 0),
-		publishedCount: Number(publishedResult[0]?.count ?? 0),
-		favoriteCount: Number(favResult[0]?.count ?? 0),
-		ratingCount: Number(ratingCountResult[0]?.count ?? 0),
-		recentResources: enrichedRecent,
-	});
+	return c.json(await getUserDashboardSummary(currentUser.id));
 });
 
 // ---------------------------------------------------------------------------
@@ -323,40 +214,13 @@ socialRoutes.get("/users/me/dashboard", requireAuth, async (c) => {
 socialRoutes.get("/users/me/activity", requireAuth, async (c) => {
 	const { limit, offset } = parsePagination(c);
 	const currentUser = c.get("user")!;
-	const db = getDb().db;
-
-	const rows = await db
-		.select({
-			id: activityEvents.id,
-			type: activityEvents.type,
-			resourceId: activityEvents.resourceId,
-			resourceTitle: activityEvents.resourceTitle,
-			resourceSlug: activityEvents.resourceSlug,
-			description: activityEvents.description,
-			metadata: activityEvents.metadata,
-			createdAt: activityEvents.createdAt,
-		})
-		.from(activityEvents)
-		.where(eq(activityEvents.userId, currentUser.id))
-		.orderBy(desc(activityEvents.createdAt))
-		.limit(limit)
-		.offset(offset);
-
-	const countResult = await db
-		.select({ count: sql<number>`count(*)` })
-		.from(activityEvents)
-		.where(eq(activityEvents.userId, currentUser.id));
-
-	return c.json({
-		data: rows.map(r => ({
-			...r,
-			metadata: r.metadata ? JSON.parse(r.metadata) : null,
-			createdAt: r.createdAt instanceof Date ? r.createdAt.toISOString() : r.createdAt,
-		})),
-		total: Number(countResult[0]?.count ?? 0),
-		limit,
-		offset,
-	});
+	return c.json(
+		await listUserActivity({
+			userId: currentUser.id,
+			limit,
+			offset,
+		}),
+	);
 });
 
 // ---------------------------------------------------------------------------
@@ -370,17 +234,8 @@ socialRoutes.post("/resources/:slug/download", async (c) => {
 		return c.json({ error: "Recurso no encontrado" }, 404);
 	}
 
-	const db = getDb().db;
-
-	// userId is optional – anonymous downloads are allowed
 	const currentUser = c.get("user") as { id: string } | undefined;
-
-	await db.insert(downloads).values({
-		id: crypto.randomUUID(),
-		resourceId: resource.id,
-		userId: currentUser?.id ?? null,
-		createdAt: new Date(),
-	});
+	const count = await incrementDownload(resource.id, currentUser?.id);
 
 	if (currentUser?.id) {
 		await logActivity({
@@ -393,12 +248,7 @@ socialRoutes.post("/resources/:slug/download", async (c) => {
 		});
 	}
 
-	const countResult = await db
-		.select({ count: sql<number>`count(*)` })
-		.from(downloads)
-		.where(eq(downloads.resourceId, resource.id));
-
-	return c.json({ count: Number(countResult[0]?.count ?? 0) });
+	return c.json({ count });
 });
 
 // ---------------------------------------------------------------------------
@@ -412,46 +262,8 @@ socialRoutes.get("/resources/:slug/stats", async (c) => {
 		return c.json({ error: "Recurso no encontrado" }, 404);
 	}
 
-	const db = getDb().db;
-	const rid = resource.id;
-
-	const [dlResult, favResult, ratingResult] = await Promise.all([
-		db
-			.select({ count: sql<number>`count(*)` })
-			.from(downloads)
-			.where(eq(downloads.resourceId, rid)),
-		db
-			.select({ count: sql<number>`count(*)` })
-			.from(favorites)
-			.where(eq(favorites.resourceId, rid)),
-		db
-			.select({
-				avg: sql<number>`coalesce(avg(${ratings.score}), 0)`,
-				count: sql<number>`count(*)`,
-			})
-			.from(ratings)
-			.where(eq(ratings.resourceId, rid)),
-	]);
-
-	// Check if current user has favorited this resource
-	let userFavorited = false;
 	const currentUser = c.get("user");
-	if (currentUser) {
-		const fav = await db
-			.select({ id: favorites.id })
-			.from(favorites)
-			.where(and(eq(favorites.resourceId, rid), eq(favorites.userId, currentUser.id)))
-			.limit(1);
-		userFavorited = fav.length > 0;
-	}
-
-	return c.json({
-		downloadCount: Number(dlResult[0]?.count ?? 0),
-		favoriteCount: Number(favResult[0]?.count ?? 0),
-		ratingAvg: Math.round(Number(ratingResult[0]?.avg ?? 0) * 100) / 100,
-		ratingCount: Number(ratingResult[0]?.count ?? 0),
-		userFavorited,
-	});
+	return c.json(await getResourceSocialStats(resource.id, currentUser?.id));
 });
 
 export { socialRoutes };

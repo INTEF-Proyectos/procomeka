@@ -1,6 +1,7 @@
 import * as repo from "@procomeka/db/repository";
 import { getDb } from "../db.ts";
 import { buildElpxMap, buildElpxPreview } from "../elpx/preview.ts";
+import { buildResourceCard } from "../social/resource-card.ts";
 
 export async function listPublishedResources(opts: {
 	limit: number;
@@ -21,15 +22,16 @@ export async function listPublishedResources(opts: {
 
 	return {
 		...result,
-		data: result.data.map((resource: Record<string, unknown>) => ({
-			...resource,
-			elpxPreview: buildElpxPreview(elpxMap.get(resource.id as string)),
-			favoriteCount: Number(resource.favoriteCount ?? 0),
-			rating: {
-				average: Math.round(Number(resource.ratingAvg ?? 0) * 100) / 100,
-				count: Number(resource.ratingCount ?? 0),
-			},
-		})),
+		data: result.data.map((resource: Record<string, unknown>) =>
+			buildResourceCard(resource as { id: string } & Record<string, unknown>, {
+				elpxPreview: buildElpxPreview(elpxMap.get(resource.id as string)),
+				favoriteCount: Number(resource.favoriteCount ?? 0),
+				rating: {
+					average: Number(resource.ratingAvg ?? 0),
+					count: Number(resource.ratingCount ?? 0),
+				},
+			}),
+		),
 	};
 }
 

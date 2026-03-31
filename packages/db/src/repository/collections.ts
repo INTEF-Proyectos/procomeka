@@ -20,6 +20,21 @@ type CollectionFilters = {
 	resourceStatus?: string;
 };
 
+const collectionSelection = (resourceStatus?: string) => ({
+	id: collections.id,
+	slug: collections.slug,
+	title: collections.title,
+	description: collections.description,
+	coverImageUrl: collections.coverImageUrl,
+	editorialStatus: collections.editorialStatus,
+	curatorId: collections.curatorId,
+	curatorName: user.name,
+	resourceCount: collectionResourceCountSql(resourceStatus),
+	isOrdered: collections.isOrdered,
+	createdAt: collections.createdAt,
+	updatedAt: collections.updatedAt,
+});
+
 export async function listCollections(db: DrizzleDB, opts: CollectionFilters = {}) {
 	const { limit, offset } = normalizePagination(opts.limit, opts.offset);
 	const conditions = [];
@@ -35,20 +50,7 @@ export async function listCollections(db: DrizzleDB, opts: CollectionFilters = {
 
 	const where = conditions.length ? andWhere(conditions) : undefined;
 	const query = db
-		.select({
-			id: collections.id,
-			slug: collections.slug,
-			title: collections.title,
-			description: collections.description,
-			coverImageUrl: collections.coverImageUrl,
-			editorialStatus: collections.editorialStatus,
-			curatorId: collections.curatorId,
-			curatorName: user.name,
-			resourceCount: collectionResourceCountSql(opts.resourceStatus),
-			isOrdered: collections.isOrdered,
-			createdAt: collections.createdAt,
-			updatedAt: collections.updatedAt,
-		})
+		.select(collectionSelection(opts.resourceStatus))
 		.from(collections)
 		.leftJoin(user, eq(collections.curatorId, user.id))
 		.limit(limit)
@@ -64,20 +66,7 @@ export async function listCollections(db: DrizzleDB, opts: CollectionFilters = {
 
 export async function getCollectionById(db: DrizzleDB, id: string) {
 	const rows = await db
-		.select({
-			id: collections.id,
-			slug: collections.slug,
-			title: collections.title,
-			description: collections.description,
-			coverImageUrl: collections.coverImageUrl,
-			editorialStatus: collections.editorialStatus,
-			curatorId: collections.curatorId,
-			curatorName: user.name,
-			resourceCount: collectionResourceCountSql(),
-			isOrdered: collections.isOrdered,
-			createdAt: collections.createdAt,
-			updatedAt: collections.updatedAt,
-		})
+		.select(collectionSelection())
 		.from(collections)
 		.leftJoin(user, eq(collections.curatorId, user.id))
 		.where(eq(collections.id, id))
@@ -95,20 +84,7 @@ export async function getCollectionBySlug(
 	if (opts.status) conditions.push(eq(collections.editorialStatus, opts.status));
 
 	const rows = await db
-		.select({
-			id: collections.id,
-			slug: collections.slug,
-			title: collections.title,
-			description: collections.description,
-			coverImageUrl: collections.coverImageUrl,
-			editorialStatus: collections.editorialStatus,
-			curatorId: collections.curatorId,
-			curatorName: user.name,
-			resourceCount: collectionResourceCountSql(opts.resourceStatus),
-			isOrdered: collections.isOrdered,
-			createdAt: collections.createdAt,
-			updatedAt: collections.updatedAt,
-		})
+		.select(collectionSelection(opts.resourceStatus))
 		.from(collections)
 		.leftJoin(user, eq(collections.curatorId, user.id))
 		.where(andWhere(conditions))

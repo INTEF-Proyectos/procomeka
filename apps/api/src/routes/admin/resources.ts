@@ -15,6 +15,11 @@ import * as repo from "@procomeka/db/repository";
 import { getUploadConfig, contentDisposition, resolveStoredFilePath } from "../../uploads/config.ts";
 import { readUploadContent, terminateUpload } from "../uploads.ts";
 import { unlink } from "node:fs/promises";
+import {
+	parseJsonBodyOrNull,
+	requireManageableResource,
+	requireUploadSessionForManagedResource,
+} from "./guards.ts";
 
 const db = () => getDb().db;
 
@@ -29,31 +34,22 @@ adminUploadRoutes.use("/:id/*", requireRole("author"));
 adminUploadRoutes.delete("/:id", requireRole("author"), async (c) => {
 	const user = getCurrentUser(c);
 	const { id } = c.req.param();
-	const session = await repo.getUploadSessionById(db(), id);
-	if (!session) return c.json({ error: "Upload no encontrado" }, 404);
-
-	const resource = await repo.getResourceById(db(), session.resourceId);
-	if (!resource) return c.json({ error: "Recurso no encontrado" }, 404);
-	if (!canManageResource(user, resource)) return c.json({ error: "Permisos insuficientes" }, 403);
+	const check = await requireUploadSessionForManagedResource(c, id);
+	if ("response" in check) return check.response;
 
 	await terminateUpload(id, user);
 	return c.json({ id, cancelled: true });
 });
 
 adminUploadRoutes.get("/:id/content", async (c) => {
-	const user = getCurrentUser(c);
 	const { id } = c.req.param();
-	const session = await repo.getUploadSessionById(db(), id);
-	if (!session) return c.json({ error: "Upload no encontrado" }, 404);
-
-	const resource = await repo.getResourceById(db(), session.resourceId);
-	if (!resource) return c.json({ error: "Recurso no encontrado" }, 404);
-	if (!canManageResource(user, resource)) return c.json({ error: "Permisos insuficientes" }, 403);
+	const check = await requireUploadSessionForManagedResource(c, id);
+	if ("response" in check) return check.response;
 
 	const body = await readUploadContent(id);
 	return c.body(body, 200, {
-		"Content-Type": session.mimeType ?? "application/octet-stream",
-		"Content-Disposition": contentDisposition("inline", session.originalFilename),
+		"Content-Type": check.data.session.mimeType ?? "application/octet-stream",
+		"Content-Disposition": contentDisposition("inline", check.data.session.originalFilename),
 	});
 });
 
@@ -138,11 +134,9 @@ resourceRoutes.post("/draft", requireRole("author"), async (c) => {
 // --- Sub-resource routes (custom, appended to resourceRoutes) ---
 
 resourceRoutes.get("/:id/media", async (c) => {
-	const user = getCurrentUser(c);
 	const { id } = c.req.param();
-	const resource = await repo.getResourceById(db(), id);
-	if (!resource) return c.json({ error: "Recurso no encontrado" }, 404);
-	if (!canManageResource(user, resource)) return c.json({ error: "Permisos insuficientes" }, 403);
+	const check = await requireManageableResource(c, id);
+	if ("response" in check) return check.response;
 	const items = await repo.listMediaItemsForResource(db(), id);
 	// Rewrite URLs to the admin endpoint so authenticated users can download
 	// files regardless of the resource's editorial status.
@@ -154,12 +148,9 @@ resourceRoutes.get("/:id/media", async (c) => {
 });
 
 resourceRoutes.delete("/:id/media/:mediaItemId", async (c) => {
-	const user = getCurrentUser(c);
 	const { id, mediaItemId } = c.req.param();
-
-	const resource = await repo.getResourceById(db(), id);
-	if (!resource) return c.json({ error: "Recurso no encontrado" }, 404);
-	if (!canManageResource(user, resource)) return c.json({ error: "Permisos insuficientes" }, 403);
+	const check = await requireManageableResource(c, id);
+	if ("response" in check) return check.response;
 
 	const items = await repo.listMediaItemsForResource(db(), id);
 	const item = items.find((m) => m.id === mediaItemId);
@@ -176,20 +167,16 @@ resourceRoutes.delete("/:id/media/:mediaItemId", async (c) => {
 });
 
 resourceRoutes.get("/:id/uploads", async (c) => {
-	const user = getCurrentUser(c);
 	const { id } = c.req.param();
-	const resource = await repo.getResourceById(db(), id);
-	if (!resource) return c.json({ error: "Recurso no encontrado" }, 404);
-	if (!canManageResource(user, resource)) return c.json({ error: "Permisos insuficientes" }, 403);
+	const check = await requireManageableResource(c, id);
+	if ("response" in check) return check.response;
 	return c.json(await repo.listUploadSessionsForResource(db(), id));
 });
 
 resourceRoutes.get("/:id/elpx", async (c) => {
-	const user = getCurrentUser(c);
 	const { id } = c.req.param();
-	const resource = await repo.getResourceById(db(), id);
-	if (!resource) return c.json({ error: "Recurso no encontrado" }, 404);
-	if (!canManageResource(user, resource)) return c.json({ error: "Permisos insuficientes" }, 403);
+	const check = await requireManageableResource(c, id);
+	if ("response" in check) return check.response;
 
 	const elpx = await repo.getElpxProjectByResourceId(db(), id);
 	if (!elpx) return c.json({ error: "Este recurso no tiene un proyecto eXeLearning asociado" }, 404);
@@ -223,14 +210,14 @@ resourceRoutes.get("/:id/elpx", async (c) => {
 resourceRoutes.patch("/:id/status", async (c) => {
 	const user = getCurrentUser(c);
 	const { id } = c.req.param();
-	const body = await c.req.json();
+	const body = await parseJsonBodyOrNull<{ status?: string }>(c);
 
 	const validation = validateStatus(body.status);
 	if (!validation.valid) return c.json({ error: "Validación fallida", details: validation.errors }, 400);
 
-	const existing = await repo.getResourceById(db(), id);
-	if (!existing) return c.json({ error: "Recurso no encontrado" }, 404);
-	if (!canManageResource(user, existing)) return c.json({ error: "Permisos insuficientes" }, 403);
+	const check = await requireManageableResource(c, id);
+	if ("response" in check) return check.response;
+	const existing = check.data;
 
 	const userRole = user.role ?? "reader";
 	const transitionCheck = validateTransition(existing.editorialStatus, body.status, userRole);

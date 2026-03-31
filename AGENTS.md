@@ -192,3 +192,4 @@ Tras completar una feature:
 13. **Uso de Plantillas.** Al crear una ADR nueva, copia obligatoriamente la plantilla de `.templates/adr-template.md`.
 14. **Validación ESTRICTA con Testing.** Ningún agente puede marcar una tarea de código como "Completada" basándose en suposición. La validación requiere obligatoriamente: crear un test automatizado (TypeScript) y ejecutar `bun test` hasta que la salida sea exitosa.
 15. **Estructura del Código.** El código fuente nunca va en la raíz. Solo puede crearse en las carpetas `apps/` o `packages/` designadas.
+16. **Paridad archivo-test obligatoria.** Todo nuevo archivo `.ts` de código productivo debe crearse junto con al menos un archivo de test asociado aceptado por `scripts/check-test-files.ts`, usando una de estas convenciones: `.unit.test.ts`, `.integration.test.ts` o `.test.ts`. Ningún agente debe dejar archivos `.ts` nuevos sin su pareja de test en la misma pasada.

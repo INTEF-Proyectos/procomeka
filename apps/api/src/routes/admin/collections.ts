@@ -5,6 +5,7 @@ import { logActivity } from "../../activity/log.ts";
 import { ensureCurrentUser } from "../../auth/user-sync.ts";
 import { getDb } from "../../db.ts";
 import * as repo from "@procomeka/db/repository";
+import { parseJsonBodyOrNull, requireManageableCollection } from "./guards.ts";
 
 const collectionRoutes = buildCrudRoutes({
 	baseRole: "curator",
@@ -75,28 +76,20 @@ const collectionRoutes = buildCrudRoutes({
 });
 
 collectionRoutes.get("/:id/resources", async (c) => {
-	const currentUser = getCurrentUser(c);
 	const { id } = c.req.param();
-	const collection = await repo.getCollectionById(getDb().db, id);
-	if (!collection) return c.json({ error: "Colección no encontrada" }, 404);
-	if (!canManageCollection(currentUser, collection)) {
-		return c.json({ error: "Permisos insuficientes" }, 403);
-	}
+	const check = await requireManageableCollection(c, id);
+	if ("response" in check) return check.response;
 
 	const resources = await repo.listCollectionResources(getDb().db, id, { limit: 100 });
 	return c.json(resources);
 });
 
 collectionRoutes.post("/:id/resources", async (c) => {
-	const currentUser = getCurrentUser(c);
 	const { id } = c.req.param();
-	const collection = await repo.getCollectionById(getDb().db, id);
-	if (!collection) return c.json({ error: "Colección no encontrada" }, 404);
-	if (!canManageCollection(currentUser, collection)) {
-		return c.json({ error: "Permisos insuficientes" }, 403);
-	}
+	const check = await requireManageableCollection(c, id);
+	if ("response" in check) return check.response;
 
-	const body = await c.req.json().catch(() => null) as { resourceId?: string } | null;
+	const body = await parseJsonBodyOrNull<{ resourceId?: string }>(c);
 	if (!body?.resourceId) {
 		return c.json({ error: "resourceId es obligatorio" }, 400);
 	}
@@ -116,28 +109,20 @@ collectionRoutes.post("/:id/resources", async (c) => {
 });
 
 collectionRoutes.delete("/:id/resources/:resourceId", async (c) => {
-	const currentUser = getCurrentUser(c);
 	const { id, resourceId } = c.req.param();
-	const collection = await repo.getCollectionById(getDb().db, id);
-	if (!collection) return c.json({ error: "Colección no encontrada" }, 404);
-	if (!canManageCollection(currentUser, collection)) {
-		return c.json({ error: "Permisos insuficientes" }, 403);
-	}
+	const check = await requireManageableCollection(c, id);
+	if ("response" in check) return check.response;
 
 	await repo.removeResourceFromCollection(getDb().db, id, resourceId);
 	return c.json({ ok: true });
 });
 
 collectionRoutes.patch("/:id/resources/reorder", async (c) => {
-	const currentUser = getCurrentUser(c);
 	const { id } = c.req.param();
-	const collection = await repo.getCollectionById(getDb().db, id);
-	if (!collection) return c.json({ error: "Colección no encontrada" }, 404);
-	if (!canManageCollection(currentUser, collection)) {
-		return c.json({ error: "Permisos insuficientes" }, 403);
-	}
+	const check = await requireManageableCollection(c, id);
+	if ("response" in check) return check.response;
 
-	const body = await c.req.json().catch(() => null) as { resourceId?: string; direction?: "up" | "down" } | null;
+	const body = await parseJsonBodyOrNull<{ resourceId?: string; direction?: "up" | "down" }>(c);
 	if (!body?.resourceId || !body.direction || !["up", "down"].includes(body.direction)) {
 		return c.json({ error: "resourceId y direction válidos son obligatorios" }, 400);
 	}
