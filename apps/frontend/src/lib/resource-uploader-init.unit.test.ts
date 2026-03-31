@@ -198,7 +198,7 @@ describe("resource uploader init", () => {
 			url: "/api/v1/uploads/upload-1/content",
 			filename: "guia.pdf",
 			fileSize: 100,
-			isPrimary: 0,
+			isPrimary: false,
 		}];
 		const api = {
 			getUploadConfig: async () => ({

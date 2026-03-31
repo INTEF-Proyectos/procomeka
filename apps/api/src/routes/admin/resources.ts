@@ -209,8 +209,8 @@ resourceRoutes.get("/:id/elpx", async (c) => {
 	return c.json({
 		id: elpx.id,
 		hash: elpx.hash,
-		hasPreview: elpx.hasPreview === 1,
-		previewUrl: elpx.hasPreview === 1 ? `/api/v1/elpx/${elpx.hash}/` : null,
+		hasPreview: elpx.hasPreview,
+		previewUrl: elpx.hasPreview ? `/api/v1/elpx/${elpx.hash}/` : null,
 		elpxFileUrl,
 		metadata,
 		originalFilename: elpx.originalFilename,

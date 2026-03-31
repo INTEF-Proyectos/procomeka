@@ -1,5 +1,6 @@
 import { relations } from "drizzle-orm";
 import {
+	boolean,
 	integer,
 	pgTable,
 	text,
@@ -15,7 +16,7 @@ export const collections = pgTable("collections", {
 	title: text("title").notNull(),
 	description: text("description").notNull(),
 	coverImageUrl: text("cover_image_url"),
-	isOrdered: integer("is_ordered").notNull().default(0),
+	isOrdered: boolean("is_ordered").notNull().default(false),
 	editorialStatus: varchar("editorial_status", { length: 50 })
 		.notNull()
 		.default("draft"),

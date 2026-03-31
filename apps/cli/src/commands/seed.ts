@@ -173,7 +173,7 @@ export async function seedWithClient(
 
 					// Create media item
 					await client.query(
-						`INSERT INTO "media_items" (id, resource_id, type, mime_type, url, filename, is_primary) VALUES ($1, $2, 'file', 'application/zip', $3, $4, 1)`,
+						`INSERT INTO "media_items" (id, resource_id, type, mime_type, url, filename, is_primary) VALUES ($1, $2, 'file', 'application/zip', $3, $4, true)`,
 						[mediaId, r.id, `/api/v1/uploads/${uploadId}/content`, elpxFilename],
 					);
 
@@ -186,7 +186,7 @@ export async function seedWithClient(
 					// Create elpx project
 					await client.query(
 						`INSERT INTO "elpx_projects" (id, resource_id, hash, extract_path, original_filename, version, has_preview, elpx_metadata, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, 3, $6, $7, $8, $9)`,
-						[elpxId, r.id, result.hash, result.extractPath, elpxFilename, result.hasPreview ? 1 : 0, JSON.stringify(result.metadata), now, now],
+						[elpxId, r.id, result.hash, result.extractPath, elpxFilename, result.hasPreview, JSON.stringify(result.metadata), now, now],
 					);
 
 					log.log(`  + ${r.slug} [${r.editorialStatus}] + elpx`);
@@ -203,7 +203,7 @@ export async function seedWithClient(
 
 		for (const col of DEMO_COLLECTIONS) {
 			await client.query(
-				`INSERT INTO "collections" (id, slug, title, description, is_ordered, editorial_status, curator_id, created_at, updated_at) VALUES ($1, $2, $3, $4, 1, 'published', $5, $6, $7)`,
+				`INSERT INTO "collections" (id, slug, title, description, is_ordered, editorial_status, curator_id, created_at, updated_at) VALUES ($1, $2, $3, $4, true, 'published', $5, $6, $7)`,
 				[col.id, col.slug, col.title, col.description, col.curatorId, now, now],
 			);
 

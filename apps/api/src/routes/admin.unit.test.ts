@@ -509,7 +509,7 @@ describe("Rutas admin — colecciones", () => {
 		expect(updatedRes.status).toBe(200);
 		const updated = await updatedRes.json();
 		expect(updated.editorialStatus).toBe("published");
-		expect(updated.isOrdered).toBe(1);
+		expect(updated.isOrdered).toBe(true);
 		expect(updated.coverImageUrl).toBe("https://example.com/actualizada.jpg");
 
 		const addResourceRes = await app.request(`/api/admin/collections/${id}/resources`, {

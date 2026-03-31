@@ -88,7 +88,7 @@ export const SCHEMA_STATEMENTS = [
 		url TEXT NOT NULL,
 		file_size INTEGER,
 		filename TEXT,
-		is_primary INTEGER NOT NULL DEFAULT 0
+		is_primary BOOLEAN NOT NULL DEFAULT false
 	)`,
 	`CREATE TABLE IF NOT EXISTS "upload_sessions" (
 		id TEXT PRIMARY KEY,
@@ -120,7 +120,7 @@ export const SCHEMA_STATEMENTS = [
 		original_filename TEXT NOT NULL,
 		upload_session_id TEXT,
 		version INTEGER NOT NULL DEFAULT 3,
-		has_preview INTEGER NOT NULL DEFAULT 0,
+		has_preview BOOLEAN NOT NULL DEFAULT false,
 		elpx_metadata TEXT,
 		created_at TIMESTAMP NOT NULL DEFAULT NOW(),
 		updated_at TIMESTAMP NOT NULL DEFAULT NOW()
@@ -139,7 +139,7 @@ export const SCHEMA_STATEMENTS = [
 		title TEXT NOT NULL,
 		description TEXT NOT NULL,
 		cover_image_url TEXT,
-		is_ordered INTEGER NOT NULL DEFAULT 0,
+		is_ordered BOOLEAN NOT NULL DEFAULT false,
 		editorial_status VARCHAR(50) NOT NULL DEFAULT 'draft',
 		curator_id TEXT NOT NULL REFERENCES "user"(id),
 		created_at TIMESTAMP NOT NULL DEFAULT NOW(),

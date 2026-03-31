@@ -174,7 +174,7 @@ async function getTusServer() {
 					url: buildUploadPublicUrl(upload.id),
 					fileSize: upload.size ?? session.declaredSize ?? null,
 					filename: session.originalFilename,
-					isPrimary: 0,
+					isPrimary: false,
 				});
 
 				await repo.completeUploadSession(getDb().db, upload.id, {
@@ -196,7 +196,7 @@ async function getTusServer() {
 							originalFilename: session.originalFilename,
 							uploadSessionId: upload.id,
 							version: 3,
-							hasPreview: result.hasPreview ? 1 : 0,
+							hasPreview: result.hasPreview,
 							elpxMetadata: JSON.stringify(result.metadata),
 						});
 					} catch (err) {

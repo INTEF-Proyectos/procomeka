@@ -219,7 +219,7 @@ export class PreviewApiClient implements ApiClient {
 				const fullUrl = m.url.startsWith("http") ? m.url : `${base}${m.url}`;
 				await this.pglite.query(
 					`INSERT INTO "media_items" (id, resource_id, type, mime_type, url, file_size, filename, is_primary) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) ON CONFLICT DO NOTHING`,
-					[m.id, m.resourceId, m.type, m.mimeType, fullUrl, m.fileSize ?? null, m.filename, m.isPrimary ?? 0],
+					[m.id, m.resourceId, m.type, m.mimeType, fullUrl, m.fileSize ?? null, m.filename, m.isPrimary ?? false],
 				);
 			}
 		}
@@ -228,7 +228,7 @@ export class PreviewApiClient implements ApiClient {
 		if (seed.collections) {
 			for (const col of seed.collections) {
 				await this.pglite.query(
-					`INSERT INTO "collections" (id, slug, title, description, is_ordered, editorial_status, curator_id, created_at, updated_at) VALUES ($1, $2, $3, $4, 1, 'published', $5, $6, $7) ON CONFLICT (id) DO NOTHING`,
+					`INSERT INTO "collections" (id, slug, title, description, is_ordered, editorial_status, curator_id, created_at, updated_at) VALUES ($1, $2, $3, $4, true, 'published', $5, $6, $7) ON CONFLICT (id) DO NOTHING`,
 					[col.id, col.slug, col.title, col.description, col.curatorId, now, now],
 				);
 				for (let i = 0; i < col.resourceIds.length; i++) {
