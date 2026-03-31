@@ -66,6 +66,21 @@ elpxAdminRoutes.post("/upload/:resourceId", requireRole("author"), async (c) => 
 	}
 
 	const config = getUploadConfig();
+
+	// Remove any existing .elpx media items for this resource before uploading the new one
+	const existingMediaRows = await repo.listMediaItemsForResource(getDb().db, resourceId);
+	const prevElpxItems = existingMediaRows.filter((m) => {
+		const ext = path.extname(m.filename ?? "").toLowerCase();
+		return ext === ".elpx" || ext === ".elp";
+	});
+	await Promise.all(prevElpxItems.map(async (m) => {
+		if (m.uploadId) {
+			await unlink(resolveStoredFilePath(config, m.uploadId)).catch(() => {});
+			await repo.cancelUploadSession(getDb().db, m.uploadId).catch(() => {});
+		}
+		await repo.deleteMediaItem(getDb().db, m.id).catch(() => {});
+	}));
+
 	const uploadId = crypto.randomUUID();
 
 	// Save the raw file to tus storage (so the existing download endpoints work)
