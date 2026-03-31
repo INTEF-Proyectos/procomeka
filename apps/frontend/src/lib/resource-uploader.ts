@@ -160,8 +160,9 @@ export async function initResourceUploader(args: {
 				.join("")
 			: "<li>No hay uploads recientes.</li>";
 
-		mediaList.innerHTML = mediaItems.length
-			? mediaItems
+		const displayItems = mediaItems.filter((item) => item.filename !== "recurso-generado.elpx");
+		mediaList.innerHTML = displayItems.length
+			? displayItems
 				.map((item) => renderMediaItem(item))
 				.join("")
 			: "<li>No hay archivos adjuntos todavía.</li>";

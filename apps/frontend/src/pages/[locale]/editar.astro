@@ -393,8 +393,8 @@ export function getStaticPaths() {
           language: (document.getElementById("ed-language") as HTMLSelectElement).value,
           license: (document.getElementById("ed-license") as HTMLSelectElement).value,
           resourceType: (document.getElementById("ed-resourceType") as HTMLSelectElement).value,
-          author: (document.getElementById("ed-author") as HTMLInputElement).value || undefined,
-          keywords: (document.getElementById("ed-keywords") as HTMLInputElement).value || undefined,
+          author: (document.getElementById("ed-author") as HTMLInputElement)?.value || undefined,
+          keywords: (document.getElementById("ed-keywords") as HTMLInputElement)?.value || undefined,
         });
 
         if (!result.ok) {
