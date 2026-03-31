@@ -234,13 +234,16 @@ export interface ApiClient {
 	getResourceById(id: string): Promise<Resource | null>;
 	listResourceMediaItems(id: string): Promise<MediaItemRecord[]>;
 	listResourceUploads(id: string): Promise<UploadSessionRecord[]>;
+	createDraftResource(): Promise<{ id: string; slug: string }>;
 	createResource(data: CreateResourceInput): Promise<{ id: string; slug: string }>;
 	updateResource(id: string, data: UpdateResourceInput): Promise<{ ok: boolean; error?: string; details?: { field: string; message: string }[] }>;
 	updateResourceStatus(id: string, status: string): Promise<{ id: string; status: string }>;
 	deleteResource(id: string): Promise<void>;
 	getUploadConfig(): Promise<UploadConfig>;
 	cancelUpload(id: string): Promise<{ id: string; cancelled: boolean }>;
+	deleteMediaItem(resourceId: string, mediaItemId: string): Promise<{ id: string; deleted: boolean }>;
 	getElpxProject(resourceId: string): Promise<ElpxProjectInfo | null>;
+	generateElpx(resourceId: string): Promise<{ ok: boolean; elpxHash: string; hasPreview: boolean; previewUrl: string | null; elpxFileUrl: string | null }>;
 
 	listUsers(opts?: { q?: string; role?: string; limit?: number; offset?: number }): Promise<PaginatedResult<UserRecord>>;
 	getUserById(id: string): Promise<UserRecord | null>;

@@ -149,6 +149,15 @@ export class HttpApiClient implements ApiClient {
 		return res.json();
 	}
 
+	async createDraftResource(): Promise<{ id: string; slug: string }> {
+		const res = await fetch("/api/admin/resources/draft", { method: "POST", credentials: "include" });
+		if (!res.ok) {
+			const err = await res.json().catch(() => ({}));
+			throw new Error((err as Record<string, string>).error ?? "Error al crear el borrador");
+		}
+		return res.json();
+	}
+
 	async createResource(data: CreateResourceInput): Promise<{ id: string; slug: string }> {
 		const res = await fetch("/api/admin/resources", {
 			method: "POST",
@@ -215,9 +224,33 @@ export class HttpApiClient implements ApiClient {
 		return res.json();
 	}
 
+	async deleteMediaItem(resourceId: string, mediaItemId: string): Promise<{ id: string; deleted: boolean }> {
+		const res = await fetch(`/api/admin/resources/${resourceId}/media/${mediaItemId}`, {
+			method: "DELETE",
+			credentials: "include",
+		});
+		if (!res.ok) {
+			const err = await res.json().catch(() => ({}));
+			throw new Error((err as Record<string, string>).error ?? "Error al eliminar el archivo");
+		}
+		return res.json();
+	}
+
 	async getElpxProject(resourceId: string): Promise<import("./api-client.ts").ElpxProjectInfo | null> {
 		const res = await fetch(`/api/admin/resources/${resourceId}/elpx`, { credentials: "include" });
 		if (!res.ok) return null;
+		return res.json();
+	}
+
+	async generateElpx(resourceId: string) {
+		const res = await fetch(`/api/admin/elpx/generate/${resourceId}`, {
+			method: "POST",
+			credentials: "include",
+		});
+		if (!res.ok) {
+			const err = await res.json().catch(() => ({}));
+			throw new Error((err as Record<string, string>).error ?? "Error al generar el .elpx");
+		}
 		return res.json();
 	}
 

@@ -1,8 +1,9 @@
 import { Hono } from "hono";
 import { type AuthEnv, requireRole } from "../../auth/middleware.ts";
-import { getCurrentUser } from "../../auth/roles.ts";
+import { getCurrentUser, canManageResource } from "../../auth/roles.ts";
 import { parseElpxMetadata, processElpxUpload, removeElpxExtraction } from "../../services/elpx-processor.ts";
-import { getUploadConfig, computeFileSha256, buildUploadPublicUrl } from "../../uploads/config.ts";
+import { generateElpxFromFiles } from "../../services/elpx-generator.ts";
+import { getUploadConfig, computeFileSha256, buildUploadPublicUrl, resolveStoredFilePath } from "../../uploads/config.ts";
 import { getDb } from "../../db.ts";
 import * as repo from "@procomeka/db/repository";
 import { writeFile, unlink, mkdir } from "node:fs/promises";
@@ -218,6 +219,142 @@ elpxAdminRoutes.post("/save/:resourceId", requireRole("author"), async (c) => {
 	return c.json({
 		ok: true,
 		hash: result.hash,
+		hasPreview: result.hasPreview,
+		previewUrl: result.hasPreview ? `/api/v1/elpx/${result.hash}/` : null,
+		elpxFileUrl: `/api/admin/uploads/${uploadId}/content`,
+	});
+});
+
+/**
+ * Generate an .elpx package automatically from the media items already attached to a resource.
+ *
+ * The generated package includes:
+ * - content.xml  with the resource title and basic metadata
+ * - index.html   with relative links to all bundled files
+ * - All media files bundled in the ZIP root
+ *
+ * If an elpx_project already exists it is replaced (same behaviour as /save/:resourceId).
+ * RF-001..RF-008 (issue #70).
+ */
+elpxAdminRoutes.post("/generate/:resourceId", requireRole("author"), async (c) => {
+	const user = getCurrentUser(c);
+	const { resourceId } = c.req.param();
+
+	const resource = await repo.getResourceById(getDb().db, resourceId);
+	if (!resource) return c.json({ error: "Recurso no encontrado" }, 404);
+	if (!canManageResource(user, resource)) return c.json({ error: "Permisos insuficientes" }, 403);
+
+	const config = getUploadConfig();
+
+	// Collect completed media items with their upload IDs
+	const mediaRows = await repo.listMediaItemsForResource(getDb().db, resourceId);
+	// Filter out .elpx/.elp files (avoid recursive bundling) and items without a local file
+	const filesToBundle = mediaRows
+		.filter((m) => {
+			if (!m.uploadId) return false;
+			const ext = path.extname(m.filename ?? "").toLowerCase();
+			return ext !== ".elpx" && ext !== ".elp";
+		})
+		.map((m) => ({
+			filename: m.filename ?? m.id,
+			filePath: resolveStoredFilePath(config, m.uploadId as string),
+		}));
+
+	// Generate the .elpx ZIP to a temp file
+	const tempOutput = path.join(tmpdir(), `procomeka-generated-${crypto.randomUUID()}.elpx`);
+	try {
+		await generateElpxFromFiles({
+			title: resource.title,
+			author: resource.author ?? "",
+			language: resource.language ?? "es",
+			license: resource.license ?? "cc-by",
+			files: filesToBundle,
+			outputPath: tempOutput,
+		});
+	} catch (err: unknown) {
+		const message = err instanceof Error ? err.message : "Error al generar el paquete .elpx";
+		return c.json({ error: message }, 500);
+	}
+
+	// Replace existing elpx project if any (RF-007)
+	const existingElpx = await repo.getElpxProjectByResourceId(getDb().db, resourceId);
+	if (existingElpx) {
+		await removeElpxExtraction(existingElpx.extractPath).catch(() => {});
+		await repo.deleteElpxProject(getDb().db, existingElpx.id);
+	}
+
+	// Remove any previously generated recurso-generado.elpx media items
+	// (file on disk + upload session + media item record)
+	const prevGenerated = mediaRows.filter((m) => m.filename === "recurso-generado.elpx");
+	await Promise.all(
+		prevGenerated.map(async (m) => {
+			if (m.uploadId) {
+				await unlink(resolveStoredFilePath(config, m.uploadId)).catch(() => {});
+				await repo.cancelUploadSession(getDb().db, m.uploadId).catch(() => {});
+			}
+			await repo.deleteMediaItem(getDb().db, m.id).catch(() => {});
+		}),
+	);
+
+	// Save file to upload storage (so download endpoints work)
+	const uploadId = crypto.randomUUID();
+	const storagePath = path.join(config.storageDir, uploadId);
+	await mkdir(path.dirname(storagePath), { recursive: true });
+
+	const buffer = Buffer.from(await Bun.file(tempOutput).arrayBuffer());
+	await unlink(tempOutput).catch(() => {});
+	await writeFile(storagePath, buffer);
+
+	const checksum = await computeFileSha256(storagePath);
+	const generatedFilename = "recurso-generado.elpx";
+
+	// Create upload session + media item (primary)
+	await repo.createUploadSession(getDb().db, {
+		id: uploadId,
+		resourceId,
+		ownerId: user.id,
+		originalFilename: generatedFilename,
+		mimeType: "application/zip",
+		storageKey: `resource/${resourceId}/${uploadId}/${generatedFilename}`,
+		declaredSize: buffer.byteLength,
+		expiresAt: null,
+	});
+
+	const media = await repo.createMediaItem(getDb().db, {
+		resourceId,
+		type: "file",
+		mimeType: "application/zip",
+		url: buildUploadPublicUrl(uploadId),
+		fileSize: buffer.byteLength,
+		filename: generatedFilename,
+		isPrimary: 1,
+	});
+
+	await repo.completeUploadSession(getDb().db, uploadId, {
+		receivedBytes: buffer.byteLength,
+		publicUrl: buildUploadPublicUrl(uploadId),
+		mediaItemId: media.id,
+		finalChecksum: checksum,
+	});
+
+	// Process .elpx: extract, detect preview, register elpx_project
+	const result = await processElpxUpload(storagePath, config.storageDir, { hash: crypto.randomUUID() });
+	await repo.createElpxProject(getDb().db, {
+		resourceId,
+		hash: result.hash,
+		extractPath: result.extractPath,
+		originalFilename: generatedFilename,
+		uploadSessionId: uploadId,
+		version: 3,
+		hasPreview: result.hasPreview ? 1 : 0,
+		elpxMetadata: JSON.stringify(result.metadata),
+	});
+
+	return c.json({
+		ok: true,
+		uploadId,
+		mediaItemId: media.id,
+		elpxHash: result.hash,
 		hasPreview: result.hasPreview,
 		previewUrl: result.hasPreview ? `/api/v1/elpx/${result.hash}/` : null,
 		elpxFileUrl: `/api/admin/uploads/${uploadId}/content`,

@@ -152,6 +152,16 @@ export async function ensureUploadStorageDir(config: ReturnType<typeof getUpload
 	await mkdir(config.storageDir, { recursive: true });
 }
 
+/**
+ * Builds a safe Content-Disposition header value that handles non-ASCII filenames.
+ * Uses RFC 5987 encoding so browsers receive the original UTF-8 name.
+ */
+export function contentDisposition(disposition: "attachment" | "inline", filename: string): string {
+	const ascii = filename.replace(/[^\x20-\x7e]/g, "_");
+	const encoded = encodeURIComponent(filename);
+	return `${disposition}; filename="${ascii}"; filename*=UTF-8''${encoded}`;
+}
+
 export async function computeFileSha256(filePath: string) {
 	return new Promise<string>((resolve, reject) => {
 		const hash = createHash("sha256");

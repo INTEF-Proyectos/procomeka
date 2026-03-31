@@ -2,6 +2,9 @@ FROM oven/bun:latest AS base
 RUN apt-get update && apt-get install -y unzip curl && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 
+# Install system tools required at runtime
+RUN apt-get update && apt-get install -y --no-install-recommends unzip zip && rm -rf /var/lib/apt/lists/*
+
 # --- Dependencias ---
 FROM base AS install
 

@@ -22,7 +22,15 @@ export function renderPersistedUploadItem(upload: UploadSessionRecord) {
 }
 
 export function renderMediaItem(item: MediaItemRecord) {
-	return `<li><a href="${escapeHtml(item.url)}" target="_blank" rel="noreferrer">${escapeHtml(item.filename ?? item.id)}</a> <span>${formatBytes(item.fileSize ?? null)}</span></li>`;
+	const isGenerated = item.filename === "recurso-generado.elpx";
+	const deleteBtn = isGenerated
+		? ""
+		: `<button type="button" class="upload-delete-btn" data-delete-media="${escapeHtml(item.id)}" title="Eliminar archivo">✕</button>`;
+	return `<li>
+		<a href="${escapeHtml(item.url)}" target="_blank" rel="noreferrer">${escapeHtml(item.filename ?? item.id)}</a>
+		<span>${formatBytes(item.fileSize ?? null)}</span>
+		${deleteBtn}
+	</li>`;
 }
 
 export function renderQueueItem(file: {
@@ -51,6 +59,7 @@ export async function initResourceUploader(args: {
 	resourceId: string;
 	root: HTMLElement;
 	api: ApiClient;
+	onUploadComplete?: (successCount: number) => Promise<void>;
 }) {
 	const { resourceId, root, api } = args;
 	const config = await api.getUploadConfig();
@@ -151,8 +160,9 @@ export async function initResourceUploader(args: {
 				.join("")
 			: "<li>No hay uploads recientes.</li>";
 
-		mediaList.innerHTML = mediaItems.length
-			? mediaItems
+		const displayItems = mediaItems.filter((item) => item.filename !== "recurso-generado.elpx");
+		mediaList.innerHTML = displayItems.length
+			? displayItems
 				.map((item) => renderMediaItem(item))
 				.join("")
 			: "<li>No hay archivos adjuntos todavía.</li>";
@@ -196,6 +206,11 @@ export async function initResourceUploader(args: {
 						resourceId,
 						filename: file.name,
 						mimeType: file.type,
+						// Include resourceId in relativePath so the tus fingerprint is
+						// resource-specific. Without this, uploading the same file to
+						// different resources reuses the cached tus URL and skips
+						// onUploadFinish on the server (no media_item created).
+						relativePath: `${resourceId}/${file.name}`,
 					},
 				});
 			} catch (error) {
@@ -247,6 +262,21 @@ export async function initResourceUploader(args: {
 		await refreshPersisted();
 	});
 
+	mediaList.addEventListener("click", async (event) => {
+		const target = event.target as HTMLElement | null;
+		const mediaItemId = target?.getAttribute("data-delete-media");
+		if (!mediaItemId) return;
+		if (!window.confirm("¿Eliminar este archivo del recurso?")) return;
+		try {
+			await api.deleteMediaItem(resourceId, mediaItemId);
+			await refreshPersisted();
+			if (args.onUploadComplete) await args.onUploadComplete(0);
+		} catch (err) {
+			feedback.textContent = err instanceof Error ? err.message : "Error al eliminar el archivo";
+			feedback.className = "upload-feedback error";
+		}
+	});
+
 	uppy.on("file-added", renderLocalQueue);
 	uppy.on("upload-progress", renderLocalQueue);
 	uppy.on("upload-success", async () => {
@@ -261,6 +291,12 @@ export async function initResourceUploader(args: {
 		renderLocalQueue();
 	});
 	uppy.on("file-removed", renderLocalQueue);
+	uppy.on("complete", async (result) => {
+		const count = result.successful?.length ?? 0;
+		if (count > 0 && args.onUploadComplete) {
+			await args.onUploadComplete(count);
+		}
+	});
 
 	window.addEventListener("beforeunload", (event) => {
 		const hasActiveUploads = uppy.getFiles().some((file) => (file.progress?.uploadComplete ?? false) === false);

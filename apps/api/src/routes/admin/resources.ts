@@ -11,8 +11,9 @@ import {
 } from "@procomeka/db/validation";
 import { getDb } from "../../db.ts";
 import * as repo from "@procomeka/db/repository";
-import { getUploadConfig } from "../../uploads/config.ts";
+import { getUploadConfig, contentDisposition, resolveStoredFilePath } from "../../uploads/config.ts";
 import { readUploadContent, terminateUpload } from "../uploads.ts";
+import { unlink } from "node:fs/promises";
 
 const db = () => getDb().db;
 
@@ -51,7 +52,7 @@ adminUploadRoutes.get("/:id/content", async (c) => {
 	const body = await readUploadContent(id);
 	return c.body(body, 200, {
 		"Content-Type": session.mimeType ?? "application/octet-stream",
-		"Content-Disposition": `inline; filename="${session.originalFilename}"`,
+		"Content-Disposition": contentDisposition("inline", session.originalFilename),
 	});
 });
 
@@ -116,6 +117,23 @@ const resourceRoutes = buildCrudRoutes({
 	notFoundMessage: "Recurso no encontrado",
 });
 
+// --- Draft creation (bypasses required-field validation) ---
+
+resourceRoutes.post("/draft", requireRole("author"), async (c) => {
+	const user = getCurrentUser(c);
+	await ensureCurrentUser(user);
+	const result = await repo.createResource(db(), {
+		title: "Nuevo recurso",
+		description: " ",
+		language: "es",
+		license: "cc-by",
+		resourceType: "actividad-interactiva",
+		editorialStatus: "draft",
+		createdBy: user.id,
+	});
+	return c.json(result, 201);
+});
+
 // --- Sub-resource routes (custom, appended to resourceRoutes) ---
 
 resourceRoutes.get("/:id/media", async (c) => {
@@ -124,7 +142,36 @@ resourceRoutes.get("/:id/media", async (c) => {
 	const resource = await repo.getResourceById(db(), id);
 	if (!resource) return c.json({ error: "Recurso no encontrado" }, 404);
 	if (!canManageResource(user, resource)) return c.json({ error: "Permisos insuficientes" }, 403);
-	return c.json(await repo.listMediaItemsForResource(db(), id));
+	const items = await repo.listMediaItemsForResource(db(), id);
+	// Rewrite URLs to the admin endpoint so authenticated users can download
+	// files regardless of the resource's editorial status.
+	const adminItems = items.map((item) => ({
+		...item,
+		url: item.url.replace(/^\/api\/v1\/uploads\//, "/api/admin/uploads/"),
+	}));
+	return c.json(adminItems);
+});
+
+resourceRoutes.delete("/:id/media/:mediaItemId", async (c) => {
+	const user = getCurrentUser(c);
+	const { id, mediaItemId } = c.req.param();
+
+	const resource = await repo.getResourceById(db(), id);
+	if (!resource) return c.json({ error: "Recurso no encontrado" }, 404);
+	if (!canManageResource(user, resource)) return c.json({ error: "Permisos insuficientes" }, 403);
+
+	const items = await repo.listMediaItemsForResource(db(), id);
+	const item = items.find((m) => m.id === mediaItemId);
+	if (!item) return c.json({ error: "Archivo no encontrado" }, 404);
+
+	const config = getUploadConfig();
+	if (item.uploadId) {
+		await unlink(resolveStoredFilePath(config, item.uploadId)).catch(() => {});
+		await repo.cancelUploadSession(db(), item.uploadId).catch(() => {});
+	}
+	await repo.deleteMediaItem(db(), mediaItemId);
+
+	return c.json({ id: mediaItemId, deleted: true });
 });
 
 resourceRoutes.get("/:id/uploads", async (c) => {

@@ -430,6 +430,19 @@ export class PreviewApiClient implements ApiClient {
 
 	getDb() { return this.db; }
 
+	async createDraftResource(): Promise<{ id: string; slug: string }> {
+		const { createResource: create } = await import("@procomeka/db/repository");
+		return create(this.db, {
+			title: "Nuevo recurso",
+			description: " ",
+			language: "es",
+			license: "cc-by",
+			resourceType: "actividad-interactiva",
+			editorialStatus: "draft",
+			createdBy: this.currentUser.id,
+		});
+	}
+
 	async createResource(data: CreateResourceInput): Promise<{ id: string; slug: string }> {
 		const { validateCreateResource } = await import("@procomeka/db/validation");
 		const validation = validateCreateResource(data);
@@ -510,6 +523,10 @@ export class PreviewApiClient implements ApiClient {
 		return { id, cancelled: true };
 	}
 
+	async deleteMediaItem(_resourceId: string, mediaItemId: string): Promise<{ id: string; deleted: boolean }> {
+		return { id: mediaItemId, deleted: true };
+	}
+
 	async getElpxProject(resourceId: string): Promise<import("./api-client.ts").ElpxProjectInfo | null> {
 		const { getElpxProjectByResourceId } = await import("@procomeka/db/repository");
 		const elpx = await getElpxProjectByResourceId(this.db, resourceId);
@@ -534,6 +551,10 @@ export class PreviewApiClient implements ApiClient {
 			version: elpx.version ?? 3,
 			createdAt: elpx.createdAt,
 		};
+	}
+
+	async generateElpx(_resourceId: string): Promise<{ ok: boolean; elpxHash: string; hasPreview: boolean; previewUrl: string | null; elpxFileUrl: string | null }> {
+		throw new Error("La generación automática de .elpx no está disponible en modo preview");
 	}
 
 	async listUsers(opts?: { q?: string; role?: string; limit?: number; offset?: number }) {
