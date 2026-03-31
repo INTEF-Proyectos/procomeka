@@ -1,7 +1,8 @@
 import { Hono } from "hono";
 import { type AuthEnv, requireRole } from "../../auth/middleware.ts";
 import { getCurrentUser, hasMinRole, canManageResource } from "../../auth/roles.ts";
-import { ensureCurrentUser, logActivity } from "../../helpers.ts";
+import { logActivity } from "../../activity/log.ts";
+import { ensureCurrentUser } from "../../auth/user-sync.ts";
 import { buildCrudRoutes } from "../crud-builder.ts";
 import {
 	validateCreateResource,

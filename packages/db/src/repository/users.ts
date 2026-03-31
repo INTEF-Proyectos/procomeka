@@ -1,6 +1,7 @@
 import { asc, eq, sql } from "drizzle-orm";
 import { user } from "../schema/auth.ts";
 import {
+	andWhere,
 	buildSearchTerm,
 	type DrizzleDB,
 	normalizePagination,
@@ -23,9 +24,7 @@ export async function listUsers(
 	if (opts.role) conditions.push(eq(user.role, opts.role));
 	if (opts.id) conditions.push(eq(user.id, opts.id));
 
-	const where = conditions.length
-		? conditions.reduce((left, right) => sql`${left} AND ${right}`)
-		: undefined;
+	const where = andWhere(conditions);
 
 	const query = db
 		.select({

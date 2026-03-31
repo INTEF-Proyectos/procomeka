@@ -1,6 +1,5 @@
 import { Hono } from "hono";
 import { type AuthEnv, sessionMiddleware, requireAuth } from "../auth/middleware.ts";
-import { buildElpxMap, buildElpxPreview, parsePagination, logActivity } from "../helpers.ts";
 import { getDb } from "../db.ts";
 import { eq, and, sql, desc, isNull, inArray } from "drizzle-orm";
 import {
@@ -12,69 +11,13 @@ import {
 	user,
 } from "@procomeka/db/schema";
 import * as repo from "@procomeka/db/repository";
+import { logActivity } from "../activity/log.ts";
+import { parsePagination } from "../http/pagination.ts";
+import { enrichResources, resolveResourceBySlug } from "../social/service.ts";
 
 const socialRoutes = new Hono<AuthEnv>();
 
 // Note: sessionMiddleware is applied externally (in index.ts) so tests can mock auth.
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-/** Enrich an array of resources with elpxPreview + social aggregates */
-async function enrichResources<T extends { id: string }>(rows: T[]) {
-	if (rows.length === 0) return [] as (T & { elpxPreview: { hash: string; previewUrl: string } | null; favoriteCount: number; rating: { average: number; count: number } })[];
-	const db = getDb().db;
-	const resourceIds = rows.map((r) => r.id);
-
-	// Elpx preview + social aggregates — all three queries are independent
-	const [elpxList, favRows, ratRows] = await Promise.all([
-		repo.listElpxProjectsByResourceIds(db, resourceIds),
-		db.select({ resourceId: favorites.resourceId, count: sql<number>`count(*)` })
-			.from(favorites)
-			.where(inArray(favorites.resourceId, resourceIds))
-			.groupBy(favorites.resourceId),
-		db.select({ resourceId: ratings.resourceId, avg: sql<number>`coalesce(avg(${ratings.score}), 0)`, count: sql<number>`count(*)` })
-			.from(ratings)
-			.where(inArray(ratings.resourceId, resourceIds))
-			.groupBy(ratings.resourceId),
-	]);
-	const elpxMap = buildElpxMap(elpxList);
-
-	const favMap = new Map(favRows.map((r) => [r.resourceId, Number(r.count)]));
-	const ratMap = new Map(ratRows.map((r) => [r.resourceId, { avg: Number(r.avg), count: Number(r.count) }]));
-
-	const socialMap = new Map<string, { favCount: number; ratingAvg: number; ratingCount: number }>();
-	for (const rid of resourceIds) {
-		socialMap.set(rid, {
-			favCount: favMap.get(rid) ?? 0,
-			ratingAvg: ratMap.get(rid)?.avg ?? 0,
-			ratingCount: ratMap.get(rid)?.count ?? 0,
-		});
-	}
-
-	return rows.map((r) => {
-		const elpx = elpxMap.get(r.id);
-		const elpxPreview = buildElpxPreview(elpx);
-		const social = socialMap.get(r.id);
-		return {
-			...r,
-			elpxPreview,
-			favoriteCount: social?.favCount ?? 0,
-			rating: { average: Math.round((social?.ratingAvg ?? 0) * 100) / 100, count: social?.ratingCount ?? 0 },
-		};
-	});
-}
-
-async function resolveResourceBySlug(slug: string) {
-	const db = getDb().db;
-	const rows = await db
-		.select({ id: resources.id, title: resources.title, slug: resources.slug, editorialStatus: resources.editorialStatus })
-		.from(resources)
-		.where(and(eq(resources.slug, slug), isNull(resources.deletedAt)))
-		.limit(1);
-	return rows[0] ?? null;
-}
 
 // ---------------------------------------------------------------------------
 // GET /resources/:slug/ratings

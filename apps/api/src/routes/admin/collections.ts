@@ -1,7 +1,8 @@
 import { buildCrudRoutes } from "../crud-builder.ts";
 import { validateCollection } from "@procomeka/db/validation";
 import { canManageCollection, getCurrentUser, hasMinRole } from "../../auth/roles.ts";
-import { ensureCurrentUser, logActivity } from "../../helpers.ts";
+import { logActivity } from "../../activity/log.ts";
+import { ensureCurrentUser } from "../../auth/user-sync.ts";
 import { getDb } from "../../db.ts";
 import * as repo from "@procomeka/db/repository";
 

@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import type { Context } from "hono";
 import { type AuthEnv, requireRole } from "../auth/middleware.ts";
 import { getCurrentUser } from "../auth/roles.ts";
-import { parsePagination } from "../helpers.ts";
+import { parsePagination } from "../http/pagination.ts";
 import { getDb } from "../db.ts";
 import type { ValidationResult } from "@procomeka/db/validation";
 

@@ -811,3 +811,25 @@ Antes de escribir código de negocio, se deben resolver las siguientes decisione
 | Fecha | Agente | Acción / Entregable | Estado |
 |-------|--------|---------------------|--------|
 | 2026-03-28 | `@.agents/skills/frontend-ux-accesibilidad` + `@.agents/skills/documentacion-y-roadmap` | Migración de `Base`, `AdminLayout` y `PreviewBanner` a React islands; tests y build de frontend en verde | Completado |
+
+## Actualización 2026-03-31 (segunda pasada de refactorización backend y packages/db)
+
+- **Agente en turno:** `@.agents/skills/backend-api-servicios/SKILL.md`
+- **Acción realizada:** Segunda refactorización incremental centrada en clarificar el wiring del backend y mejorar la cohesión interna de módulos compartidos.
+- **Cambios aplicados:**
+  - Se separa la composición de la app en `apps/api/src/app/middleware.ts`, `apps/api/src/app/routes.ts` y `apps/api/src/app/frontend.ts`, dejando `apps/api/src/app.ts` como ensamblado mínimo.
+  - Se divide el antiguo `helpers.ts` en piezas cohesionadas: paginación HTTP, logging de actividad, sincronización de usuario auth y helpers de preview ELPX.
+  - Se extrae lógica no HTTP de `apps/api/src/routes/public.ts` a `apps/api/src/public/access.ts` y `apps/api/src/public/service.ts`.
+  - Se extraen helpers de enriquecimiento y resolución de recursos de `apps/api/src/routes/social.ts` a `apps/api/src/social/service.ts`.
+  - Se separan en `packages/db` las operaciones de colección frente a las de relación colección-recurso mediante `packages/db/src/repository/collection-resources.ts`.
+  - Se divide `packages/db/src/repository/shared.ts` en helpers internos de filtros, slugs, media, colecciones y tipado de DB, manteniendo una fachada estable.
+  - Se añade test unitario específico para visibilidad pública de recursos no publicados.
+- **Validación ejecutada:**
+  - `bun test apps/api/src/public/access.unit.test.ts apps/api/src/index.unit.test.ts apps/api/src/routes/social.unit.test.ts apps/api/src/routes/admin.unit.test.ts packages/db/src/repository.unit.test.ts packages/db/src/search.test.ts apps/api/src/resources/repository.unit.test.ts`
+  - `make test-unit`
+- **Resultado:** validación unitaria en verde.
+- **Estado del árbol:** cambios listos para revisión; sin cambios en E2E ni contratos públicos.
+
+| Fecha | Agente | Acción / Entregable | Estado |
+|-------|--------|---------------------|--------|
+| 2026-03-31 | `@.agents/skills/backend-api-servicios` | Segunda pasada de refactorización del backend y `packages/db`; validación unitaria completa en verde | Completado |
