@@ -46,9 +46,9 @@ export function AdminPageIsland() {
 				const session = await api.getSession();
 				if (
 					!session?.user ||
-					(ROLE_LEVELS[session.user.role] ?? 0) < 1
+					(ROLE_LEVELS[session.user.role] ?? 0) < ROLE_LEVELS.curator
 				) {
-					window.location.href = url("login");
+					window.location.href = session?.user ? url("perfil") : url("login");
 					return;
 				}
 				setUserRole(session.user.role);
@@ -77,8 +77,8 @@ export function AdminPageIsland() {
 	}
 
 	const userLevel = ROLE_LEVELS[userRole] ?? 0;
-	const canManageCollections = userLevel >= 2;
-	const canManageCategories = userLevel >= 2;
+	const canManageCollections = userLevel >= ROLE_LEVELS.curator;
+	const canManageCategories = userLevel >= ROLE_LEVELS.curator;
 
 	return (
 		<div className="admin-shell">
@@ -101,7 +101,7 @@ export function AdminPageIsland() {
 				{section === "categories" && canManageCategories && (
 					<AdminCategoriesSection />
 				)}
-				{section === "users" && userLevel >= 3 && (
+				{section === "users" && userLevel >= ROLE_LEVELS.admin && (
 					<AdminUsersSection />
 				)}
 			</main>

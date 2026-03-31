@@ -277,20 +277,20 @@ export async function seedWithClient(
 		log.log("\nActividad reciente:\n");
 
 		const activityEvents = [
-			{ userId: "user-elena", type: "resource_published", resId: "res-01", title: DEMO_RESOURCES[0]!.title, slug: DEMO_RESOURCES[0]!.slug, desc: "Publicó un nuevo recurso", daysAgo: 1 },
+			{ userId: "user-humberto", type: "resource_published", resId: "res-01", title: DEMO_RESOURCES[0]!.title, slug: DEMO_RESOURCES[0]!.slug, desc: "Publicó un nuevo recurso", daysAgo: 1 },
 			{ userId: "user-carlos", type: "resource_published", resId: "res-02", title: DEMO_RESOURCES[1]!.title, slug: DEMO_RESOURCES[1]!.slug, desc: "Publicó un nuevo recurso", daysAgo: 2 },
-			{ userId: "user-marta", type: "favorite_added", resId: "res-01", title: DEMO_RESOURCES[0]!.title, slug: DEMO_RESOURCES[0]!.slug, desc: "Añadió un recurso a favoritos", daysAgo: 3 },
-			{ userId: "user-elena", type: "rating_given", resId: "res-03", title: DEMO_RESOURCES[2]!.title, slug: DEMO_RESOURCES[2]!.slug, desc: "Valoró un recurso con 5 estrellas", daysAgo: 4 },
+			{ userId: "user-fran", type: "favorite_added", resId: "res-01", title: DEMO_RESOURCES[0]!.title, slug: DEMO_RESOURCES[0]!.slug, desc: "Añadió un recurso a favoritos", daysAgo: 3 },
+			{ userId: "user-humberto", type: "rating_given", resId: "res-03", title: DEMO_RESOURCES[2]!.title, slug: DEMO_RESOURCES[2]!.slug, desc: "Valoró un recurso con 5 estrellas", daysAgo: 4 },
 			{ userId: "user-carlos", type: "resource_published", resId: "res-11", title: DEMO_RESOURCES[10]!.title, slug: DEMO_RESOURCES[10]!.slug, desc: "Publicó un nuevo recurso", daysAgo: 5 },
-			{ userId: "user-pedro", type: "resource_published", resId: "res-20", title: DEMO_RESOURCES[19]!.title, slug: DEMO_RESOURCES[19]!.slug, desc: "Publicó un nuevo recurso", daysAgo: 6 },
-			{ userId: "user-sofia", type: "favorite_added", resId: "res-07", title: DEMO_RESOURCES[6]!.title, slug: DEMO_RESOURCES[6]!.slug, desc: "Añadió un recurso a favoritos", daysAgo: 7 },
-			{ userId: "user-lucia", type: "resource_created", resId: "res-22", title: DEMO_RESOURCES[21]!.title, slug: DEMO_RESOURCES[21]!.slug, desc: "Creó un borrador", daysAgo: 1 },
+			{ userId: "user-humberto2", type: "resource_published", resId: "res-20", title: DEMO_RESOURCES[19]!.title, slug: DEMO_RESOURCES[19]!.slug, desc: "Publicó un nuevo recurso", daysAgo: 6 },
+			{ userId: "user-yanira", type: "favorite_added", resId: "res-07", title: DEMO_RESOURCES[6]!.title, slug: DEMO_RESOURCES[6]!.slug, desc: "Añadió un recurso a favoritos", daysAgo: 7 },
+			{ userId: "user-carlos2", type: "resource_created", resId: "res-22", title: DEMO_RESOURCES[21]!.title, slug: DEMO_RESOURCES[21]!.slug, desc: "Creó un borrador", daysAgo: 1 },
 			{ userId: "user-catedra", type: "resource_created", resId: "res-21", title: DEMO_RESOURCES[20]!.title, slug: DEMO_RESOURCES[20]!.slug, desc: "Creó un borrador", daysAgo: 2 },
 			{ userId: "demo-admin", type: "resource_published", resId: "res-17", title: DEMO_RESOURCES[16]!.title, slug: DEMO_RESOURCES[16]!.slug, desc: "Publicó un nuevo recurso", daysAgo: 10 },
-			{ userId: "user-marta", type: "resource_published", resId: "res-07", title: DEMO_RESOURCES[6]!.title, slug: DEMO_RESOURCES[6]!.slug, desc: "Publicó un nuevo recurso", daysAgo: 12 },
+			{ userId: "user-fran", type: "resource_published", resId: "res-07", title: DEMO_RESOURCES[6]!.title, slug: DEMO_RESOURCES[6]!.slug, desc: "Publicó un nuevo recurso", daysAgo: 12 },
 			{ userId: "user-carlos", type: "rating_given", resId: "res-01", title: DEMO_RESOURCES[0]!.title, slug: DEMO_RESOURCES[0]!.slug, desc: "Valoró un recurso con 5 estrellas", daysAgo: 8 },
-			{ userId: "user-pedro", type: "resource_published", resId: "res-15", title: DEMO_RESOURCES[14]!.title, slug: DEMO_RESOURCES[14]!.slug, desc: "Publicó un nuevo recurso", daysAgo: 15 },
-			{ userId: "user-lucia", type: "rating_given", resId: "res-07", title: DEMO_RESOURCES[6]!.title, slug: DEMO_RESOURCES[6]!.slug, desc: "Valoró un recurso con 5 estrellas", daysAgo: 9 },
+			{ userId: "user-humberto2", type: "resource_published", resId: "res-15", title: DEMO_RESOURCES[14]!.title, slug: DEMO_RESOURCES[14]!.slug, desc: "Publicó un nuevo recurso", daysAgo: 15 },
+			{ userId: "user-carlos2", type: "rating_given", resId: "res-07", title: DEMO_RESOURCES[6]!.title, slug: DEMO_RESOURCES[6]!.slug, desc: "Valoró un recurso con 5 estrellas", daysAgo: 9 },
 			{ userId: "demo-curator", type: "favorite_added", resId: "res-01", title: DEMO_RESOURCES[0]!.title, slug: DEMO_RESOURCES[0]!.slug, desc: "Añadió un recurso a favoritos", daysAgo: 4 },
 		];
 

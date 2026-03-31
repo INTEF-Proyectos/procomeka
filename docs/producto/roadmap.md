@@ -32,8 +32,8 @@ Catalogo MVP operativo con busqueda facetada, CRUD unificado, flujo editorial co
 |-------|--------|
 | Modelo de metadatos mínimo | Completado — ADR-0009 aceptada, validación mínima y CRUD real de recursos entregados |
 | Arquitectura base del sistema | Completado — monorepo, Hono, Astro, Drizzle, PGlite dev |
-| Autenticación y autorización | Completado — Better Auth (password + OIDC), RBAC, CLI usuarios, login/dashboard |
-| Flujo editorial de recursos | Completado — stepper visual, transiciones por rol (author→review, curator→publish), campo createdBy, colores semafóricos |
+| Autenticación y autorización | Completado — Better Auth (password + OIDC), RBAC con 5 roles (author/editor/curator/admin + reader público), CLI usuarios |
+| Flujo editorial de recursos | Completado — stepper visual, transiciones por rol (author→review, editor→publish directo, curator→approve/reject), campo createdBy, colores semafóricos |
 | Busqueda y facetas iniciales | Completado — sidebar facetada (tipo, idioma, licencia), paginacion numerada, grid/list toggle, filtros dinamicos desde taxonomias |
 | API REST publica v1 | Completado — listado y detalle de recursos publicados, paginacion, filtros, endpoint publico de taxonomias; colecciones en placeholder |
 | Importacion piloto desde CSV | No iniciada |
@@ -43,7 +43,7 @@ Catalogo MVP operativo con busqueda facetada, CRUD unificado, flujo editorial co
 | Entidades como taxonomias | Completado — tipos de recurso, idiomas y licencias gestionables desde admin |
 | Migracion a React islands | Completado — todas las páginas interactivas migradas (ADR-0013) |
 | Design system y rediseño UI | Completado — 25+ componentes, tokens, social UI, badges dinámicos, landing interactiva |
-| Datos de demo y seed realista | Completado — 11 usuarios, 22 recursos con .elpx, 8 colecciones, social data, admin settings |
+| Datos de demo y seed realista | Completado — 12 usuarios (5 roles), 22 recursos con .elpx, 8 colecciones, social data, admin settings |
 | eXeLearning editor | Completado — integración servidor + estáticos |
 
 ---
@@ -97,7 +97,7 @@ Catalogo MVP operativo con busqueda facetada, CRUD unificado, flujo editorial co
 - Monorepo operativo con `apps/api`, `apps/frontend`, `apps/cli` y `packages/db`.
 - API Hono con separación de rutas públicas (`/api/v1`) y admin (`/api/admin`).
 - Better Auth integrado con login por email/password, soporte OIDC configurable y sesiones por cookie.
-- RBAC implementado con roles `reader`, `author`, `curator`, `admin`.
+- RBAC implementado con roles `reader`, `author`, `editor`, `curator`, `admin` (ADR-0016).
 - Frontend Astro con páginas `index`, `login` y `dashboard`.
 - CLI para seed y gestión básica de usuarios.
 - Cobertura unitaria existente en API/auth/rutas admin.
@@ -238,7 +238,7 @@ La Fase 1 del MVP está prácticamente completa. La migración a React islands a
 
 ### Datos de demo realistas (issue #64)
 
-- 11 usuarios con roles, bio y contraseñas demo (4 base actualizados + 7 nuevos del ámbito educativo).
+- 12 usuarios con 5 roles, bio y contraseñas demo (5 base + 7 adicionales del ámbito educativo).
 - 22 recursos educativos con contenido .elpx real generado desde 3 plantillas eXeLearning (temas default, flux, universal).
 - 8 colecciones temáticas con recursos asociados y orden editorial.
 - 50 valoraciones (3-8 por recurso, medias 3.5-5), 34 favoritos (2-5 por usuario), ~4100 descargas simuladas.
@@ -291,3 +291,36 @@ La Fase 1 del MVP está prácticamente completa. La migración a React islands a
 
 - 359 tests pasando (3 fallos pre-existentes no relacionados).
 - Seed idempotente verificado (re-ejecutable sin errores).
+
+## Actualización 2026-03-31 — Rol editor, limpieza dashboard y mejoras UX (#85)
+
+### Nuevo rol editor (ADR-0016)
+
+- Rol `editor` (nivel 2) entre author (1) y curator (3) con publicación directa (`draft → published`) sin cola de revisión.
+- Jerarquía de roles renumerada a enteros: reader=0, author=1, editor=2, curator=3, admin=4.
+- Permisos RBAC: mismas capacidades que author (create/read/update), sin curación ni moderación.
+- Rol mínimo para cuentas nuevas cambiado de `reader` a `author` (`defaultRole`, schema DB, CLI, frontend).
+- `reader` se mantiene como nivel de acceso público/no autenticado.
+- 12 usuarios demo (añadido `demo-editor`), nombres barajados del equipo real.
+- Tests: 350 pass, 0 fail (11 tests nuevos para editor).
+
+### Limpieza dashboard antiguo
+
+- Eliminados: `dashboard.astro`, `DashboardIsland.tsx`, `AdminLayout.astro`, `AdminNavIsland.tsx`, `backoffice-nav.ts` y páginas de listado antiguas bajo `/admin/`.
+- El panel de administración (`/admin`) ahora es solo para curator+ (SPA con `AdminPageIsland` + `AdminSidebar`).
+- Author/editor trabajan desde `/perfil` (dashboard personal con recursos, favoritos, actividad).
+- `editar.astro` y `nuevo.astro` migrados de `AdminLayout` a `PublicLayout`.
+
+### Mejoras UX
+
+- Badges de estado editorial ("Borrador", "En revisión") en perfil de usuario con colores propios.
+- Botón "Editar" en detalle de recurso solo visible si eres propietario o curator+.
+- Botón "Publicar directamente" para editores en todas las páginas de edición.
+- Fix beforeunload en editor eXeLearning: iframe se reemplaza con clon limpio al cerrar.
+- Fallback `.env.example` cuando no existe `.env` (SSO funciona sin configuración manual).
+- `hasMinRole()` extraído a `shared-utils.ts` como utilidad compartida.
+
+### Validación
+
+- 350 tests pasando, 0 fallos.
+- Seed idempotente verificado con IDs actualizados.

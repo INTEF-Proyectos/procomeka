@@ -3,6 +3,7 @@ import type { Resource, UpdateResourceInput } from "../../lib/api-client.ts";
 import { getApiClient } from "../../lib/get-api-client.ts";
 import { url } from "../../lib/paths.ts";
 import { AccessibleFeedback } from "../shared/AccessibleFeedback.tsx";
+import { ROLE_LEVELS, hasMinRole } from "../../lib/shared-utils.ts";
 import { LANGUAGE_OPTIONS, LICENSE_OPTIONS, RESOURCE_TYPE_OPTIONS } from "./resource-form-options.ts";
 
 interface ResourceFormState {
@@ -25,7 +26,6 @@ const EMPTY_FORM: ResourceFormState = {
 	keywords: "",
 };
 
-const ROLE_LEVELS: Record<string, number> = { reader: 0, author: 1, curator: 2, admin: 3 };
 const STEPS = ["draft", "review", "published"] as const;
 const STEP_LABELS: Record<string, string> = {
 	draft: "Borrador",
@@ -33,13 +33,17 @@ const STEP_LABELS: Record<string, string> = {
 	published: "Aprobado",
 };
 const TRANSITION_RULES: Record<string, { to: string; minRole: string }[]> = {
-	draft: [{ to: "review", minRole: "author" }],
+	draft: [
+		{ to: "review", minRole: "author" },
+		{ to: "published", minRole: "editor" },
+	],
 	review: [{ to: "draft", minRole: "curator" }, { to: "published", minRole: "curator" }],
 	published: [{ to: "archived", minRole: "curator" }],
 	archived: [{ to: "draft", minRole: "curator" }],
 };
 const TRANSITION_LABELS: Record<string, string> = {
 	"draft→review": "Enviar a revisión",
+	"draft→published": "Publicar directamente",
 	"review→draft": "Devolver a borrador",
 	"review→published": "Aprobar",
 	"published→archived": "Archivar",
@@ -47,6 +51,7 @@ const TRANSITION_LABELS: Record<string, string> = {
 };
 const TRANSITION_STYLES: Record<string, string> = {
 	"draft→review": "btn-gold",
+	"draft→published": "btn-green",
 	"review→draft": "btn-outline",
 	"review→published": "btn-green",
 	"published→archived": "btn-gray",
@@ -54,8 +59,7 @@ const TRANSITION_STYLES: Record<string, string> = {
 };
 
 function hasAuthorAccess(role: string | undefined) {
-	const hierarchy = ["reader", "author", "curator", "admin"];
-	return hierarchy.indexOf(role ?? "reader") >= 1;
+	return hasMinRole(role, "author");
 }
 
 function toFormState(resource: Resource): ResourceFormState {
@@ -233,7 +237,7 @@ export function ResourceEditorIsland() {
 		return (
 			<div id="not-found">
 				<p>Recurso no encontrado.</p>
-				<a id="dashboard-link" href={url("dashboard")}>Volver al panel</a>
+				<a id="dashboard-link" href={url("perfil")}>Volver al panel</a>
 			</div>
 		);
 	}

@@ -439,7 +439,11 @@ export function PublicDashboardIsland() {
                   <ResourceCard
                     resource={resource}
                     href={url(`recurso?slug=${resource.slug}`)}
-                    badges={computeResourceBadges(resource, badgeConfig)}
+                    badges={[
+                      ...computeResourceBadges(resource, badgeConfig),
+                      ...(resource.editorialStatus === "draft" ? [{ text: "Borrador", variant: "draft" as const }] : []),
+                      ...(resource.editorialStatus === "review" ? [{ text: "En revisión", variant: "review" as const }] : []),
+                    ]}
                   />
                   <a href={url(`editar?id=${resource.id}`)} className="dashboard-edit-icon" aria-label={m.profile_edit_resource({ title: resource.title })}>
                     <span className="material-symbols-outlined">edit</span>

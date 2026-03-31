@@ -7,8 +7,8 @@ export interface ResourceCardProps {
   resource: ResourceSummary;
   href: string;
   overlayBadge?: string;
-  overlayBadgeVariant?: "primary" | "tertiary";
-  badges?: { text: string; variant: "primary" | "tertiary" }[];
+  overlayBadgeVariant?: "primary" | "tertiary" | "draft" | "review";
+  badges?: { text: string; variant: "primary" | "tertiary" | "draft" | "review" }[];
   onToggleFavorite?: (resourceId: string) => Promise<{ favorited: boolean }> | void;
   isFavorited?: boolean;
   className?: string;

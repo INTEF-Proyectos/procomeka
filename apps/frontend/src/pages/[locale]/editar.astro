@@ -68,7 +68,10 @@ export function getStaticPaths() {
   };
 
   const TRANSITION_RULES: Record<string, { to: string; label: string; icon: string; cssClass: string; minRole: string }[]> = {
-    draft: [{ to: "review", label: "Enviar a revisión", icon: "rate_review", cssClass: "edit-wf-btn-gold", minRole: "author" }],
+    draft: [
+      { to: "review", label: "Enviar a revisión", icon: "rate_review", cssClass: "edit-wf-btn-gold", minRole: "author" },
+      { to: "published", label: "Publicar directamente", icon: "check_circle", cssClass: "edit-wf-btn-green", minRole: "editor" },
+    ],
     review: [
       { to: "draft", label: "Devolver a borrador", icon: "undo", cssClass: "edit-wf-btn-outline", minRole: "curator" },
       { to: "published", label: "Publicar", icon: "check_circle", cssClass: "edit-wf-btn-green", minRole: "curator" },
@@ -77,7 +80,7 @@ export function getStaticPaths() {
     archived: [{ to: "draft", label: "Restaurar a borrador", icon: "restore", cssClass: "edit-wf-btn-outline", minRole: "curator" }],
   };
 
-  const ROLE_LEVELS: Record<string, number> = { reader: 0, author: 1, curator: 2, admin: 3 };
+  const ROLE_LEVELS: Record<string, number> = { reader: 0, author: 1, editor: 2, curator: 3, admin: 4 };
 
   function esc(s: string) { const d = document.createElement("div"); d.textContent = s; return d.innerHTML; }
 
@@ -561,7 +564,7 @@ export function getStaticPaths() {
   let reqCounter = 0;
 
   const exeModal = document.getElementById("exe-editor-modal")!;
-  const exeIframe = document.getElementById("exe-iframe") as HTMLIFrameElement;
+  let exeIframe = document.getElementById("exe-iframe") as HTMLIFrameElement;
   const exeStatus = document.getElementById("exe-status")!;
   const exeSaveBtn = document.getElementById("exe-save-btn") as HTMLButtonElement;
   const exeCloseBtn = document.getElementById("exe-close-btn")!;
@@ -596,7 +599,13 @@ export function getStaticPaths() {
   function closeExeEditor(force = false) {
     if (exeHasChanges && !force && !confirm("Hay cambios sin guardar. ¿Cerrar?")) return;
     exeModal.style.display = "none";
-    exeIframe.src = "about:blank";
+    // Replace iframe with a fresh clone to destroy all event listeners
+    // (including the editor's beforeunload addEventListener) without
+    // triggering a "Leave site?" dialog on navigation.
+    const newIframe = exeIframe.cloneNode(false) as HTMLIFrameElement;
+    newIframe.src = "about:blank";
+    exeIframe.parentNode!.replaceChild(newIframe, exeIframe);
+    exeIframe = newIframe;
     document.body.style.overflow = "";
   }
 

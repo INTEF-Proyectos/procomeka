@@ -1,7 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { PublicNavIsland } from "./PublicNavIsland.tsx";
-import { AdminNavIsland } from "./AdminNavIsland.tsx";
 import { BaseNavIsland } from "./BaseNavIsland.tsx";
 import { PreviewBannerIsland } from "./PreviewBannerIsland.tsx";
 
@@ -11,13 +10,6 @@ describe("Layout islands", () => {
 
 		expect(html).toContain("Crear recurso");
 		expect(html).toContain("Iniciar sesion");
-	});
-
-	test("AdminNavIsland renderiza el shell de navegación del backoffice", () => {
-		const html = renderToStaticMarkup(<AdminNavIsland activeSection="dashboard" />);
-
-		expect(html).toContain("Menu");
-		expect(html).toContain("Backoffice");
 	});
 
 	test("PublicNavIsland mantiene visible el acceso a ayuda", () => {

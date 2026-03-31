@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import type { CreateResourceInput, UpdateResourceInput } from "../../lib/api-client.ts";
 import { getApiClient } from "../../lib/get-api-client.ts";
 import { url } from "../../lib/paths.ts";
+import { hasMinRole } from "../../lib/shared-utils.ts";
 import { AccessibleFeedback } from "../shared/AccessibleFeedback.tsx";
 import { LANGUAGE_OPTIONS, LICENSE_OPTIONS, RESOURCE_TYPE_OPTIONS } from "./resource-form-options.ts";
 
@@ -31,8 +32,7 @@ const EMPTY_FORM: ResourceFormState = {
 };
 
 function hasAuthorAccess(role: string | undefined) {
-	const hierarchy = ["reader", "author", "curator", "admin"];
-	return hierarchy.indexOf(role ?? "reader") >= 1;
+	return hasMinRole(role, "author");
 }
 
 function toFormState(resource: Partial<ResourceFormState & { author?: string | null; keywords?: string | null }>) {
@@ -185,7 +185,7 @@ export function ResourceFormIsland({ mode, resourceId }: ResourceFormIslandProps
 		return (
 			<div id="not-found">
 				<p>Recurso no encontrado.</p>
-				<a id="dashboard-link" href={url("dashboard")}>Volver al panel</a>
+				<a id="dashboard-link" href={url("perfil")}>Volver al panel</a>
 			</div>
 		);
 	}

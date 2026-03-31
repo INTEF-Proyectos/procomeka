@@ -8,8 +8,7 @@ import { FavoriteIsland } from "../social/FavoriteIsland.tsx";
 import "../../lib/paraglide-client.ts";
 import * as m from "../../paraglide/messages.js";
 import { getLocale } from "../../paraglide/runtime.js";
-
-const EDITABLE_ROLES = new Set(["author", "curator", "admin"]);
+import { hasMinRole } from "../../lib/shared-utils.ts";
 
 function ShareButton() {
   const [copied, setCopied] = useState(false);
@@ -105,8 +104,10 @@ function ResourceDetailContent({ resource, session, stats, isFavorited }: { reso
     : [];
   const publicationDate = resourceDate(resource.createdAt);
   const updatedDate = resourceDate(resource.updatedAt);
-  const canEdit = EDITABLE_ROLES.has(session?.user?.role ?? "reader");
   const currentUserId = session?.user?.id ?? null;
+  const userRole = session?.user?.role ?? "reader";
+  const isOwner = currentUserId !== null && resource.createdBy === currentUserId;
+  const canEdit = hasMinRole(userRole, "author") && (isOwner || hasMinRole(userRole, "curator"));
   const authorName = resource.createdByName || resource.author || m.detail_unknown_author();
   const authorInitial = authorName.charAt(0).toUpperCase();
   const hasPreview = !!resource.elpxPreview?.previewUrl;

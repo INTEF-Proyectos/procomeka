@@ -81,8 +81,9 @@ export function LoginIsland() {
 
   const DEV_USERS = [
     { email: "admin@example.com", password: "password", role: "Admin (INTEF)" },
-    { email: "elena.martinez@edu.es", password: "demo1234", role: "Curator" },
-    { email: "carlos.ruiz@edu.es", password: "demo1234", role: "Author" },
+    { email: "curator@example.com", password: "password", role: "Curator" },
+    { email: "editor@example.com", password: "password", role: "Editor" },
+    { email: "author@example.com", password: "password", role: "Author" },
     { email: "reader@example.com", password: "password", role: "Reader" },
   ];
 

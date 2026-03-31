@@ -7,6 +7,7 @@ import {
 	admin,
 	author,
 	curator,
+	editor,
 	reader,
 } from "./permissions.ts";
 import * as pgSchema from "@procomeka/db/schema";
@@ -66,10 +67,11 @@ export const auth = betterAuth({
 			roles: {
 				admin,
 				curator,
+				editor,
 				author,
 				reader,
 			},
-			defaultRole: "reader",
+			defaultRole: "author",
 		}),
 		...(oidcEnabled
 			? [

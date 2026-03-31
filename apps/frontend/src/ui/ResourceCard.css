@@ -90,6 +90,14 @@
   background: rgba(124, 52, 0, 0.9);
   color: white;
 }
+.rc-overlay-badge-draft {
+  background: rgba(100, 100, 110, 0.9);
+  color: white;
+}
+.rc-overlay-badge-review {
+  background: rgba(180, 130, 0, 0.9);
+  color: white;
+}
 
 .rc-body {
   padding: 1.25rem;

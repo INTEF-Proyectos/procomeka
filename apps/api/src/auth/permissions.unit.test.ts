@@ -1,5 +1,5 @@
 import { expect, test, describe } from "bun:test";
-import { ac, reader, author, curator, admin } from "./permissions.ts";
+import { ac, reader, author, editor, curator, admin } from "./permissions.ts";
 
 describe("Modelo de permisos RBAC", () => {
 	describe("reader", () => {
@@ -43,6 +43,32 @@ describe("Modelo de permisos RBAC", () => {
 
 		test("no puede borrar colecciones", () => {
 			expect(author.authorize({ collection: ["delete"] }).success).toBe(false);
+		});
+	});
+
+	describe("editor", () => {
+		test("puede crear recursos", () => {
+			expect(editor.authorize({ resource: ["create"] }).success).toBe(true);
+		});
+
+		test("puede actualizar recursos", () => {
+			expect(editor.authorize({ resource: ["update"] }).success).toBe(true);
+		});
+
+		test("no puede curar recursos", () => {
+			expect(editor.authorize({ resource: ["curate"] }).success).toBe(false);
+		});
+
+		test("no puede borrar recursos", () => {
+			expect(editor.authorize({ resource: ["delete"] }).success).toBe(false);
+		});
+
+		test("puede crear colecciones", () => {
+			expect(editor.authorize({ collection: ["create"] }).success).toBe(true);
+		});
+
+		test("no puede borrar colecciones", () => {
+			expect(editor.authorize({ collection: ["delete"] }).success).toBe(false);
 		});
 	});
 
