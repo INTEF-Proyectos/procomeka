@@ -4,17 +4,17 @@
 <userPreferences>
   <userPreference>
     <key>theme</key>
-    <value>universal</value>
+    <value>flux</value>
   </userPreference>
 </userPreferences>
 <odeResources>
   <odeResource>
     <key>odeId</key>
-    <value>20260329184424CMBBOR</value>
+    <value>20260329184344UWJOIC</value>
   </odeResource>
   <odeResource>
     <key>odeVersionId</key>
-    <value>20260329184424TXS8J2</value>
+    <value>20260329184344KLVT5M</value>
   </odeResource>
   <odeResource>
     <key>exe_version</key>
@@ -40,7 +40,7 @@
   </odeProperty>
   <odeProperty>
     <key>pp_theme</key>
-    <value>universal</value>
+    <value>flux</value>
   </odeProperty>
   <odeProperty>
     <key>pp_exelearning_version</key>
@@ -48,7 +48,7 @@
   </odeProperty>
   <odeProperty>
     <key>pp_modified</key>
-    <value>1774806241957</value>
+    <value>1774806216277</value>
   </odeProperty>
   <odeProperty>
     <key>pp_addExeLink</key>
@@ -144,7 +144,7 @@
       <odePageId>page-mnc17l33-0sokdssqw</odePageId>
       <odeBlockId>20251217062007DSHQQY</odeBlockId>
       <blockName>Texto</blockName>
-      <iconName>udl_rep_caso</iconName>
+      <iconName>info</iconName>
       <odePagStructureOrder>1</odePagStructureOrder>
       <odePagStructureProperties>
         <odePagStructureProperty>
