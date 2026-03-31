@@ -641,7 +641,7 @@ export async function ensureUser(
 		id: data.id,
 		email: data.email,
 		name: data.name ?? null,
-		role: data.role ?? "reader",
+		role: data.role ?? "author",
 		emailVerified: true,
 		isActive: true,
 		createdAt: new Date(),

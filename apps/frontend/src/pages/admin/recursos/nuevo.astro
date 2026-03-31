@@ -1,8 +1,8 @@
 ---
-import AdminLayout from "../../../layouts/AdminLayout.astro";
+import PublicLayout from "../../../layouts/PublicLayout.astro";
 ---
 
-<AdminLayout title="Crear recurso" activeSection="resources">
+<PublicLayout title="Crear recurso" showNavSearch={false}>
 	<div class="form-container">
 		<h1>Crear recurso</h1>
 
@@ -106,7 +106,7 @@ import AdminLayout from "../../../layouts/AdminLayout.astro";
 			<button type="submit" id="submit-btn">Crear recurso</button>
 		</form>
 	</div>
-</AdminLayout>
+</PublicLayout>
 
 <script>
 	import { getApiClient } from "../../../lib/get-api-client.ts";
@@ -163,7 +163,7 @@ import AdminLayout from "../../../layouts/AdminLayout.astro";
 			if (!session?.user) { authCheck.style.display = "block"; return; }
 
 			const role = session.user.role ?? "reader";
-			const hierarchy = ["reader", "author", "curator", "admin"];
+			const hierarchy = ["reader", "author", "editor", "curator", "admin"];
 			if (hierarchy.indexOf(role) < 1) {
 				authCheck.style.display = "block";
 				return;

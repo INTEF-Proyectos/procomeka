@@ -12,7 +12,7 @@ export const user = pgTable("user", {
 	name: text("name"),
 	image: text("image"),
 	bio: text("bio"),
-	role: varchar("role", { length: 50 }).notNull().default("reader"),
+	role: varchar("role", { length: 50 }).notNull().default("author"),
 	isActive: boolean("is_active").notNull().default(true),
 	banned: boolean("banned").default(false),
 	banReason: text("ban_reason"),

@@ -11,11 +11,11 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-	{ id: "dashboard", label: "Panel de gestion", icon: "dashboard", minRole: 1 },
-	{ id: "resources", label: "Recursos", icon: "library_books", minRole: 1 },
-	{ id: "collections", label: "Colecciones", icon: "collections_bookmark", minRole: 2 },
-	{ id: "categories", label: "Categorias", icon: "category", minRole: 2 },
-	{ id: "users", label: "Usuarios", icon: "group", minRole: 3 },
+	{ id: "dashboard", label: "Panel de gestion", icon: "dashboard", minRole: ROLE_LEVELS.curator },
+	{ id: "resources", label: "Recursos", icon: "library_books", minRole: ROLE_LEVELS.curator },
+	{ id: "collections", label: "Colecciones", icon: "collections_bookmark", minRole: ROLE_LEVELS.curator },
+	{ id: "categories", label: "Categorias", icon: "category", minRole: ROLE_LEVELS.curator },
+	{ id: "users", label: "Usuarios", icon: "group", minRole: ROLE_LEVELS.admin },
 ];
 
 interface AdminSidebarProps {

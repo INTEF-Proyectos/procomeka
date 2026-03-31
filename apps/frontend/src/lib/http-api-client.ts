@@ -104,7 +104,7 @@ export class HttpApiClient implements ApiClient {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
 			credentials: "include",
-			body: JSON.stringify({ providerId: "oidc", callbackURL: "/dashboard" }),
+			body: JSON.stringify({ providerId: "oidc", callbackURL: "/admin" }),
 			redirect: "manual",
 		});
 		const location = res.headers.get("location");

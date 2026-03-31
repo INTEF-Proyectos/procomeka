@@ -8,6 +8,7 @@ const PAGE_SIZE = 10;
 const ROLE_OPTIONS = [
 	{ value: "reader", label: "Lector" },
 	{ value: "author", label: "Autor" },
+	{ value: "editor", label: "Editor" },
 	{ value: "curator", label: "Curador" },
 	{ value: "admin", label: "Administrador" },
 ];
@@ -32,7 +33,7 @@ function UserDialog({ user, onClose, onSaved }: UserDialogProps) {
 	const isEdit = !!user;
 	const [name, setName] = useState(user?.name ?? "");
 	const [email, setEmail] = useState(user?.email ?? "");
-	const [role, setRole] = useState(user?.role ?? "reader");
+	const [role, setRole] = useState(user?.role ?? "author");
 	const [password, setPassword] = useState("");
 	const [saving, setSaving] = useState(false);
 	const [error, setError] = useState("");
@@ -59,8 +60,8 @@ function UserDialog({ user, onClose, onSaved }: UserDialogProps) {
 					const err = await res.json().catch(() => ({}));
 					throw new Error((err as Record<string, string>).message || "Error al crear usuario");
 				}
-				// Set role if not reader
-				if (role !== "reader") {
+				// Set role if not the default (author)
+				if (role !== "author") {
 					const created = await res.json().catch(() => null);
 					if (created?.user?.id) {
 						await api.updateUser(created.user.id, { role });
@@ -204,7 +205,7 @@ export function AdminUsersSection() {
 			key: "role", label: "Rol",
 			render: (u) => {
 				const label = ROLE_OPTIONS.find((o) => o.value === u.role)?.label ?? u.role;
-				const color = u.role === "admin" ? "status-published" : u.role === "curator" ? "status-review" : u.role === "author" ? "status-draft" : "";
+				const color = u.role === "admin" ? "status-published" : u.role === "curator" ? "status-review" : (u.role === "editor" || u.role === "author") ? "status-draft" : "";
 				return <span className={`status-badge ${color}`}><span className="status-badge-dot" />{label}</span>;
 			},
 		},

@@ -22,6 +22,11 @@ export const author = ac.newRole({
 	collection: ["create", "read", "update"],
 });
 
+export const editor = ac.newRole({
+	resource: ["create", "read", "update"],
+	collection: ["create", "read", "update"],
+});
+
 export const curator = ac.newRole({
 	resource: ["create", "read", "update", "curate"],
 	collection: ["create", "read", "update", "delete"],

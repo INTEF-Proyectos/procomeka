@@ -9,6 +9,7 @@ const PAGE_SIZE = 20;
 const ROLE_OPTIONS = [
 	{ value: "reader", label: "reader" },
 	{ value: "author", label: "author" },
+	{ value: "editor", label: "editor" },
 	{ value: "curator", label: "curator" },
 	{ value: "admin", label: "admin" },
 ] as const;

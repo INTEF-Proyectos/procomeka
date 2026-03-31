@@ -182,12 +182,16 @@ export function validateUpdateResource(body: unknown): ValidationResult {
 export const ROLE_LEVELS: Record<string, number> = {
 	reader: 0,
 	author: 1,
-	curator: 2,
-	admin: 3,
+	editor: 2,
+	curator: 3,
+	admin: 4,
 } as const;
 
 export const TRANSITION_RULES: Record<string, { to: EditorialStatus; minRole: string }[]> = {
-	draft: [{ to: "review", minRole: "author" }],
+	draft: [
+		{ to: "review", minRole: "author" },
+		{ to: "published", minRole: "editor" },
+	],
 	review: [
 		{ to: "draft", minRole: "curator" },
 		{ to: "published", minRole: "curator" },

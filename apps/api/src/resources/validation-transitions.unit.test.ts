@@ -20,10 +20,10 @@ describe("validateTransition", () => {
 	});
 
 	describe("author no puede saltar pasos ni aprobar", () => {
-		test("draft → published con author es inválido", () => {
+		test("draft → published con author es inválido (rol insuficiente)", () => {
 			const r = validateTransition("draft", "published", "author");
 			expect(r.valid).toBe(false);
-			expect(r.errors[0].field).toBe("status");
+			expect(r.errors[0].message).toContain("Rol insuficiente");
 		});
 
 		test("review → published con author es inválido (rol insuficiente)", () => {
@@ -34,6 +34,34 @@ describe("validateTransition", () => {
 
 		test("review → draft con author es inválido (rol insuficiente)", () => {
 			const r = validateTransition("review", "draft", "author");
+			expect(r.valid).toBe(false);
+		});
+	});
+
+	describe("editor puede publicar directamente sus borradores", () => {
+		test("draft → published con editor es válido", () => {
+			const r = validateTransition("draft", "published", "editor");
+			expect(r.valid).toBe(true);
+		});
+
+		test("draft → review con editor es válido", () => {
+			const r = validateTransition("draft", "review", "editor");
+			expect(r.valid).toBe(true);
+		});
+
+		test("review → published con editor es inválido (rol insuficiente)", () => {
+			const r = validateTransition("review", "published", "editor");
+			expect(r.valid).toBe(false);
+			expect(r.errors[0].message).toContain("Rol insuficiente");
+		});
+
+		test("review → draft con editor es inválido (rol insuficiente)", () => {
+			const r = validateTransition("review", "draft", "editor");
+			expect(r.valid).toBe(false);
+		});
+
+		test("published → archived con editor es inválido (rol insuficiente)", () => {
+			const r = validateTransition("published", "archived", "editor");
 			expect(r.valid).toBe(false);
 		});
 	});
@@ -112,7 +140,8 @@ describe("TRANSITION_RULES", () => {
 describe("ROLE_LEVELS", () => {
 	test("jerarquía de roles es correcta", () => {
 		expect(ROLE_LEVELS.reader).toBeLessThan(ROLE_LEVELS.author);
-		expect(ROLE_LEVELS.author).toBeLessThan(ROLE_LEVELS.curator);
+		expect(ROLE_LEVELS.author).toBeLessThan(ROLE_LEVELS.editor);
+		expect(ROLE_LEVELS.editor).toBeLessThan(ROLE_LEVELS.curator);
 		expect(ROLE_LEVELS.curator).toBeLessThan(ROLE_LEVELS.admin);
 	});
 });

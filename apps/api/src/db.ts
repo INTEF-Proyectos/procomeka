@@ -5,10 +5,15 @@
  */
 
 // Cargar .env desde la raíz del monorepo (bun --filter ejecuta desde apps/api/)
-const rootEnvPath = `${import.meta.dir}/../../../.env`;
+// Si no existe .env, usa .env.example como fallback para desarrollo local.
+const rootDir = `${import.meta.dir}/../../..`;
+const rootEnvPath = `${rootDir}/.env`;
+const rootEnvExamplePath = `${rootDir}/.env.example`;
 const rootEnv = Bun.file(rootEnvPath);
-if (await rootEnv.exists()) {
-	const text = await rootEnv.text();
+const rootEnvExample = Bun.file(rootEnvExamplePath);
+const envFile = (await rootEnv.exists()) ? rootEnv : rootEnvExample;
+if (envFile === rootEnv || (await envFile.exists())) {
+	const text = await envFile.text();
 	for (const line of text.split("\n")) {
 		const trimmed = line.trim();
 		if (!trimmed || trimmed.startsWith("#")) continue;

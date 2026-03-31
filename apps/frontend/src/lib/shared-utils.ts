@@ -112,6 +112,12 @@ export function timeAgo(dateStr: string | number | Date | null): string {
 export const ROLE_LEVELS: Record<string, number> = {
 	reader: 0,
 	author: 1,
-	curator: 2,
-	admin: 3,
+	editor: 2,
+	curator: 3,
+	admin: 4,
 };
+
+/** Check if a role meets a minimum role level. */
+export function hasMinRole(role: string | undefined, minRole: string): boolean {
+	return (ROLE_LEVELS[role ?? "reader"] ?? 0) >= (ROLE_LEVELS[minRole] ?? 99);
+}

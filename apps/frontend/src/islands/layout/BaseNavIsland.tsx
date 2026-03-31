@@ -21,7 +21,7 @@ export function BaseNavIsland() {
 		<div className="nav-links">
 			<a href={url("admin/recursos/nuevo")}>Crear recurso</a>
 			{userEmail ? (
-				<a href={url("dashboard")}>{userEmail}</a>
+				<a href={url("perfil")}>{userEmail}</a>
 			) : (
 				<a href={url("login")}>Iniciar sesion</a>
 			)}

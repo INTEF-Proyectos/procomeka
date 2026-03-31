@@ -59,9 +59,9 @@ export class PreviewApiClient implements ApiClient {
 	private loggedIn: boolean;
 	private seedData: SeedData | null = null;
 
-	private hasMinRole(minRole: "author" | "curator" | "admin"): boolean {
-		const levels = { reader: 0, author: 1, curator: 2, admin: 3 };
-		return (levels[this.currentUser.role as keyof typeof levels] ?? 0) >= levels[minRole];
+	private hasMinRole(minRole: "author" | "editor" | "curator" | "admin"): boolean {
+		const levels: Record<string, number> = { reader: 0, author: 1, editor: 2, curator: 3, admin: 4 };
+		return (levels[this.currentUser.role] ?? 0) >= levels[minRole];
 	}
 
 	private constructor() {
@@ -98,16 +98,17 @@ export class PreviewApiClient implements ApiClient {
 
 	private static readonly DEMO_USERS: SessionUser[] = [
 		{ id: "demo-admin", email: "admin@example.com", name: "INTEF Oficial", role: "admin" },
-		{ id: "demo-curator", email: "curator@example.com", name: "Ana Belén Torres", role: "curator" },
-		{ id: "demo-author", email: "author@example.com", name: "Javier Hernández", role: "author" },
-		{ id: "demo-reader", email: "reader@example.com", name: "María López", role: "reader" },
-		{ id: "user-elena", email: "elena.martinez@edu.es", name: "Dra. Elena Martínez O.", role: "curator" },
-		{ id: "user-carlos", email: "carlos.ruiz@edu.es", name: "Carlos M. Ruiz", role: "author" },
-		{ id: "user-marta", email: "marta.segovia@edu.es", name: "Marta Segovia", role: "author" },
-		{ id: "user-sofia", email: "sofia.garcia@edu.es", name: "Sofía García", role: "author" },
+		{ id: "demo-curator", email: "curator@example.com", name: "Ivonne Montesdeoca", role: "curator" },
+		{ id: "demo-editor", email: "editor@example.com", name: "Leo Reina", role: "editor" },
+		{ id: "demo-author", email: "author@example.com", name: "Yanira Mateos", role: "author" },
+		{ id: "demo-reader", email: "reader@example.com", name: "Elisa Morales", role: "reader" },
+		{ id: "user-humberto", email: "humberto.pinero@edu.es", name: "Humberto Piñero", role: "curator" },
+		{ id: "user-carlos", email: "carlos.exposito@edu.es", name: "Carlos Expósito", role: "author" },
+		{ id: "user-fran", email: "fran.rodriguez@edu.es", name: "Fran Rodríguez Castellano", role: "author" },
+		{ id: "user-yanira", email: "yanira.exposito@edu.es", name: "Yanira Expósito", role: "author" },
 		{ id: "user-catedra", email: "catedra.tech@edu.es", name: "Cátedra Tecnología", role: "author" },
-		{ id: "user-pedro", email: "pedro.navarro@edu.es", name: "Pedro Navarro", role: "author" },
-		{ id: "user-lucia", email: "lucia.vega@edu.es", name: "Lucía Vega", role: "author" },
+		{ id: "user-humberto2", email: "humberto.morales@edu.es", name: "Humberto Morales", role: "author" },
+		{ id: "user-carlos2", email: "carlos.reina@edu.es", name: "Carlos Reina", role: "author" },
 	];
 
 	private async init() {
@@ -363,7 +364,7 @@ export class PreviewApiClient implements ApiClient {
 	}
 
 	async signIn(email: string, _password: string): Promise<SignInResult> {
-		const roles = ["admin", "curator", "author", "reader"];
+		const roles = ["admin", "curator", "editor", "author", "reader"];
 		const match = roles.find((r) => this.userForRole(r).email === email);
 		if (match) {
 			this.switchRole(match);

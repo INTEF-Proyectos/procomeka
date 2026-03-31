@@ -1,7 +1,7 @@
 import { parseArgs } from "node:util";
 import { hashPassword } from "better-auth/crypto";
 
-const VALID_ROLES = ["admin", "curator", "author", "reader"];
+const VALID_ROLES = ["admin", "curator", "editor", "author", "reader"];
 
 export async function userCreate(args: string[]) {
 	const { values } = parseArgs({
@@ -10,7 +10,7 @@ export async function userCreate(args: string[]) {
 			email: { type: "string" },
 			name: { type: "string" },
 			password: { type: "string" },
-			role: { type: "string", default: "reader" },
+			role: { type: "string", default: "author" },
 		},
 		strict: true,
 	});
@@ -23,7 +23,7 @@ export async function userCreate(args: string[]) {
 		process.exit(1);
 	}
 
-	const role = values.role ?? "reader";
+	const role = values.role ?? "author";
 	if (!VALID_ROLES.includes(role)) {
 		console.error(`Rol inválido: ${role}. Roles válidos: ${VALID_ROLES.join(", ")}`);
 		process.exit(1);

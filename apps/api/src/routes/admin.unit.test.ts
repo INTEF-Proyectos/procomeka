@@ -168,7 +168,7 @@ describe("Rutas admin — con sesión de admin", () => {
 		expect(body.status).toBe("published");
 	});
 
-	test("PATCH /api/admin/resources/:id/status → 403 transición no permitida (draft→published)", async () => {
+	test("PATCH /api/admin/resources/:id/status → 200 transición directa (draft→published) para admin/editor+", async () => {
 		const createRes = await app.request("/api/admin/resources", {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
@@ -181,7 +181,9 @@ describe("Rutas admin — con sesión de admin", () => {
 			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify({ status: "published" }),
 		});
-		expect(res.status).toBe(403);
+		expect(res.status).toBe(200);
+		const body = await res.json();
+		expect(body.status).toBe("published");
 	});
 
 	test("PATCH /api/admin/resources/:id/status → 404 recurso inexistente", async () => {
