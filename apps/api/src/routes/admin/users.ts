@@ -1,7 +1,8 @@
 import { Hono } from "hono";
 import type { AuthEnv } from "../../auth/middleware.ts";
 import { getCurrentUser, hasMinRole } from "../../auth/roles.ts";
-import { parsePagination, logActivity } from "../../helpers.ts";
+import { logActivity } from "../../activity/log.ts";
+import { parsePagination } from "../../http/pagination.ts";
 import { ROLE_LEVELS } from "@procomeka/db/validation";
 import { getDb } from "../../db.ts";
 import * as repo from "@procomeka/db/repository";

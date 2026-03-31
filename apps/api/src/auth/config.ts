@@ -13,7 +13,7 @@ import {
 import * as pgSchema from "@procomeka/db/schema";
 import { getDb } from "../db.ts";
 import { getAuthBaseUrl, getFrontendUrl } from "./urls.ts";
-import { logActivity } from "../helpers.ts";
+import { logActivity } from "../activity/log.ts";
 
 const frontendUrl = getFrontendUrl();
 const oidcEnabled = process.env.OIDC_ENABLED === "true";

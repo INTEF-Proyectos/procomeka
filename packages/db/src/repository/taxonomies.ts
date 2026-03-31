@@ -1,6 +1,7 @@
 import { asc, eq, sql } from "drizzle-orm";
 import { taxonomies } from "../schema/taxonomies.ts";
 import {
+	andWhere,
 	buildSearchTerm,
 	buildSlug,
 	type DrizzleDB,
@@ -23,9 +24,7 @@ export async function listTaxonomies(
 	}
 	if (opts.type) conditions.push(eq(taxonomies.type, opts.type));
 
-	const where = conditions.length
-		? conditions.reduce((left, right) => sql`${left} AND ${right}`)
-		: undefined;
+	const where = andWhere(conditions);
 	const query = db
 		.select({
 			id: taxonomies.id,
