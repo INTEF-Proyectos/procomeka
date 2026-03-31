@@ -77,7 +77,7 @@ export function getUploadConfig(env: Record<string, string | undefined> = proces
 		sessionTtlMs: parseNumberEnv(env.UPLOAD_SESSION_TTL_MS, 24 * 60 * 60 * 1000),
 		allowedMimeTypes: parseCsvEnv(env.UPLOAD_ALLOWED_MIME_TYPES, DEFAULT_ALLOWED_MIME_TYPES),
 		allowedExtensions: parseCsvEnv(env.UPLOAD_ALLOWED_EXTENSIONS, DEFAULT_ALLOWED_EXTENSIONS),
-		storageDir: env.UPLOAD_STORAGE_DIR ?? path.join(process.cwd(), "local-data", "uploads"),
+		storageDir: env.UPLOAD_STORAGE_DIR ?? path.join(import.meta.dir, "../../../../local-data/uploads"),
 	};
 }
 
