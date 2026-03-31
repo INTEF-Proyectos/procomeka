@@ -3,6 +3,18 @@ import { spawn } from "node:child_process";
 import { buildBunTestArgs, findStandardTestFiles } from "./run-bun-suite.ts";
 
 const THRESHOLD = 90;
+const ALL_FILES_REGEX = /All files\s+\|\s+([\d.]+)\s+\|\s+([\d.]+)/;
+
+export function stripAnsiCodes(output: string) {
+	// biome-ignore lint/suspicious/noControlCharactersInRegex: Necesitamos parsear códigos ANSI y limpiar los logs de bun
+	return output.replace(/\x1B\[[0-9;]*[a-zA-Z]/g, "");
+}
+
+export function extractLineCoverage(output: string) {
+	const cleanOutput = stripAnsiCodes(output);
+	const match = cleanOutput.match(ALL_FILES_REGEX);
+	return match?.[2] ? Number.parseFloat(match[2]) : null;
+}
 
 async function runCoverage() {
 	const files = await findStandardTestFiles();
@@ -28,15 +40,9 @@ async function runCoverage() {
 	});
 
 	proc.on("close", (_code) => {
-		// Buscamos "All files"
-		const allFilesRegex = /All files\s+\|\s+([\d.]+)\s+\|\s+([\d.]+)/;
+		const coverage = extractLineCoverage(output);
 
-		// biome-ignore lint/suspicious/noControlCharactersInRegex: Necesitamos parsear códigos ANSI y limpiar los logs de bun
-		const cleanOutput = output.replace(/\x1B\[[0-9;]*[a-zA-Z]/g, "");
-		const match = cleanOutput.match(allFilesRegex);
-
-		if (match?.[2]) {
-			const coverage = Number.parseFloat(match[2]);
+		if (coverage !== null) {
 			console.log(`\nCoverage de líneas: ${coverage}%`);
 
 			if (coverage < THRESHOLD) {
@@ -57,4 +63,6 @@ async function runCoverage() {
 	});
 }
 
-await runCoverage();
+if (import.meta.main) {
+	await runCoverage();
+}

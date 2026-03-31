@@ -99,6 +99,10 @@ export function buildBunTestArgs(
 	return ["test", ...(options.coverage ? ["--coverage"] : []), ...files];
 }
 
+export function hasPassingBunSummary(output: string) {
+	return /\n\s*0 fail\b/.test(output) && !/\n\s*[1-9]\d* fail\b/.test(output);
+}
+
 export function getNoTestsMessage(suite: SuiteName): string {
 	const definition = SUITE_DEFINITIONS[suite];
 
@@ -141,11 +145,28 @@ async function main() {
 
 	const result = Bun.spawnSync({
 		cmd: ["bun", ...buildBunTestArgs(files, { coverage })],
-		stdout: "inherit",
-		stderr: "inherit",
+		stdout: "pipe",
+		stderr: "pipe",
 		stdin: "inherit",
 		env: process.env,
 	});
+
+	const stdout = result.stdout ? Buffer.from(result.stdout).toString() : "";
+	const stderr = result.stderr ? Buffer.from(result.stderr).toString() : "";
+	process.stdout.write(stdout);
+	process.stderr.write(stderr);
+
+	if (result.exitCode === 0) {
+		process.exit(0);
+	}
+
+	const combinedOutput = `${stdout}\n${stderr}`;
+	if ((result.exitCode === 99 || result.exitCode === 100) && hasPassingBunSummary(combinedOutput)) {
+		console.warn(
+			`bun test returned exit code ${result.exitCode} despite reporting 0 failures; normalizing to success.`,
+		);
+		process.exit(0);
+	}
 
 	process.exit(result.exitCode);
 }

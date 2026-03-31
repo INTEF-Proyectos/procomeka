@@ -9,6 +9,7 @@ import {
 	findSuiteFiles,
 	getMissingRequiredSuiteMessage,
 	getNoTestsMessage,
+	hasPassingBunSummary,
 } from "./run-bun-suite.ts";
 
 describe("run-bun-suite helpers", () => {
@@ -59,5 +60,10 @@ describe("run-bun-suite helpers", () => {
 	test("messages distinguish skipped optional suites from missing required suites", () => {
 		expect(getNoTestsMessage("integration")).toContain("skipping");
 		expect(getMissingRequiredSuiteMessage("unit")).not.toContain("skipping");
+	});
+
+	test("hasPassingBunSummary only returns true for green summaries", () => {
+		expect(hasPassingBunSummary(" 32 pass\n 0 fail\n")).toBe(true);
+		expect(hasPassingBunSummary(" 31 pass\n 1 fail\n")).toBe(false);
 	});
 });
