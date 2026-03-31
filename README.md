@@ -338,7 +338,7 @@ Para agilizar el desarrollo, hemos implementado un \`Makefile\`. Puedes usar:
 - \`make clean\`: Limpia los directorios temporales, \`.coverage\` y \`node_modules\`.
 - \`make lint\`: Comprueba reglas de código usando **Biome**.
 - \`make format\`: Aplica el formateado de código automáticamente con **Biome**.
-- \`make test\`: Ejecuta todos los tests y valida el coverage general.
+- \`make test\`: Ejecuta la validación estándar completa del repositorio: comprueba paridad entre archivos \`.ts\` productivos y tests aceptados, lanza la suite estándar (\`unit\` + \`integration\`) y valida el coverage general.
 - \`make test-unit\`: Ejecuta los tests unitarios.
 - \`make test-integration\`: Ejecuta los tests de integración.
 - \`make test-e2e\`: Ejecuta los tests end-to-end (e2e) usando Chromium por defecto.

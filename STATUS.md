@@ -865,3 +865,26 @@ Antes de escribir código de negocio, se deben resolver las siguientes decisione
 | Fecha | Agente | Acción / Entregable | Estado |
 |-------|--------|---------------------|--------|
 | 2026-03-31 | `@.agents/skills/backend-api-servicios` | Cobertura adicional + regla de fallo en `make test` para archivos TS sin test aceptado; `make test` en verde con 93.13% de coverage | Completado |
+
+## Actualización 2026-03-31 (Refactor incremental: servicios sociales y alineación documental)
+
+- **Agente en turno:** `@.agents/skills/backend-api-servicios/SKILL.md` + `@.agents/skills/documentacion-y-roadmap/SKILL.md`
+- **Acción realizada:** Se completa una tercera pasada de refactorización de precisión en backend y se alinea la documentación operativa con el nuevo estado del código y del pipeline de validación.
+- **Cambios aplicados:**
+  - `apps/api/src/routes/social.ts` delega en módulos específicos bajo `apps/api/src/social/` para resolución, enrichment, ratings, favorites, dashboard, activity y stats.
+  - `apps/api/src/routes/admin/guards.ts` concentra guardas repetidas de recursos, colecciones y uploads.
+  - `packages/db/src/repository/resources.ts` y `packages/db/src/repository/collections.ts` usan selecciones internas más explícitas y consistentes.
+  - `AGENTS.md` exige paridad obligatoria entre cada nuevo archivo `.ts` productivo y su test aceptado por `scripts/check-test-files.ts`.
+  - `README.md` documenta que `make test` incluye esa comprobación de paridad además de suite estándar y coverage.
+- **Validación ejecutada:**
+  - `make test`
+- **Resultado:**
+  - `397 pass`, `0 fail`.
+  - Coverage de líneas: `93.35%`.
+- **Riesgos abiertos:**
+  - El historial previo de `STATUS.md` mantiene referencias antiguas al refactor anterior de `apps/api/src/social/service.ts`; se conserva por inmutabilidad del tablero, pero esta entrada fija el estado vigente.
+  - Quedan posibles mejoras futuras en uploads/TUS y algunas rutas admin fuera del alcance de esta pasada.
+
+| Fecha | Agente | Acción / Entregable | Estado |
+|-------|--------|---------------------|--------|
+| 2026-03-31 | `@.agents/skills/backend-api-servicios` + `@.agents/skills/documentacion-y-roadmap` | Refactor de servicios sociales, guardas admin, contratos internos y documentación de `make test`/paridad archivo-test | Completado |
