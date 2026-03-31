@@ -430,6 +430,19 @@ export class PreviewApiClient implements ApiClient {
 
 	getDb() { return this.db; }
 
+	async createDraftResource(): Promise<{ id: string; slug: string }> {
+		const { createResource: create } = await import("@procomeka/db/repository");
+		return create(this.db, {
+			title: "Nuevo recurso",
+			description: " ",
+			language: "es",
+			license: "cc-by",
+			resourceType: "actividad-interactiva",
+			editorialStatus: "draft",
+			createdBy: this.currentUser.id,
+		});
+	}
+
 	async createResource(data: CreateResourceInput): Promise<{ id: string; slug: string }> {
 		const { validateCreateResource } = await import("@procomeka/db/validation");
 		const validation = validateCreateResource(data);

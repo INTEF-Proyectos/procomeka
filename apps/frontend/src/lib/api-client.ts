@@ -234,6 +234,7 @@ export interface ApiClient {
 	getResourceById(id: string): Promise<Resource | null>;
 	listResourceMediaItems(id: string): Promise<MediaItemRecord[]>;
 	listResourceUploads(id: string): Promise<UploadSessionRecord[]>;
+	createDraftResource(): Promise<{ id: string; slug: string }>;
 	createResource(data: CreateResourceInput): Promise<{ id: string; slug: string }>;
 	updateResource(id: string, data: UpdateResourceInput): Promise<{ ok: boolean; error?: string; details?: { field: string; message: string }[] }>;
 	updateResourceStatus(id: string, status: string): Promise<{ id: string; status: string }>;

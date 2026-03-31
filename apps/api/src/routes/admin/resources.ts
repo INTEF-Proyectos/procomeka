@@ -117,6 +117,23 @@ const resourceRoutes = buildCrudRoutes({
 	notFoundMessage: "Recurso no encontrado",
 });
 
+// --- Draft creation (bypasses required-field validation) ---
+
+resourceRoutes.post("/draft", requireRole("author"), async (c) => {
+	const user = getCurrentUser(c);
+	await ensureCurrentUser(user);
+	const result = await repo.createResource(db(), {
+		title: "Nuevo recurso",
+		description: " ",
+		language: "es",
+		license: "cc-by",
+		resourceType: "actividad-interactiva",
+		editorialStatus: "draft",
+		createdBy: user.id,
+	});
+	return c.json(result, 201);
+});
+
 // --- Sub-resource routes (custom, appended to resourceRoutes) ---
 
 resourceRoutes.get("/:id/media", async (c) => {

@@ -149,6 +149,15 @@ export class HttpApiClient implements ApiClient {
 		return res.json();
 	}
 
+	async createDraftResource(): Promise<{ id: string; slug: string }> {
+		const res = await fetch("/api/admin/resources/draft", { method: "POST", credentials: "include" });
+		if (!res.ok) {
+			const err = await res.json().catch(() => ({}));
+			throw new Error((err as Record<string, string>).error ?? "Error al crear el borrador");
+		}
+		return res.json();
+	}
+
 	async createResource(data: CreateResourceInput): Promise<{ id: string; slug: string }> {
 		const res = await fetch("/api/admin/resources", {
 			method: "POST",

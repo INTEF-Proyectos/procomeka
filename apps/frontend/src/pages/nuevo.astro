@@ -163,7 +163,18 @@ import PublicLayout from "../layouts/PublicLayout.astro";
     } catch { authCheck.style.display = "block"; }
   }
 
-  skipElpxBtn.addEventListener("click", () => { elpxDrawer.style.display = "none"; form.style.display = "block"; });
+  skipElpxBtn.addEventListener("click", async () => {
+    skipElpxBtn.disabled = true;
+    skipElpxBtn.textContent = "Creando…";
+    try {
+      const api = await getApiClient();
+      const draft = await api.createDraftResource();
+      window.location.href = url(`editar?id=${draft.id}&new=1`);
+    } catch {
+      skipElpxBtn.disabled = false;
+      skipElpxBtn.textContent = "Crear recurso manualmente";
+    }
+  });
 
   elpxFileInput.addEventListener("change", () => { const f = elpxFileInput.files?.[0]; if (f) handleElpxFile(f); });
   elpxDropzone.addEventListener("dragover", (e) => { e.preventDefault(); elpxDropzone.classList.add("is-dragover"); });
