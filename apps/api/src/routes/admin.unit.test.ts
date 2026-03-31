@@ -247,6 +247,24 @@ describe("Rutas admin — con sesión de admin", () => {
 		const body = await listRes.json();
 		expect(body.total).toBeGreaterThan(0);
 	});
+
+	test("GET/PUT /api/admin/settings permiten leer y actualizar configuración", async () => {
+		const updateRes = await app.request("/api/admin/settings", {
+			method: "PUT",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({
+				badge_novedad_days: "15",
+				badge_destacado_min_ratings: "5",
+			}),
+		});
+		expect(updateRes.status).toBe(200);
+
+		const getRes = await app.request("/api/admin/settings");
+		expect(getRes.status).toBe(200);
+		const body = await getRes.json();
+		expect(body.badge_novedad_days).toBe("15");
+		expect(body.badge_destacado_min_ratings).toBe("5");
+	});
 });
 
 describe("Rutas admin — RBAC por rol", () => {
@@ -626,6 +644,12 @@ describe("Rutas admin — taxonomías", () => {
 	test("author no puede acceder a taxonomías", async () => {
 		const authorApp = createAdminApp({ id: "a1", role: "author" });
 		const res = await authorApp.request("/api/admin/taxonomies");
+		expect(res.status).toBe(403);
+	});
+
+	test("solo admin puede acceder a settings", async () => {
+		const curatorApp = createAdminApp({ id: "c1", role: "curator" });
+		const res = await curatorApp.request("/api/admin/settings");
 		expect(res.status).toBe(403);
 	});
 });

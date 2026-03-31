@@ -833,3 +833,35 @@ Antes de escribir código de negocio, se deben resolver las siguientes decisione
 | Fecha | Agente | Acción / Entregable | Estado |
 |-------|--------|---------------------|--------|
 | 2026-03-31 | `@.agents/skills/backend-api-servicios` | Segunda pasada de refactorización del backend y `packages/db`; validación unitaria completa en verde | Completado |
+
+## Actualización 2026-03-31 (coverage adicional + control de archivos sin test)
+
+- **Agente en turno:** `@.agents/skills/backend-api-servicios/SKILL.md`
+- **Acción realizada:** Se amplía la cobertura unitaria en helpers y wiring extraídos recientemente y se añade una comprobación automática para que `make test` falle si un archivo TypeScript del alcance controlado no tiene un test aceptado.
+- **Cambios aplicados:**
+  - Se añaden tests unitarios nuevos para:
+    - helpers de preview ELPX
+    - paginación HTTP
+    - wiring de `app/`
+    - logging de actividad
+    - sincronización de usuario auth
+    - helpers de roles
+    - middleware de auditoría
+    - `crud-builder`
+    - helpers compartidos de repositorio (`filters`, `media`, `slugs`)
+    - scripts de `check-coverage` y `check-test-files`
+  - Se añade `scripts/check-test-files.ts` y su suite `scripts/check-test-files.unit.test.ts`.
+  - `package.json` pasa a ejecutar `check-test-files` dentro de `bun run test`, por lo que `make test` ya incluye la verificación.
+  - Se endurece `scripts/run-bun-suite.ts` para normalizar códigos `99/100` de Bun únicamente cuando la propia salida confirma `0 fail`.
+  - Se amplía `apps/api/src/routes/admin.unit.test.ts` para cubrir `settings`.
+- **Validación ejecutada:**
+  - `bun run check-test-files`
+  - `make test`
+- **Resultado:**
+  - Comprobación de paridad archivo/test en verde.
+  - `389 pass`, `0 fail`.
+  - Coverage de líneas: `93.13%`.
+
+| Fecha | Agente | Acción / Entregable | Estado |
+|-------|--------|---------------------|--------|
+| 2026-03-31 | `@.agents/skills/backend-api-servicios` | Cobertura adicional + regla de fallo en `make test` para archivos TS sin test aceptado; `make test` en verde con 93.13% de coverage | Completado |
