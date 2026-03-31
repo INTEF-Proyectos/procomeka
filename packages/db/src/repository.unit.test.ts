@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { PGlite } from "@electric-sql/pglite";
 import { drizzle } from "drizzle-orm/pglite";
 import * as schema from "./schema/index.ts";
@@ -34,11 +34,16 @@ import { createTables } from "./setup.ts";
 
 describe("repository admin helpers", () => {
 	let db: ReturnType<typeof drizzle>;
+	let pglite: PGlite;
 
 	beforeEach(async () => {
-		const pglite = new PGlite();
+		pglite = new PGlite();
 		await createTables(pglite);
 		db = drizzle(pglite, { schema });
+	});
+
+	afterEach(async () => {
+		await pglite.close();
 	});
 
 	test("crea y actualiza usuarios sin duplicarlos", async () => {
@@ -168,11 +173,12 @@ describe("repository admin helpers", () => {
 
 describe("repository elpx projects", () => {
 	let db: ReturnType<typeof drizzle>;
+	let pglite: PGlite;
 
 	let resourceId: string;
 
 	beforeEach(async () => {
-		const pglite = new PGlite();
+		pglite = new PGlite();
 		await createTables(pglite);
 		db = drizzle(pglite, { schema });
 		await ensureUser(db, { id: "u1", email: "a@b.com", name: "A", role: "admin" });
@@ -185,6 +191,10 @@ describe("repository elpx projects", () => {
 			createdBy: "u1",
 		});
 		resourceId = res.id;
+	});
+
+	afterEach(async () => {
+		await pglite.close();
 	});
 
 	test("crea, consulta por resource y por hash, y borra", async () => {
@@ -218,12 +228,13 @@ describe("repository elpx projects", () => {
 
 describe("repository collection-resources", () => {
 	let db: ReturnType<typeof drizzle>;
+	let pglite: PGlite;
 	let collectionId: string;
 	let resourceId: string;
 	let secondResourceId: string;
 
 	beforeEach(async () => {
-		const pglite = new PGlite();
+		pglite = new PGlite();
 		await createTables(pglite);
 		db = drizzle(pglite, { schema });
 		await ensureUser(db, { id: "u1", email: "a@b.com", name: "A", role: "admin" });
@@ -250,6 +261,10 @@ describe("repository collection-resources", () => {
 			createdBy: "u1",
 		});
 		secondResourceId = res2.id;
+	});
+
+	afterEach(async () => {
+		await pglite.close();
 	});
 
 	test("añade, lista y elimina recurso de colección", async () => {

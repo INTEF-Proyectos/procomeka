@@ -238,6 +238,47 @@ Antes de escribir código de negocio, se deben resolver las siguientes decisione
   - `bun test` completo de `apps/api` sigue fallando por una incidencia previa ajena en `src/index.unit.test.ts` relacionada con una foreign key (`resources.assigned_curator_id -> user.id`) durante publicación de recursos.
 - **Traspaso recomendado:** `@.agents/skills/backend-api-servicios/SKILL.md` o `@.agents/skills/qa-validacion/SKILL.md` para sanear la suite completa del API y cerrar el fallo previo de integridad de datos.
 
+## Actualización 2026-03-31 (Refactor incremental: repositorio DB y bootstrap API)
+
+- **Agente en turno:** `@.agents/skills/backend-api-servicios/SKILL.md`
+- **Acción realizada:** Se reduce la responsabilidad acumulada de `packages/db/src/repository.ts` y se separa el wiring del bootstrap HTTP de la API sin cambiar contratos públicos ni tocar E2E.
+- **Cambios aplicados:**
+  - `packages/db/src/repository.ts` pasa a ser una fachada estable que reexporta módulos internos por dominio.
+  - Nuevo árbol `packages/db/src/repository/` con módulos separados para `resources`, `uploads`, `users`, `collections`, `taxonomies`, `elpx-projects`, `settings` y utilidades compartidas.
+  - La generación de slugs, normalización de búsqueda, paginación y SQL reutilizable se centraliza en `packages/db/src/repository/shared.ts`.
+  - `apps/api/src/app.ts` concentra construcción de la app Hono, registro de middleware, montaje de rutas y serving opcional del frontend.
+  - `apps/api/src/index.ts` queda reducido a entrypoint de runtime y exporta la instancia construida.
+- **Validación:**
+  - `bun test packages/db/src/repository.unit.test.ts packages/db/src/search.test.ts apps/api/src/resources/repository.unit.test.ts apps/api/src/index.unit.test.ts`: 50 tests en verde, 0 fallos.
+  - `bun run test:unit`: 350 tests en verde, 0 fallos reportados por Bun.
+- **Riesgos abiertos:**
+  - En este entorno, `bun test` y `bun run test:unit` devuelven `exit code 99` incluso cuando la salida final reporta `0 fail`; se considera incidencia del runner/entorno hasta nueva verificación.
+  - No se han tocado suites E2E por decisión explícita de alcance.
+- **Traspaso recomendado:** `@.agents/skills/qa-validacion/SKILL.md` si se quiere investigar el `exit code 99` del runner Bun sin mezclarlo con refactors funcionales.
+
+| Fecha | Agente | Acción / Entregable | Estado |
+|-------|--------|---------------------|--------|
+| 2026-03-31 | `@.agents/skills/backend-api-servicios` | Refactor incremental de `packages/db/src/repository.ts` a módulos internos y separación de `apps/api/src/app.ts` para bootstrap HTTP | Completado con observación de tooling |
+
+## Actualización 2026-03-31 (Tooling: fix de `make test-unit` con exit code 99)
+
+- **Agente en turno:** `@.agents/skills/backend-api-servicios/SKILL.md`
+- **Acción realizada:** Se corrige el `exit code 99` de `bun test`/`make test-unit`.
+- **Causa raíz:** Las suites de `packages/db` creaban instancias de `PGlite` sin cerrarlas. Según el comportamiento documentado de `bun test`, errores asíncronos o recursos no saneados pueden dejar la ejecución en estado no-cero aunque todos los tests reporten `pass`.
+- **Cambios aplicados:**
+  - `packages/db/src/search.test.ts` ahora cierra su instancia de `PGlite` en `afterAll`.
+  - `packages/db/src/repository.unit.test.ts` ahora cierra la instancia creada en cada bloque mediante `afterEach`.
+- **Validación:**
+  - `bun test packages/db/src/search.test.ts`: verde, `exit code 0`.
+  - `bun test packages/db/src/repository.unit.test.ts`: verde, `exit code 0`.
+  - `make test-unit`: verde, `350 pass`, `0 fail`, `exit code 0`.
+- **Riesgos abiertos:**
+  - Si se añaden nuevas suites con `PGlite`, deben cerrar explícitamente la instancia para no reintroducir el mismo síntoma.
+
+| Fecha | Agente | Acción / Entregable | Estado |
+|-------|--------|---------------------|--------|
+| 2026-03-31 | `@.agents/skills/backend-api-servicios` | Fix del `exit code 99` de `bun test` cerrando instancias de `PGlite` en tests de `packages/db` | Completado |
+
 | Fecha | Agente | Acción / Entregable | Estado |
 |-------|--------|---------------------|--------|
 | 2026-03-27 | `@.agents/skills/frontend-ux-accesibilidad` + `@.agents/skills/backend-api-servicios` | Hotfix del endpoint dev de seed: detección robusta de entorno con Bun + tests unitarios específicos | Completado |
