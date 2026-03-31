@@ -44,7 +44,7 @@ type ResourceMutationInput = {
 	createdBy?: string;
 };
 
-const resourceDetailSelection = {
+const resourceBaseSelection = {
 	id: resources.id,
 	slug: resources.slug,
 	externalId: resources.externalId,
@@ -67,7 +67,21 @@ const resourceDetailSelection = {
 	updatedAt: resources.updatedAt,
 };
 
-async function getResourceTaxonomyValues(
+const resourceListSelection = {
+	...resourceBaseSelection,
+	featuredAt: resources.featuredAt,
+	favoriteCount: sql<number>`(SELECT count(*) FROM favorites WHERE favorites.resource_id = ${resources.id})`,
+	ratingAvg: sql<number>`(SELECT coalesce(avg(score), 0) FROM ratings WHERE ratings.resource_id = ${resources.id})`,
+	ratingCount: sql<number>`(SELECT count(*) FROM ratings WHERE ratings.resource_id = ${resources.id})`,
+};
+
+const resourceDetailSelection = {
+	...resourceBaseSelection,
+	assignedCuratorId: resources.assignedCuratorId,
+	curatedAt: resources.curatedAt,
+};
+
+async function listResourceTaxonomyValues(
 	db: DrizzleDB,
 	resourceId: string,
 ) {
@@ -85,6 +99,17 @@ async function getResourceTaxonomyValues(
 	return {
 		subjects: subjects.map((subject: { subject: string }) => subject.subject),
 		levels: levels.map((level: { level: string }) => level.level),
+	};
+}
+
+async function attachResourceTaxonomies<
+	TResource extends {
+		id: string;
+	},
+>(db: DrizzleDB, resource: TResource) {
+	return {
+		...resource,
+		...(await listResourceTaxonomyValues(db, resource.id)),
 	};
 }
 
@@ -117,30 +142,7 @@ export async function listResources(db: DrizzleDB, opts: ResourceListOptions) {
 
 	const where = andWhere(conditions);
 	const rows = await db
-		.select({
-			id: resources.id,
-			slug: resources.slug,
-			externalId: resources.externalId,
-			sourceUri: resources.sourceUri,
-			title: resources.title,
-			description: resources.description,
-			language: resources.language,
-			license: resources.license,
-			resourceType: resources.resourceType,
-			keywords: resources.keywords,
-			author: resources.author,
-			publisher: resources.publisher,
-			createdBy: resources.createdBy,
-			createdByName: user.name,
-			editorialStatus: resources.editorialStatus,
-			featuredAt: resources.featuredAt,
-			deletedAt: resources.deletedAt,
-			createdAt: resources.createdAt,
-			updatedAt: resources.updatedAt,
-			favoriteCount: sql<number>`(SELECT count(*) FROM favorites WHERE favorites.resource_id = ${resources.id})`,
-			ratingAvg: sql<number>`(SELECT coalesce(avg(score), 0) FROM ratings WHERE ratings.resource_id = ${resources.id})`,
-			ratingCount: sql<number>`(SELECT count(*) FROM ratings WHERE ratings.resource_id = ${resources.id})`,
-		})
+		.select(resourceListSelection)
 		.from(resources)
 		.leftJoin(user, eq(resources.createdBy, user.id))
 		.where(where)
@@ -167,10 +169,7 @@ export async function getResourceById(db: DrizzleDB, id: string) {
 	const resource = rows[0];
 	if (!resource) return null;
 
-	return {
-		...resource,
-		...(await getResourceTaxonomyValues(db, resource.id)),
-	};
+	return attachResourceTaxonomies(db, resource);
 }
 
 export async function getResourceBySlug(db: DrizzleDB, slug: string) {
@@ -185,8 +184,7 @@ export async function getResourceBySlug(db: DrizzleDB, slug: string) {
 	if (!resource) return null;
 
 	return {
-		...resource,
-		...(await getResourceTaxonomyValues(db, resource.id)),
+		...(await attachResourceTaxonomies(db, resource)),
 		mediaItems: await listMediaItemsForResource(db, resource.id),
 	};
 }
