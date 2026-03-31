@@ -21,13 +21,13 @@ export async function ensureCurrentUser(user: { id: string; role?: string; name?
 
 /** Build a normalised elpxPreview object from a raw elpx project row. */
 export function buildElpxPreview(
-	elpx: { hash?: string; hasPreview?: number } | null | undefined,
+	elpx: { hash?: string; hasPreview?: boolean } | null | undefined,
 ): { hash: string; previewUrl: string } | null {
-	if (!elpx || elpx.hasPreview !== 1 || !elpx.hash) return null;
+	if (!elpx || !elpx.hasPreview || !elpx.hash) return null;
 	return { hash: elpx.hash, previewUrl: `/api/v1/elpx/${elpx.hash}/` };
 }
 
-export type ElpxRow = { resourceId: string; hash: string; hasPreview: number };
+export type ElpxRow = { resourceId: string; hash: string; hasPreview: boolean };
 
 /** Build a resourceId→elpx lookup map from a list of elpx project rows. */
 export function buildElpxMap(rows: ElpxRow[]): Map<string, ElpxRow> {

@@ -111,7 +111,7 @@ elpxAdminRoutes.post("/upload/:resourceId", requireRole("author"), async (c) => 
 		url: buildUploadPublicUrl(uploadId),
 		fileSize: file.size,
 		filename: file.name,
-		isPrimary: 1,
+		isPrimary: true,
 	});
 
 	await repo.completeUploadSession(getDb().db, uploadId, {
@@ -137,7 +137,7 @@ elpxAdminRoutes.post("/upload/:resourceId", requireRole("author"), async (c) => 
 		originalFilename: file.name,
 		uploadSessionId: uploadId,
 		version: 3,
-		hasPreview: result.hasPreview ? 1 : 0,
+		hasPreview: result.hasPreview,
 		elpxMetadata: JSON.stringify(result.metadata),
 	});
 
@@ -195,7 +195,7 @@ elpxAdminRoutes.post("/save/:resourceId", requireRole("author"), async (c) => {
 		url: buildUploadPublicUrl(uploadId),
 		fileSize: buffer.byteLength,
 		filename,
-		isPrimary: 1,
+		isPrimary: true,
 	});
 
 	await repo.createUploadSession(getDb().db, {
@@ -227,7 +227,7 @@ elpxAdminRoutes.post("/save/:resourceId", requireRole("author"), async (c) => {
 		originalFilename: filename,
 		uploadSessionId: uploadId,
 		version: 3,
-		hasPreview: result.hasPreview ? 1 : 0,
+		hasPreview: result.hasPreview,
 		elpxMetadata: JSON.stringify(result.metadata),
 	});
 
@@ -342,7 +342,7 @@ elpxAdminRoutes.post("/generate/:resourceId", requireRole("author"), async (c) =
 		url: buildUploadPublicUrl(uploadId),
 		fileSize: buffer.byteLength,
 		filename: generatedFilename,
-		isPrimary: 1,
+		isPrimary: true,
 	});
 
 	await repo.completeUploadSession(getDb().db, uploadId, {
@@ -361,7 +361,7 @@ elpxAdminRoutes.post("/generate/:resourceId", requireRole("author"), async (c) =
 		originalFilename: generatedFilename,
 		uploadSessionId: uploadId,
 		version: 3,
-		hasPreview: result.hasPreview ? 1 : 0,
+		hasPreview: result.hasPreview,
 		elpxMetadata: JSON.stringify(result.metadata),
 	});
 

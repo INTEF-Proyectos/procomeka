@@ -1,4 +1,4 @@
-import { pgTable, text, integer, timestamp, varchar } from "drizzle-orm/pg-core";
+import { pgTable, text, boolean, integer, timestamp, varchar } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { resources } from "./resources.ts";
 
@@ -13,7 +13,7 @@ export const elpxProjects = pgTable("elpx_projects", {
 	originalFilename: text("original_filename").notNull(),
 	uploadSessionId: text("upload_session_id"),
 	version: integer("version").notNull().default(3),
-	hasPreview: integer("has_preview").notNull().default(0),
+	hasPreview: boolean("has_preview").notNull().default(false),
 	elpxMetadata: text("elpx_metadata"),
 	createdAt: timestamp("created_at").notNull().defaultNow(),
 	updatedAt: timestamp("updated_at").notNull().defaultNow(),

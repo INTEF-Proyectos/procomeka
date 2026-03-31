@@ -21,7 +21,7 @@ const collectionRoutes = buildCrudRoutes({
 				? null
 				: undefined,
 			editorialStatus: typeof payload.editorialStatus === "string" ? payload.editorialStatus : undefined,
-			isOrdered: typeof payload.isOrdered === "boolean" ? (payload.isOrdered ? 1 : 0) : undefined,
+			isOrdered: typeof payload.isOrdered === "boolean" ? payload.isOrdered : undefined,
 		});
 	},
 	remove: repo.deleteCollection,
@@ -40,7 +40,7 @@ const collectionRoutes = buildCrudRoutes({
 			coverImageUrl: typeof body.coverImageUrl === "string" ? body.coverImageUrl : null,
 			curatorId: user.id,
 			editorialStatus: typeof body.editorialStatus === "string" ? body.editorialStatus : undefined,
-			isOrdered: body.isOrdered ? 1 : 0,
+			isOrdered: !!body.isOrdered,
 		};
 	},
 	afterCreate: async (user, result, data) => {

@@ -1,5 +1,6 @@
 import { relations } from "drizzle-orm";
 import {
+	boolean,
 	integer,
 	pgTable,
 	text,
@@ -62,7 +63,7 @@ export const mediaItems = pgTable("media_items", {
 	url: text("url").notNull(),
 	fileSize: integer("file_size"),
 	filename: text("filename"),
-	isPrimary: integer("is_primary").notNull().default(0),
+	isPrimary: boolean("is_primary").notNull().default(false),
 });
 
 // Tablas de unión para relaciones many-to-many

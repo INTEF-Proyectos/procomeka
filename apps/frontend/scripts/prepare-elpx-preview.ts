@@ -84,7 +84,7 @@ async function main() {
 				id: `elpx-${r.id}`,
 				resourceId: r.id,
 				hash: result.hash,
-				hasPreview: 1,
+				hasPreview: true,
 				originalFilename: result.filename,
 				elpxMetadata: null,
 			};

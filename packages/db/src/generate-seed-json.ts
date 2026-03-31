@@ -50,7 +50,7 @@ const seedJson = {
 		resourceId: r.id,
 		hash: deterministicHash(r.id),
 		originalFilename: `demo-${r.slug}.elpx`,
-		hasPreview: 1,
+		hasPreview: true,
 	})),
 	// mediaItems: cada recurso publicado tiene su .elpx como archivo descargable
 	mediaItems: DEMO_RESOURCES
@@ -63,7 +63,7 @@ const seedJson = {
 			url: `api/v1/elpx-raw/${deterministicHash(r.id)}.elpx`,
 			fileSize: null,
 			filename: `demo-${r.slug}.elpx`,
-			isPrimary: 1,
+			isPrimary: true,
 		})),
 	collections: DEMO_COLLECTIONS.map((c) => ({
 		id: c.id,

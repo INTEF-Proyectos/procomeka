@@ -102,7 +102,7 @@ describe("repository admin helpers", () => {
 			description: "Colección de sociales",
 			curatorId: "curator-2",
 			editorialStatus: "published",
-			isOrdered: 1,
+			isOrdered: true,
 		});
 
 		const filtered = await listCollections(db, {
@@ -117,14 +117,14 @@ describe("repository admin helpers", () => {
 			title: "Álgebra visual avanzada",
 			coverImageUrl: "https://img.example/algebra-2.png",
 			editorialStatus: "published",
-			isOrdered: 1,
+			isOrdered: true,
 		});
 
 		const updated = await getCollectionById(db, first.id);
 		expect(updated?.title).toBe("Álgebra visual avanzada");
 		expect(updated?.coverImageUrl).toBe("https://img.example/algebra-2.png");
 		expect(updated?.editorialStatus).toBe("published");
-		expect(updated?.isOrdered).toBe(1);
+		expect(updated?.isOrdered).toBe(true);
 
 		const bySlug = await getCollectionBySlug(db, updated!.slug, { status: "published" });
 		expect(bySlug?.id).toBe(first.id);
@@ -194,7 +194,7 @@ describe("repository elpx projects", () => {
 			hash: "abc123",
 			extractPath: "/tmp/test",
 			originalFilename: "test.elpx",
-			hasPreview: 1,
+			hasPreview: true,
 			elpxMetadata: JSON.stringify({ title: "Test" }),
 		});
 		expect(result.id).toBeTruthy();

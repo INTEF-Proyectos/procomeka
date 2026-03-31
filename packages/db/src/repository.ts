@@ -395,7 +395,7 @@ export async function createMediaItem(
 		url: string;
 		fileSize?: number | null;
 		filename?: string | null;
-		isPrimary?: number;
+		isPrimary?: boolean;
 	},
 ) {
 	const id = crypto.randomUUID();
@@ -407,7 +407,7 @@ export async function createMediaItem(
 		url: data.url,
 		fileSize: data.fileSize ?? null,
 		filename: data.filename ?? null,
-		isPrimary: data.isPrimary ?? 0,
+		isPrimary: data.isPrimary ?? false,
 	});
 	return { id };
 }
@@ -779,7 +779,7 @@ export async function createCollection(
 		coverImageUrl?: string | null;
 		curatorId: string;
 		editorialStatus?: string;
-		isOrdered?: number;
+		isOrdered?: boolean;
 	},
 ) {
 	const id = crypto.randomUUID();
@@ -800,7 +800,7 @@ export async function createCollection(
 		coverImageUrl: data.coverImageUrl ?? null,
 		curatorId: data.curatorId,
 		editorialStatus: data.editorialStatus ?? "draft",
-		isOrdered: data.isOrdered ?? 0,
+		isOrdered: data.isOrdered ?? false,
 		createdAt: now,
 		updatedAt: now,
 	});
@@ -811,7 +811,7 @@ export async function createCollection(
 export async function updateCollection(
 	db: DrizzleDB,
 	id: string,
-	data: Partial<{ title: string; description: string; coverImageUrl: string | null; editorialStatus: string; isOrdered: number }>,
+	data: Partial<{ title: string; description: string; coverImageUrl: string | null; editorialStatus: string; isOrdered: boolean }>,
 ) {
 	await db
 		.update(collections)
@@ -1061,7 +1061,7 @@ export async function createElpxProject(
 		originalFilename: string;
 		uploadSessionId?: string | null;
 		version?: number;
-		hasPreview?: number;
+		hasPreview?: boolean;
 		elpxMetadata?: string | null;
 	},
 ) {
@@ -1074,7 +1074,7 @@ export async function createElpxProject(
 		originalFilename: data.originalFilename,
 		uploadSessionId: data.uploadSessionId ?? null,
 		version: data.version ?? 3,
-		hasPreview: data.hasPreview ?? 0,
+		hasPreview: data.hasPreview ?? false,
 		elpxMetadata: data.elpxMetadata ?? null,
 		createdAt: new Date(),
 		updatedAt: new Date(),

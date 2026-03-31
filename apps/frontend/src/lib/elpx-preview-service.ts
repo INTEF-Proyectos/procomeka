@@ -51,7 +51,7 @@ export async function saveElpxInPreview(opts: {
 			hash,
 			extractPath: "",
 			originalFilename: opts.filename,
-			hasPreview: previewUrl ? 1 : 0,
+			hasPreview: !!previewUrl,
 			elpxMetadata: JSON.stringify(metadata),
 		});
 	}

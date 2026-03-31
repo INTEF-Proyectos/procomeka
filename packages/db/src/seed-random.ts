@@ -184,7 +184,7 @@ export async function seedRandomResources(
 						url: `/api/v1/uploads/${uploadId}/content`,
 						fileSize: null,
 						filename,
-						isPrimary: 1,
+						isPrimary: true,
 					});
 
 					await db.insert(elpxProjects).values({
@@ -195,7 +195,7 @@ export async function seedRandomResources(
 						originalFilename: filename,
 						uploadSessionId: null,
 						version: 3,
-						hasPreview: result.hasPreview ? 1 : 0,
+						hasPreview: result.hasPreview,
 						elpxMetadata: JSON.stringify(result.metadata),
 						createdAt: new Date(),
 						updatedAt: new Date(),
